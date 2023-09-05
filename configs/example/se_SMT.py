@@ -67,7 +67,7 @@ from common.Caches import *
 from common.cpu2000 import *
 
 
-def get_processes(args):
+def get_processes(args,numThreads):
     """Interprets provided args and returns a list of processes"""
 
     multiprocesses = []
@@ -112,9 +112,39 @@ def get_processes(args):
         multiprocesses.append(process)
         idx += 1
 
+    # Added this to append the same workload to multiple SMT threads
+    # for wrkld in workloads:
+    #     if args.smt:
+    #         for i in range(numThreads):
+    #             process = Process(pid=100 + idx)
+    #             process.executable = wrkld
+    #             process.cwd = os.getcwd()
+    #             process.gid = os.getgid()
+
+    #             if args.env:
+    #                 with open(args.env, "r") as f:
+    #                     process.env = [line.rstrip() for line in f]
+
+    #             if len(pargs) > idx:
+    #                 process.cmd = [wrkld] + pargs[idx].split()
+    #             else:
+    #                 process.cmd = [wrkld]
+
+    #             if len(inputs) > idx:
+    #                 process.input = inputs[idx]
+    #             if len(outputs) > idx:
+    #                 process.output = outputs[idx]
+    #             if len(errouts) > idx:
+    #                 process.errout = errouts[idx]
+
+    #             multiprocesses.append(process)
+    #             idx += 1
+
     if args.smt:
         assert args.cpu_type == "DerivO3CPU"
-        return multiprocesses, idx
+        #return multiprocesses, idx
+        # change here Ishita to allow for 2 threads SMT
+        return multiprocesses, numThreads
     else:
         return multiprocesses, 1
 
@@ -129,6 +159,9 @@ if "--ruby" in sys.argv:
 args = parser.parse_args()
 
 multiprocesses = []
+#numThreads = 1
+
+# Change numThreads to change SMT Ishita
 numThreads = 1
 
 if args.bench:
@@ -160,7 +193,8 @@ if args.bench:
             )
             sys.exit(1)
 elif args.cmd:
-    multiprocesses, numThreads = get_processes(args)
+    multiprocesses, numThreads = get_processes(args,numThreads)
+    print("GETTING_PROCESS_FROM_HERE ",len(multiprocesses))
 else:
     print("No workload specified. Exiting!\n", file=sys.stderr)
     sys.exit(1)
@@ -170,6 +204,7 @@ else:
 CPUClass.numThreads = numThreads
 
 # Check -- do not allow SMT with multiple CPUs
+# Ishita commented this out
 # if args.smt and args.num_cpus > 1:
 #     fatal("You cannot use SMT with multiple CPUs!")
 
@@ -182,7 +217,9 @@ system = System(
     cache_line_size=args.cacheline_size,
 )
 
+print("CHECKING_MULTITHREADING\n")
 if numThreads > 1:
+    print("SETTING_MULTITHREADING_TRUE\n")
     system.multi_thread = True
 
 # Create a top-level voltage domain
@@ -231,9 +268,12 @@ if args.simpoint_profile:
 for i in range(np):
     if args.smt:
         system.cpu[i].workload = multiprocesses
+        print("CREATE0 ",len(multiprocesses)," ",multiprocesses)
     elif len(multiprocesses) == 1:
+        print("CREATE1")
         system.cpu[i].workload = multiprocesses[0]
     else:
+        print("CREATE2")
         system.cpu[i].workload = multiprocesses[i]
 
     if args.simpoint_profile:

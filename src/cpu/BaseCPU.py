@@ -162,10 +162,29 @@ class BaseCPU(ClockedObject):
     _uncached_interrupt_response_ports = []
     _uncached_interrupt_request_ports = []
 
+    # def createInterruptController(self): # Ishita Removed
+    #     self.interrupts = [
+    #         self.ArchInterrupts() for i in range(self.numThreads)
+    #     ]
+
+    #   SMT_added
+    def createTLB(self, policy):
+        #if buildEnv['TARGET_ISA'] == 'x86':
+        self.dtb.numThreads = self.numThreads
+        self.itb.numThreads = self.numThreads
+
+        self.dtb.smtTLBPolicy = policy(numThreads=self.numThreads)
+        self.itb.smtTLBPolicy = policy(numThreads=self.numThreads)
+
     def createInterruptController(self):
-        self.interrupts = [
-            self.ArchInterrupts() for i in range(self.numThreads)
-        ]
+        self.interrupts = [self.ArchInterrupts() for i in range(self.numThreads)]
+        #if buildEnv['TARGET_ISA'] == 'x86':
+        for i in range (1, self.numThreads):
+            self._uncached_interrupt_response_ports += \
+            ["interrupts[%s].pio" % i,
+                "interrupts[%s].int_slave" % i]
+            self._uncached_interrupt_request_ports += [
+                "interrupts[%s].int_master" % i]
 
     def connectCachedPorts(self, in_ports):
         for p in self._cached_ports:

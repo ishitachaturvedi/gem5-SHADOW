@@ -256,14 +256,15 @@ CPU::CPU(const BaseO3CPUParams &params)
             thread[tid] = new ThreadState(this, 0, NULL);
         } else {
             if (tid < params.workload.size()) {
-                DPRINTF(O3CPU, "Workload[%i] process is %#x", tid,
-                        thread[tid]);
+                DPRINTF(O3CPU, "Inside Workload[%i] process is %#x Numthreads %d size %d", tid,
+                        thread[tid],numThreads,params.workload.size());
                 thread[tid] = new ThreadState(this, tid, params.workload[tid]);
             } else {
                 //Allocate Empty thread so M5 can use later
                 //when scheduling threads to CPU
                 Process* dummy_proc = NULL;
-
+                DPRINTF(O3CPU, "Workload[%i] process is BACKUP?", tid,
+                        thread[tid]);
                 thread[tid] = new ThreadState(this, tid, dummy_proc);
             }
         }
