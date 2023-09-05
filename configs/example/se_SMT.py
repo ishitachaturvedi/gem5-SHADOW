@@ -87,58 +87,58 @@ def get_processes(args,numThreads):
         pargs = args.options.split(";")
 
     idx = 0
-    for wrkld in workloads:
-        process = Process(pid=100 + idx)
-        process.executable = wrkld
-        process.cwd = os.getcwd()
-        process.gid = os.getgid()
+    # for wrkld in workloads:
+    #     process = Process(pid=100 + idx)
+    #     process.executable = wrkld
+    #     process.cwd = os.getcwd()
+    #     process.gid = os.getgid()
 
-        if args.env:
-            with open(args.env, "r") as f:
-                process.env = [line.rstrip() for line in f]
+    #     if args.env:
+    #         with open(args.env, "r") as f:
+    #             process.env = [line.rstrip() for line in f]
 
-        if len(pargs) > idx:
-            process.cmd = [wrkld] + pargs[idx].split()
-        else:
-            process.cmd = [wrkld]
+    #     if len(pargs) > idx:
+    #         process.cmd = [wrkld] + pargs[idx].split()
+    #     else:
+    #         process.cmd = [wrkld]
 
-        if len(inputs) > idx:
-            process.input = inputs[idx]
-        if len(outputs) > idx:
-            process.output = outputs[idx]
-        if len(errouts) > idx:
-            process.errout = errouts[idx]
+    #     if len(inputs) > idx:
+    #         process.input = inputs[idx]
+    #     if len(outputs) > idx:
+    #         process.output = outputs[idx]
+    #     if len(errouts) > idx:
+    #         process.errout = errouts[idx]
 
-        multiprocesses.append(process)
-        idx += 1
+    #     multiprocesses.append(process)
+    #     idx += 1
 
     # Added this to append the same workload to multiple SMT threads
-    # for wrkld in workloads:
-    #     if args.smt:
-    #         for i in range(numThreads):
-    #             process = Process(pid=100 + idx)
-    #             process.executable = wrkld
-    #             process.cwd = os.getcwd()
-    #             process.gid = os.getgid()
+    for wrkld in workloads:
+        if args.smt:
+            for i in range(numThreads):
+                process = Process(pid=100 + idx)
+                process.executable = wrkld
+                process.cwd = os.getcwd()
+                process.gid = os.getgid()
 
-    #             if args.env:
-    #                 with open(args.env, "r") as f:
-    #                     process.env = [line.rstrip() for line in f]
+                if args.env:
+                    with open(args.env, "r") as f:
+                        process.env = [line.rstrip() for line in f]
 
-    #             if len(pargs) > idx:
-    #                 process.cmd = [wrkld] + pargs[idx].split()
-    #             else:
-    #                 process.cmd = [wrkld]
+                if len(pargs) > idx:
+                    process.cmd = [wrkld] + pargs[idx].split()
+                else:
+                    process.cmd = [wrkld]
 
-    #             if len(inputs) > idx:
-    #                 process.input = inputs[idx]
-    #             if len(outputs) > idx:
-    #                 process.output = outputs[idx]
-    #             if len(errouts) > idx:
-    #                 process.errout = errouts[idx]
+                if len(inputs) > idx:
+                    process.input = inputs[idx]
+                if len(outputs) > idx:
+                    process.output = outputs[idx]
+                if len(errouts) > idx:
+                    process.errout = errouts[idx]
 
-    #             multiprocesses.append(process)
-    #             idx += 1
+                multiprocesses.append(process)
+                idx += 1
 
     if args.smt:
         assert args.cpu_type == "DerivO3CPU"
@@ -162,7 +162,7 @@ multiprocesses = []
 #numThreads = 1
 
 # Change numThreads to change SMT Ishita
-numThreads = 1
+numThreads = 2
 
 if args.bench:
     apps = args.bench.split("-")
