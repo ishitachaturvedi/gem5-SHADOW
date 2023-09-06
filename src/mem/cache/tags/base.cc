@@ -98,6 +98,28 @@ BaseTags::findBlock(Addr addr, bool is_secure) const
     return nullptr;
 }
 
+// REVIEW[@yucan] for SMT  PART 1
+std::vector<CacheBlk*>
+BaseTags::expiredBlocks(Addr addr, Tick dead_threshold)
+{
+    std::vector<CacheBlk*> expired_list;
+
+
+    // Find possible entries that may contain the given address
+    const std::vector<ReplaceableEntry *> entries =
+        indexingPolicy->getPossibleEntries(addr);
+
+    // See if any of them are expired
+    for (const auto &location : entries) {
+        CacheBlk *blk = static_cast<CacheBlk *>(location);
+        if ((curTick() - blk->lastAccess > dead_threshold) && blk->isValid()) {
+            expired_list.push_back(blk);
+        }
+    }
+
+    return expired_list;
+}
+
 void
 BaseTags::insertBlock(const PacketPtr pkt, CacheBlk *blk)
 {

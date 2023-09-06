@@ -113,7 +113,8 @@ def get_processes(args):
         idx += 1
 
     if args.smt:
-        assert args.cpu_type == "DerivO3CPU"
+        assert(options.cpu_type == "DerivO3CPU" or
+            options.cpu_type == "Skylake_3")
         return multiprocesses, idx
     else:
         return multiprocesses, 1

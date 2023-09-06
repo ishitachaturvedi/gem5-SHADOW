@@ -340,6 +340,15 @@ class BaseCache : public ClockedObject
 
   protected:
 
+    /** REVIEW[@yucan] for SMT  PART 1
+     * if on it automatically invalidates
+     * the blocks older than dead_threshold
+     */
+    bool eliminate_deads;
+    Tick dead_threshold;
+    Tick average_residency;
+    uint64_t num_accesses;
+
     /** Miss status registers */
     MSHRQueue mshrQueue;
 
@@ -1132,6 +1141,10 @@ class BaseCache : public ClockedObject
 
         /** Number of replacements of valid blocks. */
         statistics::Scalar replacements;
+
+        // REVIEW[@yucan] for SMT PART 1
+        /** Number of blocks that are evicted because are dead */
+        Stats::Scalar numExpiredBlocks;
 
         /** Number of data expansions. */
         statistics::Scalar dataExpansions;

@@ -263,6 +263,19 @@ class BaseTags : public ClockedObject
         blk->invalidate();
     }
 
+
+    // REVIEW[@yucan] for SMT PART 1
+    /**
+     * @brief returns the blocks whose last access is greater than
+     *        the dead threshold
+     *
+     * @param addr to calculate the set
+     * @param threshold number of ticks after which we
+     *        consider an unaccessed block as dead
+     * @return std::vector<CacheBlk*>
+     */
+    virtual std::vector<CacheBlk*> expiredBlocks(Addr addr, Tick threshold);
+
     /**
      * Find replacement victim based on address. If the address requires
      * blocks to be evicted, their locations are listed for eviction. If a

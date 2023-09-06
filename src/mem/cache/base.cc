@@ -80,6 +80,11 @@ BaseCache::BaseCache(const BaseCacheParams &p, unsigned blk_size)
     : ClockedObject(p),
       cpuSidePort (p.name + ".cpu_side_port", this, "CpuSidePort"),
       memSidePort(p.name + ".mem_side_port", this, "MemSidePort"),
+      // REVIEW[@yucan] for SMT PART 1
+      eliminate_deads(p.eliminate_deads),
+      dead_threshold(cyclesToTicks(p.dead_threshold)),
+      average_residency(cyclesToTicks(p.dead_threshold)),
+      num_accesses(0),
       mshrQueue("MSHRs", p.mshrs, 0, p.demand_mshr_reserve, p.name),
       writeBuffer("write buffer", p.write_buffers, p.mshrs, p.name),
       tags(p.tags),
@@ -1235,6 +1240,20 @@ BaseCache::access(PacketPtr pkt, CacheBlk *&blk, Cycles &lat,
                 "Should never see a write in a read-only cache %s\n",
                 name());
 
+    // REVIEW[@yucan] for SMT PART 1
+    if (eliminate_deads) {
+        // get the list of all expired blocks of the same set from tags
+        auto expired_list = tags->expiredBlocks(pkt->getAddr(), average_residency);
+        for (auto expired_blk : expired_list){
+            if (expired_blk && expired_blk->isValid()) {
+                stats.numExpiredBlocks++;
+                DPRINTF(Cache, "adding blk %s to writeback list \n",
+                                expired_blk->print());
+                BaseCache::evictBlock(expired_blk, writebacks);
+            }
+        }
+    }
+
     // Access block in the tags
     Cycles tag_latency(0);
     blk = tags->accessBlock(pkt, tag_latency);
@@ -1636,6 +1655,17 @@ BaseCache::allocateBlock(const PacketPtr pkt, PacketList &writebacks)
     // It is valid to return nullptr if there is no victim
     if (!victim)
         return nullptr;
+
+    // REVIEW[@yucan] for SMT PART 1
+    //update dead_threshold
+    if (eliminate_deads) {
+        uint64_t sum = num_accesses * average_residency;
+        num_accesses++;
+        if (victim && victim->isValid()){
+            sum += curTick() - victim->lastAccess;
+            average_residency = sum / num_accesses;
+        }
+    }
 
     // Print victim block's information
     DPRINTF(CacheRepl, "Replacement victim: %s\n", victim->print());
@@ -2267,6 +2297,8 @@ BaseCache::CacheStats::CacheStats(BaseCache &c)
              "average overall mshr uncacheable latency"),
     ADD_STAT(replacements, statistics::units::Count::get(),
              "number of replacements"),
+    ADD_STAT(numExpiredBlocks, statistics::units::Count::get(), // REVIEW[@yucan] for SMT PART 1
+            "dead blocks evicted"),
     ADD_STAT(dataExpansions, statistics::units::Count::get(),
              "number of data expansions"),
     ADD_STAT(dataContractions, statistics::units::Count::get(),

@@ -156,6 +156,10 @@ class BaseCache(ClockedObject):
     # set to False.
     writeback_clean = Param.Bool(False, "Writeback clean lines")
 
+    # REVIEW[@yucan] for SMT
+    eliminate_deads = Param.Bool(False, "Eliminate Dead Blocks")
+    dead_threshold = Param.Cycles(0, "Number of cycles")
+
     # Control whether this cache should be mostly inclusive or mostly
     # exclusive with respect to upstream caches. The behaviour on a
     # fill is determined accordingly. For a mostly inclusive cache,

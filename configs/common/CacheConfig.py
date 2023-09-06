@@ -47,6 +47,7 @@ from gem5.runtime import get_runtime_isa
 
 from common.Caches import *
 from common import ObjectList
+from common.cores.x86 import skylake
 
 
 def _get_hwp(hwp_option):
@@ -96,6 +97,17 @@ def config_cache(options, system):
             core.O3_ARM_v7aL2,
             None,
         )
+    elif options.cpu_type == "Skylake_3":
+        try:
+            import cores.x86.skylake as core
+        except:
+            print("Skylake_3 is unavailable. Did you compile the O3 model?")
+            sys.exit(1)
+
+        dcache_class, icache_class, l2_cache_class, walk_cache_class = \
+            core.Skylake_DCache, core.Skylake_ICache, \
+            core.SkylakeL2, \
+            core.SkylakeWalkCache
     elif options.cpu_type == "HPI":
         try:
             import cores.arm.HPI as core
@@ -134,9 +146,18 @@ def config_cache(options, system):
         # Provide a clock for the L2 and the L1-to-L2 bus here as they
         # are not connected using addTwoLevelCacheHierarchy. Use the
         # same clock as the CPUs.
-        system.l2 = l2_cache_class(
-            clk_domain=system.cpu_clk_domain, **_get_cache_opts("l2", options)
-        )
+        if options.cpu_type == "Skylake_3":
+            system.l2 = l2_cache_class(clk_domain=system.cpu_clk_domain)
+            policy =  ObjectList.policy_obj("smtCachePolicy", options)
+            if hasattr(policy, "max_borrow"):
+                policy.max_borrow = 0
+            # system.l2.eliminate_deads = True 
+            system.l2.tags = PartitionedSetAssoc(
+                    smt_policy = policy)
+        else:
+            system.l2 = l2_cache_class(clk_domain=system.cpu_clk_domain,
+                                   size=options.l2_size,
+                                   assoc=options.l2_assoc)
 
         system.tol2bus = L2XBar(clk_domain=system.cpu_clk_domain)
         system.l2.cpu_side = system.tol2bus.mem_side_ports
@@ -149,6 +170,20 @@ def config_cache(options, system):
         if options.caches:
             icache = icache_class(**_get_cache_opts("l1i", options))
             dcache = dcache_class(**_get_cache_opts("l1d", options))
+
+            # REVIEW[@yucan] for SMT PART 1
+            if options.cpu_type == "Skylake_3":
+                policy =  ObjectList.policy_obj("smtCachePolicy", options)
+                if hasattr(policy, "max_borrow"):
+                    policy.max_borrow = 1
+                dcache.tags = PartitionedSetAssoc(
+                    smt_policy = policy)
+                dcache.eliminate_deads = True
+                dcache.dead_threshold = 5000
+                icache.tags = PartitionedSetAssoc(
+                    smt_policy = policy)
+                icache.eliminate_deads = False
+                icache.dead_threshold = 5000
 
             # If we have a walker cache specified, instantiate two
             # instances here

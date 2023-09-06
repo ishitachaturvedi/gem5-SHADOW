@@ -108,6 +108,11 @@ class CacheBlk : public TaggedEntry
      */
     Tick whenReady = 0;
 
+    /**
+     * The most recent tick on which the block was accessed
+     */
+    Tick lastAccess;
+
   protected:
     /**
      * Represents that the indicated thread context has a "lock" on
