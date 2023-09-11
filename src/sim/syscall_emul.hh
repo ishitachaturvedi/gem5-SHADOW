@@ -1665,7 +1665,9 @@ doClone(SyscallDesc *desc, ThreadContext *tc, RegVal flags, RegVal newStack,
     Process *owner = ctc->getProcessPtr();
     ctc->setProcessPtr(cp);
     cp->assignThreadContext(ctc->contextId());
-    owner->revokeThreadContext(ctc->contextId());
+
+    if(owner) // Change Ishita
+        owner->revokeThreadContext(ctc->contextId());
 
     if (flags & OS::TGT_CLONE_PARENT_SETTID) {
         BufferArg ptidBuf(ptidPtr, sizeof(long));

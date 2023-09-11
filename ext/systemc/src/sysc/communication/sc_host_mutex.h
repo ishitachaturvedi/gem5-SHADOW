@@ -106,16 +106,16 @@ public:
 
     // blocks until mutex could be locked
     virtual int lock()
-	{ SC_MTX_LOCK_(m_mtx); return 0; }
+	{  SC_MTX_LOCK_(m_mtx); return 0; }
 
     // returns -1 if mutex could not be locked
     virtual int trylock()
-	{ return SC_MTX_TRYLOCK_(m_mtx) ? 0 : -1; }
+	{  return SC_MTX_TRYLOCK_(m_mtx) ? 0 : -1; }
 
     // should return -1 if mutex was not locked by caller,
     // but is not yet able to check this
     virtual int unlock()
-	{ SC_MTX_UNLOCK_(m_mtx); return 0; }
+	{  SC_MTX_UNLOCK_(m_mtx); return 0; }
 
 private:
     underlying_type m_mtx;

@@ -103,8 +103,9 @@ ISA::updateHandyM5Reg(Efer efer, CR0 cr0,
     }
 
     regVal[misc_reg::M5Reg] = m5reg;
-    if (tc)
-        tc->getDecoderPtr()->as<Decoder>().setM5Reg(m5reg);
+
+    //if (tc)
+    tc->getDecoderPtr()->as<Decoder>().setM5Reg(m5reg);
 }
 
 void

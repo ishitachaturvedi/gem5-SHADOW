@@ -66,6 +66,7 @@
 #include "sim/se_workload.hh"
 #include "sim/syscall_desc.hh"
 #include "sim/system.hh"
+#include "debug/O3CPU.hh"
 
 namespace gem5
 {
@@ -289,6 +290,8 @@ Process::initState()
 {
     if (contextIds.empty())
         fatal("Process %s is not associated with any HW contexts!\n", name());
+
+    DPRINTF(O3CPU,"ENTERING_INIT_STATE\n");
 
     // first thread context for this process... initialize & enable
     ThreadContext *tc = system->threads[contextIds[0]];

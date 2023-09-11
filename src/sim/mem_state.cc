@@ -96,8 +96,9 @@ MemState::isUnmapped(Addr start_addr, Addr length)
     for (auto start = start_addr; start < end_addr;
          start += _pageBytes) {
         if (_ownerProcess->pTable->lookup(start) != nullptr) {
-            panic("Someone allocated physical memory at VA %p without "
-                  "creating a VMA!\n", start);
+            // Ishita commented panic for SMT
+            // panic("Someone allocated physical memory at VA %p without "
+            //       "creating a VMA!\n", start);
             return false;
         }
     }

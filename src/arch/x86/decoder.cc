@@ -34,6 +34,7 @@
 #include "base/types.hh"
 #include "debug/Decode.hh"
 #include "debug/Decoder.hh"
+#include "debug/Fetch.hh"
 
 namespace gem5
 {
@@ -85,6 +86,8 @@ Decoder::process()
     assert(!outOfBytes);
     assert(!instDone);
 
+    DPRINTF(Decoder,"ENTERING_PROCESS1 state %d instDone %d outOfBytes %d\n.",state,instDone,outOfBytes);
+
     if (state == ResetState)
         state = doResetState();
     if (state == FromCacheState) {
@@ -93,9 +96,12 @@ Decoder::process()
         instBytes->chunks.push_back(fetchChunk);
     }
 
+    DPRINTF(Decoder,"ENTERING_PROCESS2 state %d instDone %d outOfBytes %d\n.",state,instDone,outOfBytes);
+
     // While there's still something to do...
     while (!instDone && !outOfBytes) {
         uint8_t nextByte = getNextByte();
+        DPRINTF(Decoder,"ENTERING_PROCESS3 state %d instDone %d outOfBytes %d nextByte %x offset %d pointer %p\n.",state,instDone,outOfBytes,nextByte,offset,&offset);
         switch (state) {
           case PrefixState:
             state = doPrefixState(nextByte);
@@ -142,6 +148,7 @@ Decoder::process()
             panic("Unrecognized state! %d\n", state);
         }
     }
+    DPRINTF(Decoder,"EXIT_PROCESS3 state %d instDone %d outOfBytes %d offset %d\n.",state,instDone,outOfBytes,offset);
 }
 
 Decoder::State
@@ -185,6 +192,7 @@ Decoder::doPrefixState(uint8_t nextByte)
     // different table for that.
     const int table_idx = emi.mode.submode == SixtyFourBitMode ? 1 : 0;
     const uint8_t prefix = Prefixes[table_idx][nextByte];
+    DPRINTF(Fetch,"Prefixes values pointer %p table idx %d nextByte %d prefix %d",&Prefixes[table_idx][nextByte],table_idx,nextByte,prefix);
     State nextState = PrefixState;
     if (prefix)
         consumeByte();
@@ -492,6 +500,8 @@ Decoder::processOpcode(ByteTable &immTable, ByteTable &modrmTable,
     else
         immediateSize = SizeTypeToSize[logOpSize - 1][immType];
 
+    DPRINTF(Fetch,"PROCESS_OPCODE immType %d opcode %d immediateSize %d addrSizedImm %d logAddrSize %d logOpSize %d altAddr %d defAddr %d emi.legacy.op %d emi.legacy.addr %d\n",immType,opcode,immediateSize,addrSizedImm,logAddrSize,logOpSize,altAddr,defAddr,emi.legacy.op,emi.legacy.addr);
+
     // Determine what to expect next.
     if (modrmTable[opcode]) {
         nextState = ModRMState;
@@ -695,10 +705,16 @@ Decoder::decode(ExtMachInst mach_inst, Addr addr)
 StaticInstPtr
 Decoder::decode(PCStateBase &next_pc)
 {
+
+   DPRINTF(Fetch, "[inside_deocode1 %s.\n",
+            next_pc);
     if (!instDone)
         return NULL;
     instDone = false;
     updateNPC(next_pc.as<PCState>());
+
+    DPRINTF(Fetch, "inside_deocode2 %s.\n",
+            next_pc);
 
     StaticInstPtr &si = instBytes->si;
     if (si)

@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-#define NUM_THREADS 2
+#define NUM_THREADS 1
 #define NUM_INCREMENTS 2
 
 int sharedVariable = 0;
@@ -29,6 +29,7 @@ int main() {
     for (t = 0; t < NUM_THREADS; t++) {
         printf("Creating thread %ld\n", t);
         rc = pthread_create(&threads[t], NULL, incrementVariable, (void *)t);
+        fprintf(stderr, "%s", "Thread is created!\n");
         if (rc) {
             printf("Error: Unable to create thread %ld\n", t);
             exit(-1);
@@ -37,7 +38,9 @@ int main() {
 
     // Wait for all threads to complete
     for (t = 0; t < NUM_THREADS; t++) {
-        pthread_join(threads[t], NULL);
+        printf("joing_thread %ld\n", t);
+        //pthread_join(threads[t], NULL);
+	    printf("Thread_joined %ld\n",t);
     }
 
     printf("All threads have completed.\n");
@@ -46,6 +49,9 @@ int main() {
     // Destroy the mutex lock
     pthread_mutex_destroy(&lock);
 
-    pthread_exit(NULL);
+    printf("MUTEX_LOCK_DESTROYED.\n");
+
+    //pthread_exit(NULL);
+    exit(0);
 }
 

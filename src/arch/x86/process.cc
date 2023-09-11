@@ -590,7 +590,13 @@ X86_64Process::initState()
             cr0.mp = 1; // This doesn't really matter, but the manual suggests
                         // setting it to one.
             cr0.pe = 1; // We're definitely in protected mode.
-            tc->setMiscReg(misc_reg::Cr0, cr0);
+
+            int SMT_threads = 2;
+            for(int k=0; k<SMT_threads;k++)
+            {
+                ThreadContext * tc1 = system->threads[contextIds[i]+k];
+                tc1->setMiscReg(misc_reg::Cr0, cr0);
+            }
 
             tc->setMiscReg(misc_reg::Mxcsr, 0x1f80);
 

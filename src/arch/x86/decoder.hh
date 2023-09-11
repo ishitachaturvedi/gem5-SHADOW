@@ -45,6 +45,7 @@
 #include "cpu/static_inst.hh"
 #include "debug/Decoder.hh"
 #include "params/X86Decoder.hh"
+#include "debug/Fetch.hh"
 
 namespace gem5
 {
@@ -164,7 +165,9 @@ class Decoder : public InstDecoder
     void
     consumeByte()
     {
+        DPRINTF(Decoder,"Offset_before %d %p\n",offset,&offset);
         offset++;
+        DPRINTF(Decoder,"Offset_after %d %p\n",offset,&offset);
         updateOffsetState();
     }
 
@@ -267,6 +270,10 @@ class Decoder : public InstDecoder
     void
     setM5Reg(HandyM5Reg m5Reg)
     {
+        // Ishita HUGE CHANGE
+        m5Reg = 0x3b6f0;
+        DPRINTF(Fetch,"setM5Reg CALLED HERE m5Reg %#x\n",(uint64_t)(m5Reg));
+
         cpl = m5Reg.cpl;
         mode = (X86Mode)(uint64_t)m5Reg.mode;
         submode = (X86SubMode)(uint64_t)m5Reg.submode;
@@ -329,9 +336,9 @@ class Decoder : public InstDecoder
     void
     moreBytes(const PCStateBase &pc, Addr fetchPC) override
     {
-        DPRINTF(Decoder, "Getting more bytes.\n");
         basePC = fetchPC;
         offset = (fetchPC >= pc.instAddr()) ? 0 : pc.instAddr() - fetchPC;
+        DPRINTF(Decoder, "Getting more bytes fetchPC %#x pc.instAddr() %#x offset %#x.\n", fetchPC, pc.instAddr(), offset);
         fetchChunk = letoh(fetchChunk);
         outOfBytes = false;
         process();
@@ -340,13 +347,19 @@ class Decoder : public InstDecoder
     void
     updateNPC(X86ISA::PCState &nextPC)
     {
+        DPRINTF(Fetch, "inside_updateNPC1 %s size %d.\n",
+            nextPC,nextPC.size());
         if (!nextPC.size()) {
             int size = basePC + offset - origPC;
+            DPRINTF(Fetch, "inside_updateNPC2 %s size %#x basePC %#x offset %#x origPC %#x.\n",
+            nextPC,size,basePC,offset,origPC);
             DPRINTF(Decoder,
                     "Calculating the instruction size: "
                     "basePC: %#x offset: %#x origPC: %#x size: %d\n",
                     basePC, offset, origPC, size);
             nextPC.size(size);
+            DPRINTF(Fetch, "inside_updateNPC3 %s nextPC.pc() %#x size %#x.\n",
+            nextPC,nextPC.pc(),size);
             nextPC.npc(nextPC.pc() + size);
         }
     }

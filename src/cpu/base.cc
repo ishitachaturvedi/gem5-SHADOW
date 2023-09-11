@@ -432,7 +432,8 @@ BaseCPU::registerThreadContexts()
 
         system->registerThreadContext(tc);
 
-        if (!FullSystem)
+        // if (!FullSystem)
+        if (!FullSystem && tc->getProcessPtr()) // change Ishita
             tc->getProcessPtr()->assignThreadContext(tc->contextId());
 
         interrupts[tid]->setThreadContext(tc);

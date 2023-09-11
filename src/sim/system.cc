@@ -54,6 +54,7 @@
 #include "debug/Loader.hh"
 #include "debug/Quiesce.hh"
 #include "debug/WorkItems.hh"
+#include "debug/O3CPU.hh"
 #include "mem/abstract_mem.hh"
 #include "mem/physical.hh"
 #include "params/System.hh"
@@ -61,6 +62,7 @@
 #include "sim/debug.hh"
 #include "sim/redirect_path.hh"
 #include "sim/serialize_handlers.hh"
+#include "cpu/pc_event.hh"
 
 namespace gem5
 {
@@ -185,6 +187,8 @@ System::System(const Params &p)
 {
     panic_if(!workload, "No workload set for system %s "
             "(could use StubWorkload?).", name());
+
+    DPRINTF(O3CPU,"Adding worload begin\n");
     workload->setSystem(this);
 
     // add self to global system list

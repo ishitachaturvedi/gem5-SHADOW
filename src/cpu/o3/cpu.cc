@@ -222,7 +222,9 @@ CPU::CPU(const BaseO3CPUParams &params)
 
     // Initialize rename map to assign physical registers to the
     // architectural registers for active threads only.
-    for (ThreadID tid = 0; tid < active_threads; tid++) {
+
+    //for (ThreadID tid = 0; tid < active_threads; tid++) { // Ishita Change
+    for (ThreadID tid = 0; tid < numThreads; tid++) {
         for (auto type = (RegClassType)0; type <= CCRegClass;
                 type = (RegClassType)(type + 1)) {
             for (auto &id: *regClasses.at(type)) {
@@ -256,14 +258,14 @@ CPU::CPU(const BaseO3CPUParams &params)
             thread[tid] = new ThreadState(this, 0, NULL);
         } else {
             if (tid < params.workload.size()) {
-                DPRINTF(O3CPU, "Inside Workload[%i] process is %#x Numthreads %d size %d", tid,
+                DPRINTF(O3CPU, "Inside Workload[%i] params.workload %d process is %#x Numthreads %d size %d\n", tid, &params.workload,
                         thread[tid],numThreads,params.workload.size());
                 thread[tid] = new ThreadState(this, tid, params.workload[tid]);
             } else {
                 //Allocate Empty thread so M5 can use later
                 //when scheduling threads to CPU
                 Process* dummy_proc = NULL;
-                DPRINTF(O3CPU, "Workload[%i] process is BACKUP?", tid,
+                DPRINTF(O3CPU, "Workload[%i] process is BACKUP?\n", tid,
                         thread[tid]);
                 thread[tid] = new ThreadState(this, tid, dummy_proc);
             }

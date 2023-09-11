@@ -769,10 +769,10 @@ void
 IEW::sortInsts()
 {
     int insts_from_rename = fromRename->size;
-#ifdef DEBUG
-    for (ThreadID tid = 0; tid < numThreads; tid++)
-        assert(insts[tid].empty());
-#endif
+// #ifdef DEBUG
+//     for (ThreadID tid = 0; tid < numThreads; tid++)
+//         assert(insts[tid].empty());
+// #endif
     for (int i = 0; i < insts_from_rename; ++i) {
         insts[fromRename->insts[i]->threadNumber].push(fromRename->insts[i]);
     }

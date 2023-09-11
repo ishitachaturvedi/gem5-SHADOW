@@ -10,7 +10,7 @@ void *printHello(void *threadId) {
 }
 
 int main() {
-    int numThreads = 5; // Number of threads to create
+    int numThreads = 2; // Number of threads to create
     pthread_t threads[numThreads];
     int rc;
     long t;
