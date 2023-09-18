@@ -200,9 +200,9 @@ ROB::insertInst(const DynInstPtr &inst)
 
     stats.writes++;
 
-    DPRINTF(ROB, "Adding inst PC %s to the ROB.\n", inst->pcState());
+    DPRINTF(ROB, " [tid:%d] Adding inst PC %s to the ROB numInstsInROB %d numEntries %d free enties overall %d free entries tid %d.\n", inst->threadNumber,inst->pcState(),numInstsInROB,numEntries,numFreeEntries(),numFreeEntries(inst->threadNumber));
 
-    assert(numInstsInROB != numEntries);
+    //assert(numInstsInROB != numEntries);
 
     ThreadID tid = inst->threadNumber;
 

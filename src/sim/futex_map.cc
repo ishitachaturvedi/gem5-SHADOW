@@ -27,6 +27,7 @@
  */
 
 #include <sim/futex_map.hh>
+#include "sim/syscall_debug_macros.hh"
 
 namespace gem5
 {
@@ -61,8 +62,12 @@ FutexMap::wakeup(Addr addr, uint64_t tgid, int count)
     FutexKey key(addr, tgid);
     auto it = find(key);
 
+    DPRINTF(SyscallVerbose, "futex_wakeup_inside process_tgid %d count %d addr %d\n",tgid,count,addr);
+
     if (it == end())
         return 0;
+
+    DPRINTF(SyscallVerbose, "futex_wakeup_inside_step1 process_tgid %d count %d addr %d\n",tgid,count,addr);
 
     int woken_up = 0;
     auto &waiterList = it->second;
@@ -74,6 +79,7 @@ FutexMap::wakeup(Addr addr, uint64_t tgid, int count)
         // woken up by this syscall.
         auto& tc = waiterList.front().tc;
         tc->activate();
+        DPRINTF(SyscallVerbose, "futex_waking_up process_tgid %d woken_up %d addr %d tc %d thread %d core %d\n",tgid,woken_up,addr,&tc,tc->threadId(),tc->cpuId());
         woken_up++;
         waiterList.pop_front();
         waitingTcs.erase(tc);
@@ -92,10 +98,14 @@ FutexMap::suspend_bitset(Addr addr, uint64_t tgid, ThreadContext *tc,
     FutexKey key(addr, tgid);
     auto it = find(key);
 
+    DPRINTF(SyscallVerbose, "futex_suspend_bitset thread %d core %d process_tgid %d tc %llu addr %d\n",tc->threadId(),tc->cpuId(),tgid,&tc,addr);
+
     if (it == end()) {
         WaiterList waiterList {WaiterState(tc, bitmask)};
+        DPRINTF(SyscallVerbose, "futex_FRESH_INSERT thread %d core %d\n",tc->threadId(),tc->cpuId());
         insert({key, waiterList});
     } else {
+        DPRINTF(SyscallVerbose, "futex_PUSH_BACK thread %d core %d\n",tc->threadId(),tc->cpuId(),tgid);
         it->second.push_back(WaiterState(tc, bitmask));
     }
     waitingTcs.emplace(tc);

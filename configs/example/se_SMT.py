@@ -40,6 +40,11 @@
 #
 # "m5 test.py"
 
+
+###
+# Run command: build/X86/gem5.opt configs/example/se_SMT.py --cmd=test_codes/hello_pthreads --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu-type=DerivO3CPU --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=7 --smt > out
+###
+
 import argparse
 import sys
 import os
@@ -113,35 +118,36 @@ def get_processes(args,numThreads):
     #     idx += 1
 
     # Added this to append the same workload to multiple SMT threads
+
+
+                
     for wrkld in workloads:
-        if args.smt:
-            for i in range(numThreads):
-                process = Process(pid=100 + idx)
-                process.executable = wrkld
-                process.cwd = os.getcwd()
-                process.gid = os.getgid()
+        process = Process(pid=100 + idx)
+        process.executable = wrkld
+        process.cwd = os.getcwd()
+        process.gid = os.getgid()
 
-                if args.env:
-                    with open(args.env, "r") as f:
-                        process.env = [line.rstrip() for line in f]
+        if args.env:
+            with open(args.env, "r") as f:
+                process.env = [line.rstrip() for line in f]
 
-                if len(pargs) > idx:
-                    process.cmd = [wrkld] + pargs[idx].split()
-                else:
-                    process.cmd = [wrkld]
+        if len(pargs) > idx:
+            process.cmd = [wrkld] + pargs[idx].split()
+        else:
+            process.cmd = [wrkld]
 
-                if len(inputs) > idx:
-                    process.input = inputs[idx]
-                if len(outputs) > idx:
-                    process.output = outputs[idx]
-                if len(errouts) > idx:
-                    process.errout = errouts[idx]
+        if len(inputs) > idx:
+            process.input = inputs[idx]
+        if len(outputs) > idx:
+            process.output = outputs[idx]
+        if len(errouts) > idx:
+            process.errout = errouts[idx]
 
-                multiprocesses.append(process)
-                idx += 1
+        multiprocesses.append(process)
+        idx += 1
 
     if args.smt:
-        assert args.cpu_type == "DerivO3CPU"
+        #assert args.cpu_type == "DerivO3CPU"
         #return multiprocesses, idx
         # change here Ishita to allow for 2 threads SMT
         return multiprocesses, numThreads

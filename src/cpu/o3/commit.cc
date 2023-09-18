@@ -417,7 +417,21 @@ Commit::deactivateThread(ThreadID tid)
             priority_list.end(), tid);
 
     if (thread_it != priority_list.end()) {
+        DPRINTF(Commit,"[tid:%d] DEACTIVATING_THREAD\n",tid);
         priority_list.erase(thread_it);
+    }
+}
+
+void
+Commit::activateThread(ThreadID tid)
+{
+    std::list<ThreadID>::iterator thread_it = std::find(priority_list.begin(),
+            priority_list.end(), tid);
+
+    if(thread_it == priority_list.end())
+    {
+        DPRINTF(Commit,"[tid:%d] FINALLY_ACTIVATING_THREAD\n",tid);
+        priority_list.push_back(tid);
     }
 }
 
@@ -535,6 +549,7 @@ Commit::squashAll(ThreadID tid)
     // then use one older sequence number.
     // Hopefully this doesn't mess things up.  Basically I want to squash
     // all instructions of this thread.
+
     InstSeqNum squashed_inst = rob->isEmpty(tid) ?
         lastCommitedSeqNum[tid] : rob->readHeadInst(tid)->seqNum - 1;
 
@@ -799,18 +814,25 @@ Commit::commit()
     while (threads != end) {
         ThreadID tid = *threads++;
 
+        DPRINTF(Commit," [tid:%d] ENTERING COMMIT HERE commit status %d trapSquash %d\n",tid,commitStatus[tid],trapSquash[tid]);
+
         // Not sure which one takes priority.  I think if we have
         // both, that's a bad sign.
         if (trapSquash[tid]) {
             assert(!tcSquash[tid]);
             squashFromTrap(tid);
 
+            DPRINTF(Commit," [tid:%d] SQUASH FROM TRAP\n",tid);
+
             // If the thread is trying to exit (i.e., an exit syscall was
             // executed), this trapSquash was originated by the exit
             // syscall earlier. In this case, schedule an exit event in
             // the next cycle to fully terminate this thread
             if (cpu->isThreadExiting(tid))
+            {
+                DPRINTF(Commit," [tid:%d] Schedule exiting thread",tid);
                 cpu->scheduleThreadExitEvent(tid);
+            }
         } else if (tcSquash[tid]) {
             assert(commitStatus[tid] != TrapPending);
             squashFromTC(tid);
@@ -961,6 +983,7 @@ Commit::commitInsts()
     // Commit as many instructions as possible until the commit bandwidth
     // limit is reached, or it becomes impossible to commit any more.
     while (num_committed < commitWidth) {
+        
         // hardware transactionally memory
         // If executing within a transaction,
         // need to handle interrupts specially
@@ -981,6 +1004,8 @@ Commit::commitInsts()
             }
         }
 
+        DPRINTF(Commit, "Inside while loop num_committed %d commit_thread %llu.\n",num_committed,commit_thread);
+
         // ThreadID commit_thread = getCommittingThread();
 
         if (commit_thread == -1 || !rob->isHeadReady(commit_thread))
@@ -993,8 +1018,8 @@ Commit::commitInsts()
         assert(tid == commit_thread);
 
         DPRINTF(Commit,
-                "Trying to commit head instruction, [tid:%i] [sn:%llu]\n",
-                tid, head_inst->seqNum);
+                "Trying to commit head instruction, [tid:%i] [sn:%llu] is_squashed %d\n",
+                tid, head_inst->seqNum,head_inst->isSquashed());
 
         // If the head instruction is squashed, it is ready to retire
         // (be removed from the ROB) at any time.
@@ -1445,13 +1470,17 @@ Commit::getCommittingThread()
 {
     if (numThreads > 1) {
         switch (commitPolicy) {
+            
           case CommitPolicy::RoundRobin:
+          DPRINTF(Commit,"Commit Policy RR\n");
             return roundRobin();
 
           case CommitPolicy::OldestReady:
+          DPRINTF(Commit,"Commit Policy OR\n");
             return oldestReady();
 
           default:
+          DPRINTF(Commit,"INVALID\n");
             return InvalidThreadID;
         }
     } else {
@@ -1471,11 +1500,14 @@ Commit::getCommittingThread()
 ThreadID
 Commit::roundRobin()
 {
+    DPRINTF(Commit,"ENTERING RR priority_list size %d\n",priority_list.size());
     std::list<ThreadID>::iterator pri_iter = priority_list.begin();
     std::list<ThreadID>::iterator end      = priority_list.end();
 
     while (pri_iter != end) {
         ThreadID tid = *pri_iter;
+
+        DPRINTF(Commit,"[tid:%d] Inside RR status %d ready %d list_len %d\n",tid,commitStatus[tid],rob->isHeadReady(tid),priority_list.size());
 
         if (commitStatus[tid] == Running ||
             commitStatus[tid] == Idle ||

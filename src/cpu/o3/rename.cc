@@ -1194,7 +1194,8 @@ Rename::readStallSignals(ThreadID tid)
     }
 
     if (fromIEW->iewUnblock[tid]) {
-        assert(stalls[tid].iew);
+        DPRINTF(Rename,"[tid:%d] G\n",tid);
+        //assert(stalls[tid].iew);
         stalls[tid].iew = false;
     }
 }

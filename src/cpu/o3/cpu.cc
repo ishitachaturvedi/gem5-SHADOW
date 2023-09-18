@@ -52,6 +52,7 @@
 #include "cpu/thread_context.hh"
 #include "debug/Activity.hh"
 #include "debug/Drain.hh"
+#include "debug/Commit.hh"
 #include "debug/O3CPU.hh"
 #include "debug/Quiesce.hh"
 #include "enums/MemoryMode.hh"
@@ -60,6 +61,7 @@
 #include "sim/process.hh"
 #include "sim/stat_control.hh"
 #include "sim/system.hh"
+#include "sim/syscall_debug_macros.hh"
 
 namespace gem5
 {
@@ -547,6 +549,9 @@ CPU::activateThread(ThreadID tid)
 
         activeThreads.push_back(tid);
     }
+
+    commit.activateThread(tid);
+    fetch.activateThread(tid);
 }
 
 void
@@ -614,6 +619,7 @@ CPU::activateContext(ThreadID tid)
     // If we are time 0 or if the last activation time is in the past,
     // schedule the next tick and wake up the fetch unit
     if (lastActivatedCycle == 0 || lastActivatedCycle < curTick()) {
+
         scheduleTickEvent(Cycles(0));
 
         // Be sure to signal that there's some activity so the CPU doesn't

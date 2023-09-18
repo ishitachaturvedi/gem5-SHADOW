@@ -410,19 +410,24 @@ futexFunc(SyscallDesc *desc, ThreadContext *tc,
             return -OS::TGT_EWOULDBLOCK;
 
         if (OS::TGT_FUTEX_WAIT == op) {
+            DPRINTF(SyscallVerbose, "TGT_FUTEX_WAIT suspend thread %d core %d process_tgid %d\n",tc->threadId(),tc->cpuId(),process->tgid());
             futex_map.suspend(uaddr, process->tgid(), tc);
         } else {
+            DPRINTF(SyscallVerbose, "TGT_FUTEX_WAIT suspend_bitset thread %d core %d\n",tc->threadId(),tc->cpuId());
             futex_map.suspend_bitset(uaddr, process->tgid(), tc, val3);
         }
 
         return 0;
     } else if (OS::TGT_FUTEX_WAKE == op) {
+        DPRINTF(SyscallVerbose, "TGT_FUTEX_WAKE suspend_bitset thread %d core %d\n",tc->threadId(),tc->cpuId());
         return futex_map.wakeup(uaddr, process->tgid(), val);
     } else if (OS::TGT_FUTEX_WAKE_BITSET == op) {
+        DPRINTF(SyscallVerbose, "TGT_FUTEX_WAKE_BITSET suspend_bitset thread %d core %d\n",tc->threadId(),tc->cpuId());
         return futex_map.wakeup_bitset(uaddr, process->tgid(), val3);
     } else if (OS::TGT_FUTEX_REQUEUE == op ||
                OS::TGT_FUTEX_CMP_REQUEUE == op) {
-
+        
+        DPRINTF(SyscallVerbose, "TGT_FUTEX_REQUEUE suspend_bitset thread %d core %d\n",tc->threadId(),tc->cpuId());
         // Ensure futex system call accessed atomically.
         BufferArg buf(uaddr, sizeof(int));
         buf.copyIn(SETranslatingPortProxy(tc));
@@ -457,6 +462,8 @@ futexFunc(SyscallDesc *desc, ThreadContext *tc,
          *
          */
         // get value from simulated-space
+
+        DPRINTF(SyscallVerbose, "TGT_FUTEX_WAKE_OP suspend_bitset thread %d core %d\n",tc->threadId(),tc->cpuId());
         BufferArg buf(uaddr2, sizeof(int));
         buf.copyIn(SETranslatingPortProxy(tc));
         int oldval = *(int*)buf.bufferPtr();

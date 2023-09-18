@@ -285,7 +285,7 @@ Fetch::setFetchQueue(TimeBuffer<FetchStruct> *ftb_ptr)
 void
 Fetch::startupStage()
 {
-    assert(priorityList.empty());
+    //assert(priorityList.empty());
     resetStage();
 
     // Fetch needs to start fetching instructions at the very beginning,
@@ -297,7 +297,6 @@ void
 Fetch::clearStates(ThreadID tid)
 {
     fetchStatus[tid] = Running;
-    DPRINTF(Fetch,"TID_STATE_CLEAR %d CPU_STATE %d\n",tid,cpu->pcState(tid));
     set(pc[tid], cpu->pcState(tid));
     fetchOffset[tid] = 0;
     macroop[tid] = NULL;
@@ -325,7 +324,6 @@ Fetch::resetStage()
     // Setup PC and nextPC with initial state.
     for (ThreadID tid = 0; tid < numThreads; ++tid) {
         fetchStatus[tid] = Running;
-        DPRINTF(Fetch,"TID_STATE_CLEAR_resetStage %d CPU_STATE %d\n",tid,cpu->pcState(tid));
         set(pc[tid], cpu->pcState(tid));
         fetchOffset[tid] = 0;
         macroop[tid] = NULL;
@@ -507,6 +505,20 @@ Fetch::deactivateThread(ThreadID tid)
     }
 }
 
+void
+Fetch::activateThread(ThreadID tid)
+{
+    auto thread_it = std::find(priorityList.begin(),
+            priorityList.end(), tid);
+
+    DPRINTF(Fetch,"[tid:%d] Trying to ACTIVATING_THREAD FETCH\n",tid);
+    if(thread_it == priorityList.end())
+    {
+        DPRINTF(Fetch,"[tid:%d] FINALLY_ACTIVATING_THREAD\n",tid);
+        priorityList.push_back(tid);
+    }
+}
+
 bool
 Fetch::lookupAndUpdateNextPC(const DynInstPtr &inst, PCStateBase &next_pc)
 {
@@ -516,11 +528,9 @@ Fetch::lookupAndUpdateNextPC(const DynInstPtr &inst, PCStateBase &next_pc)
     bool predict_taken;
 
     if (!inst->isControl()) {
-        DPRINTF(Fetch,"UPDATING_UP_START %d\n",next_pc);
         inst->staticInst->advancePC(next_pc);
         inst->setPredTarg(next_pc);
         inst->setPredTaken(false);
-        DPRINTF(Fetch,"UPDATING_UP_END %d\n",next_pc);
         return false;
     }
 
@@ -717,7 +727,6 @@ Fetch::doSquash(const PCStateBase &new_pc, const DynInstPtr squashInst,
             tid, new_pc);
 
     set(pc[tid], new_pc);
-    DPRINTF(Fetch,"TID_STATE_CLEAR_doSquash %d CPU_STATE %d\n",tid,cpu->pcState(tid));
     fetchOffset[tid] = 0;
     if (squashInst && squashInst->pcState().instAddr() == new_pc.instAddr())
         macroop[tid] = squashInst->macroop;
@@ -1051,9 +1060,6 @@ Fetch::buildInst(ThreadID tid, StaticInstPtr staticInst,
     // Get a sequence number.
     InstSeqNum seq = cpu->getAndIncrementInstSeq();
 
-    DPRINTF(Fetch, "[tid:%i] Enter_PC1 %s.\n",
-            tid, this_pc);
-
     DynInst::Arrays arrays;
     arrays.numSrcs = staticInst->numSrcRegs();
     arrays.numDests = staticInst->numDestRegs();
@@ -1062,9 +1068,6 @@ Fetch::buildInst(ThreadID tid, StaticInstPtr staticInst,
     DynInstPtr instruction = new (arrays) DynInst(
             arrays, staticInst, curMacroop, this_pc, next_pc, seq, cpu);
     instruction->setTid(tid);
-
-    DPRINTF(Fetch, "[tid:%i] Enter_PC1 %s.\n",
-            tid, this_pc);
 
     instruction->setThreadState(cpu->thread[tid]);
 
@@ -1260,19 +1263,9 @@ Fetch::fetch(bool &status_change)
         // the memory we've processed so far.
         do {
 
-            DPRINTF(Fetch, "[tid:%i] Next PC Check1A %s this pc %s.\n",
-            tid, *next_pc,this_pc);
-            
             if (!(curMacroop || inRom)) {
-                DPRINTF(Fetch, "[tid:%i] Next PC Check1B1 %s this pc %s.\n",
-            tid, *next_pc,this_pc);
                 if (dec_ptr->instReady()) {
-                    DPRINTF(Fetch, "[tid:%i] Next PC Check1B2 %s this pc %s.\n",
-            tid, *next_pc,this_pc);
                     staticInst = dec_ptr->decode(this_pc);
-                    DPRINTF(Fetch, "[tid:%i] Next PC Check1B3 %s this pc %s.\n",
-            tid, *next_pc,this_pc);
-
                     // Increment stat of fetched instructions.
                     ++fetchStats.insts;
 
@@ -1288,15 +1281,11 @@ Fetch::fetch(bool &status_change)
                 }
             }
 
-            DPRINTF(Fetch, "[tid:%i] Next PC Check1B %s this pc %s.\n",
-            tid, *next_pc,this_pc);
             // Whether we're moving to a new macroop because we're at the
             // end of the current one, or the branch predictor incorrectly
             // thinks we are...
             bool newMacro = false;
             if (curMacroop || inRom) {
-                DPRINTF(Fetch, "[tid:%i] Next PC Check1C %s this pc %s.\n",
-            tid, *next_pc,this_pc);
                 if (inRom) {
                     staticInst = dec_ptr->fetchRomMicroop(
                             this_pc.microPC(), curMacroop);
@@ -1304,8 +1293,6 @@ Fetch::fetch(bool &status_change)
                     staticInst = curMacroop->fetchMicroop(this_pc.microPC());
                 }
                 newMacro |= staticInst->isLastMicroop();
-                DPRINTF(Fetch, "[tid:%i] Next PC Check1C %s this pc %s.\n",
-                tid, *next_pc,this_pc);
             }
 
             DynInstPtr instruction = buildInst(

@@ -196,6 +196,9 @@ class Commit
     /** Deschedules a thread from scheduling */
     void deactivateThread(ThreadID tid);
 
+    /** Schedules threads for commit **/
+   void activateThread(ThreadID tid);
+
     /** Is the CPU currently processing a HTM transaction? */
     bool executingHtmTransaction(ThreadID) const;
 

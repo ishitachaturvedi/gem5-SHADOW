@@ -260,6 +260,8 @@ class Fetch
 
     /** For priority-based fetch policies, need to keep update priorityList */
     void deactivateThread(ThreadID tid);
+
+    void activateThread(ThreadID tid);
   private:
     /** Reset this pipeline stage */
     void resetStage();

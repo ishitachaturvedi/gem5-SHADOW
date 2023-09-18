@@ -591,12 +591,13 @@ X86_64Process::initState()
                         // setting it to one.
             cr0.pe = 1; // We're definitely in protected mode.
 
-            int SMT_threads = 2;
-            for(int k=0; k<SMT_threads;k++)
-            {
-                ThreadContext * tc1 = system->threads[contextIds[i]+k];
-                tc1->setMiscReg(misc_reg::Cr0, cr0);
-            }
+            // int SMT_threads = 1;
+            // for(int k=0; k<SMT_threads;k++)
+            // {
+            //     ThreadContext * tc1 = system->threads[contextIds[i]+k];
+            //     tc1->setMiscReg(misc_reg::Cr0, cr0);
+            // }
+            tc->setMiscReg(misc_reg::Cr0, cr0);
 
             tc->setMiscReg(misc_reg::Mxcsr, 0x1f80);
 
