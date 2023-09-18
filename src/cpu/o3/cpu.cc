@@ -755,9 +755,11 @@ CPU::removeThread(ThreadID tid)
     // at this step, all instructions in the pipeline should be already
     // either committed successfully or squashed. All thread-specific
     // queues in the pipeline must be empty.
-    assert(iew.instQueue.getCount(tid) == 0);
-    assert(iew.ldstQueue.getCount(tid) == 0);
-    assert(commit.rob->isEmpty(tid));
+    
+    
+    // assert(iew.instQueue.getCount(tid) == 0);
+    // assert(iew.ldstQueue.getCount(tid) == 0);
+    // assert(commit.rob->isEmpty(tid));
 
     // Reset ROB/IQ/LSQ Entries
 

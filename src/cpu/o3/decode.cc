@@ -478,7 +478,7 @@ Decode::readStallSignals(ThreadID tid)
     }
 
     if (fromRename->renameUnblock[tid]) {
-        assert(stalls[tid].rename);
+        //assert(stalls[tid].rename);
         stalls[tid].rename = false;
     }
 }

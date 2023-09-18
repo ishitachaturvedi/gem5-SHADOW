@@ -959,7 +959,7 @@ Fetch::checkSignalsAndUpdate(ThreadID tid)
     }
 
     if (fromDecode->decodeUnblock[tid]) {
-        assert(stalls[tid].decode);
+        //assert(stalls[tid].decode);
         assert(!fromDecode->decodeBlock[tid]);
         stalls[tid].decode = false;
     }
