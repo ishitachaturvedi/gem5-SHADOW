@@ -473,14 +473,24 @@ Decode::sortInsts()
 void
 Decode::readStallSignals(ThreadID tid)
 {
+    DPRINTF(Decode,"[tid:%d] readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d\n",tid,fromRename->renameBlock[tid],fromRename->renameUnblock[tid]);
     if (fromRename->renameBlock[tid]) {
+        DPRINTF(Decode,"[tid:%d] renameUnblockBlock\n",tid);
         stalls[tid].rename = true;
     }
 
     if (fromRename->renameUnblock[tid]) {
-        //assert(stalls[tid].rename);
+        DPRINTF(Decode,"[tid:%d] renameUnblockNoBlock\n",tid);
+        assert(stalls[tid].rename);
         stalls[tid].rename = false;
     }
+}
+
+void
+Decode::activateThread(ThreadID tid)
+{
+    decodeStatus[tid] = Running;
+    stalls[tid].rename = false;
 }
 
 bool

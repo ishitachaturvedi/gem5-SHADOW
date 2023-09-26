@@ -864,6 +864,7 @@ Fetch::tick()
     while (threads != end) {
         ThreadID tid = *threads++;
 
+        DPRINTF(Fetch, "[tid:%d] Iterating Stage.\n",tid);
         // Check the signals for each thread to determine the proper status
         // for each thread.
         bool updated_status = checkSignalsAndUpdate(tid);
@@ -953,13 +954,14 @@ Fetch::tick()
 bool
 Fetch::checkSignalsAndUpdate(ThreadID tid)
 {
+    DPRINTF(Fetch, "[tid:%i] Checking Update Signals.\n",tid);
     // Update the per thread stall statuses.
     if (fromDecode->decodeBlock[tid]) {
         stalls[tid].decode = true;
     }
 
     if (fromDecode->decodeUnblock[tid]) {
-        //assert(stalls[tid].decode);
+        assert(stalls[tid].decode);
         assert(!fromDecode->decodeBlock[tid]);
         stalls[tid].decode = false;
     }

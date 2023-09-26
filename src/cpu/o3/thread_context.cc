@@ -104,11 +104,13 @@ ThreadContext::suspend()
 void
 ThreadContext::halt()
 {
-    DPRINTF(O3CPU, "Calling halt on Thread Context %d\n", threadId());
+    DPRINTF(O3CPU, "[tid:%d] Calling halt on Thread Context %d Status %d\n", threadId(),threadId(),thread->status());
 
     if (thread->status() == gem5::ThreadContext::Halting ||
         thread->status() == gem5::ThreadContext::Halted)
         return;
+
+    DPRINTF(O3CPU, "[tid:%d] Calling halt on Thread Context Step 2 %d\n", threadId(),threadId());
 
     // the thread is not going to halt/terminate immediately in this cycle.
     // The thread will be removed after an exit trap is processed

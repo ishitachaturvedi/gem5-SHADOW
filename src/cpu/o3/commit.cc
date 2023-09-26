@@ -417,7 +417,7 @@ Commit::deactivateThread(ThreadID tid)
             priority_list.end(), tid);
 
     if (thread_it != priority_list.end()) {
-        DPRINTF(Commit,"[tid:%d] DEACTIVATING_THREAD\n",tid);
+        DPRINTF(Commit,"[tid:%d] DEACTIVATING_THREAD rob->isEmpty %d\n",tid,rob->isEmpty(tid));
         priority_list.erase(thread_it);
     }
 }
@@ -550,6 +550,8 @@ Commit::squashAll(ThreadID tid)
     // Hopefully this doesn't mess things up.  Basically I want to squash
     // all instructions of this thread.
 
+    DPRINTF(Commit,"[tid:%d] Sending signals to all stages\n",tid);
+
     InstSeqNum squashed_inst = rob->isEmpty(tid) ?
         lastCommitedSeqNum[tid] : rob->readHeadInst(tid)->seqNum - 1;
 
@@ -583,7 +585,7 @@ Commit::squashFromTrap(ThreadID tid)
 {
     squashAll(tid);
 
-    DPRINTF(Commit, "Squashing from trap, restarting at PC %s\n", *pc[tid]);
+    DPRINTF(Commit, "[tid:%d] Squashing from trap, restarting at PC %s\n",tid,*pc[tid]);
 
     thread[tid]->trapPending = false;
     thread[tid]->noSquashFromTC = false;
@@ -654,7 +656,9 @@ Commit::tick()
     // Check if any of the threads are done squashing.  Change the
     // status if they are done.
     while (threads != end) {
+
         ThreadID tid = *threads++;
+        DPRINTF(Commit,"[tid:%d] Commit status: %d\n",tid,commitStatus[tid]);
 
         // Clear the bit saying if the thread has committed stores
         // this cycle.
@@ -822,16 +826,22 @@ Commit::commit()
             assert(!tcSquash[tid]);
             squashFromTrap(tid);
 
-            DPRINTF(Commit," [tid:%d] SQUASH FROM TRAP\n",tid);
+            DPRINTF(Commit," [tid:%d] SQUASH FROM TRAP rob->isEmpty(tid) %d\n",tid,rob->isEmpty(tid));
 
             // If the thread is trying to exit (i.e., an exit syscall was
             // executed), this trapSquash was originated by the exit
             // syscall earlier. In this case, schedule an exit event in
             // the next cycle to fully terminate this thread
+            int event_scheduled = 2;
             if (cpu->isThreadExiting(tid))
             {
-                DPRINTF(Commit," [tid:%d] Schedule exiting thread",tid);
-                cpu->scheduleThreadExitEvent(tid);
+                DPRINTF(Commit," [tid:%d] Schedule exiting thread\n",tid);
+                event_scheduled = cpu->scheduleThreadExitEvent(tid);
+                if(event_scheduled == 0)
+                {
+                    DPRINTF(Commit,"EXITTEST [tid:%d] SETTING TRAP TRUE AGAIN\n",tid);
+                    trapSquash[tid] = true;
+                }
             }
         } else if (tcSquash[tid]) {
             assert(commitStatus[tid] != TrapPending);
@@ -919,6 +929,7 @@ Commit::commit()
     }
 
     if (num_squashing_threads != numThreads) {
+
         // If we're not currently squashing, then get instructions.
         getInsts();
 
@@ -982,8 +993,8 @@ Commit::commitInsts()
 
     // Commit as many instructions as possible until the commit bandwidth
     // limit is reached, or it becomes impossible to commit any more.
-    while (num_committed < commitWidth) {
-        
+    while (num_committed < commitWidth)
+    {
         // hardware transactionally memory
         // If executing within a transaction,
         // need to handle interrupts specially
@@ -1004,8 +1015,6 @@ Commit::commitInsts()
             }
         }
 
-        DPRINTF(Commit, "Inside while loop num_committed %d commit_thread %llu.\n",num_committed,commit_thread);
-
         // ThreadID commit_thread = getCommittingThread();
 
         if (commit_thread == -1 || !rob->isHeadReady(commit_thread))
@@ -1015,27 +1024,31 @@ Commit::commitInsts()
 
         ThreadID tid = head_inst->threadNumber;
 
+        DPRINTF(Commit, "[tid:%d] Inside while loop num_committed %d commit_thread %llu.\n",tid,num_committed,commit_thread);
+
         assert(tid == commit_thread);
 
         DPRINTF(Commit,
-                "Trying to commit head instruction, [tid:%i] [sn:%llu] is_squashed %d\n",
+                "[tid:%d] Trying to commit head instruction, [tid:%i] [sn:%llu] is_squashed %d\n",tid,
                 tid, head_inst->seqNum,head_inst->isSquashed());
 
         // If the head instruction is squashed, it is ready to retire
         // (be removed from the ROB) at any time.
         if (head_inst->isSquashed()) {
+            while(rob->isHeadReady(commit_thread) && rob->readHeadInst(commit_thread)->isSquashed())
+            {
+                DPRINTF(Commit, "[tid:%d] Retiring squashed instruction from "
+                        "ROB.\n",tid);
 
-            DPRINTF(Commit, "Retiring squashed instruction from "
-                    "ROB.\n");
+                rob->retireHead(commit_thread);
 
-            rob->retireHead(commit_thread);
+                ++stats.commitSquashedInsts;
+                // Notify potential listeners that this instruction is squashed
+                ppSquash->notify(head_inst);
 
-            ++stats.commitSquashedInsts;
-            // Notify potential listeners that this instruction is squashed
-            ppSquash->notify(head_inst);
-
-            // Record that the number of ROB entries has changed.
-            changedROBNumEntries[tid] = true;
+                // Record that the number of ROB entries has changed.
+                changedROBNumEntries[tid] = true;
+            }
         } else {
             set(pc[tid], head_inst->pcState());
 
@@ -1152,6 +1165,7 @@ Commit::commitInsts()
                         "[tid:%i] [sn:%llu].\n",
                         head_inst->pcState(), tid ,head_inst->seqNum);
                 break;
+                //commit_possible[tid] = 0;
             }
         }
     }
@@ -1472,15 +1486,12 @@ Commit::getCommittingThread()
         switch (commitPolicy) {
             
           case CommitPolicy::RoundRobin:
-          DPRINTF(Commit,"Commit Policy RR\n");
             return roundRobin();
 
           case CommitPolicy::OldestReady:
-          DPRINTF(Commit,"Commit Policy OR\n");
             return oldestReady();
 
           default:
-          DPRINTF(Commit,"INVALID\n");
             return InvalidThreadID;
         }
     } else {
@@ -1516,7 +1527,6 @@ Commit::roundRobin()
             if (rob->isHeadReady(tid)) {
                 priority_list.erase(pri_iter);
                 priority_list.push_back(tid);
-
                 return tid;
             }
         }

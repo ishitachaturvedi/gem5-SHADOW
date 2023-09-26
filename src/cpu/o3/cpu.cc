@@ -552,6 +552,9 @@ CPU::activateThread(ThreadID tid)
 
     commit.activateThread(tid);
     fetch.activateThread(tid);
+    rename.activateThread(tid);
+    iew.activateThread(tid);
+    decode.activateThread(tid);
 }
 
 void
@@ -724,7 +727,7 @@ CPU::insertThread(ThreadID tid)
 void
 CPU::removeThread(ThreadID tid)
 {
-    DPRINTF(O3CPU,"[tid:%i] Removing thread context from CPU.\n", tid);
+    DPRINTF(O3CPU,"EXITTEST [tid:%i] Removing thread context from CPU size.\n", tid);
 
     // Copy Thread Data From RegFile
     // If thread is suspended, it might be re-allocated
@@ -755,11 +758,11 @@ CPU::removeThread(ThreadID tid)
     // at this step, all instructions in the pipeline should be already
     // either committed successfully or squashed. All thread-specific
     // queues in the pipeline must be empty.
-    
-    
-    // assert(iew.instQueue.getCount(tid) == 0);
-    // assert(iew.ldstQueue.getCount(tid) == 0);
-    // assert(commit.rob->isEmpty(tid));
+
+    DPRINTF(O3CPU,"[tid:%d] EXITTEST iew.instQueue.getCount %d iew.ldstQueue.getCount %d commit.rob->isEmpty %d\n",tid,iew.instQueue.getCount(tid),iew.ldstQueue.getCount(tid),commit.rob->isEmpty(tid));
+    assert(iew.instQueue.getCount(tid) == 0);
+    assert(iew.ldstQueue.getCount(tid) == 0);
+    assert(commit.rob->isEmpty(tid));
 
     // Reset ROB/IQ/LSQ Entries
 
@@ -1471,36 +1474,49 @@ CPU::updateThreadPriority()
 void
 CPU::addThreadToExitingList(ThreadID tid)
 {
-    DPRINTF(O3CPU, "Thread %d is inserted to exitingThreads list\n", tid);
+    DPRINTF(O3CPU, "[tid:%d] EXITTEST Thread %d is inserted to exitingThreads list size %d\n", tid,tid,exitingThreads.size());
 
     // the thread trying to exit can't be already halted
     assert(tcBase(tid)->status() != gem5::ThreadContext::Halted);
 
-    // make sure the thread has not been added to the list yet
-    assert(exitingThreads.count(tid) == 0);
+    bool threadIdExists = false;
+    for (const ThreadData& data : exitingThreads) {
+        if (data.thread_id == tid) {
+            threadIdExists = true;
+            break;  // Exit the loop after finding the thread
+        }
+    }
+    assert(!threadIdExists);
 
     // add the thread to exitingThreads list to mark that this thread is
     // trying to exit. The boolean value in the pair denotes if a thread is
     // ready to exit. The thread is not ready to exit until the corresponding
     // exit trap event is processed in the future. Until then, it'll be still
     // an active thread that is trying to exit.
-    exitingThreads.emplace(std::make_pair(tid, false));
+    exitingThreads.emplace_back(tid, false, 0);
 }
 
 bool
 CPU::isThreadExiting(ThreadID tid) const
 {
-    return exitingThreads.count(tid) == 1;
+    for (const ThreadData& data : exitingThreads) {
+        if (data.thread_id == tid) {
+            return true;
+        }
+    }
+    return false;
 }
 
-void
+int
 CPU::scheduleThreadExitEvent(ThreadID tid)
 {
-    assert(exitingThreads.count(tid) == 1);
-
-    // exit trap event has been processed. Now, the thread is ready to exit
-    // and be removed from the CPU.
-    exitingThreads[tid] = true;
+    int threadIdExists = 0;
+    for (const ThreadData& data : exitingThreads) {
+        if (data.thread_id == tid) {
+            threadIdExists++;
+        }
+    }
+    assert(threadIdExists==1);
 
     // we schedule a threadExitEvent in the next cycle to properly clean
     // up the thread's states in the pipeline. threadExitEvent has lower
@@ -1508,9 +1524,15 @@ CPU::scheduleThreadExitEvent(ThreadID tid)
     // of the next cycle after all pipeline stages complete their operations.
     // We want all stages to complete squashing instructions before doing
     // the cleanup.
+
+    int event_scheduled = 0;
     if (!threadExitEvent.scheduled()) {
         schedule(threadExitEvent, nextCycle());
+        event_scheduled = 1;
+        DPRINTF(O3CPU,"EXITTEST next cycle exit scheduled nextCycle() %d\n",nextCycle());
     }
+
+    return event_scheduled;
 }
 
 void
@@ -1519,21 +1541,19 @@ CPU::exitThreads()
     // there must be at least one thread trying to exit
     assert(exitingThreads.size() > 0);
 
-    // terminate all threads that are ready to exit
-    auto it = exitingThreads.begin();
-    while (it != exitingThreads.end()) {
-        ThreadID thread_id = it->first;
-        bool readyToExit = it->second;
-
-        if (readyToExit) {
-            DPRINTF(O3CPU, "Exiting thread %d\n", thread_id);
-            haltContext(thread_id);
-            tcBase(thread_id)->setStatus(gem5::ThreadContext::Halted);
-            it = exitingThreads.erase(it);
+    for (auto it = exitingThreads.begin(); it != exitingThreads.end();) {
+        bool readyToExit = it->finished;
+        if (it->cycle_number != curTick() && readyToExit) {
+            DPRINTF(O3CPU,"[tid:%d] EXITTEST actual exit size %d\n",it->thread_id,exitingThreads.size());
+            haltContext(it->thread_id);
+            tcBase(it->thread_id)->setStatus(gem5::ThreadContext::Halted);
+            it = exitingThreads.erase(it);  // Erase the element and get the next iterator
+            //break;
         } else {
-            it++;
+            it++;  // Move to the next element if no match
         }
     }
+
 }
 
 void

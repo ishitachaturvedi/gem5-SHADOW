@@ -150,6 +150,8 @@ class Decode
      */
     void decodeInsts(ThreadID tid);
 
+    void activateThread(ThreadID tid);
+
   private:
     /** Inserts a thread's instructions into the skid buffer, to be decoded
      * once decode unblocks.

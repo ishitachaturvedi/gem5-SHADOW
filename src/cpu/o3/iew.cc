@@ -388,6 +388,12 @@ IEW::drainSanityCheck() const
 }
 
 void
+IEW::activateThread(ThreadID tid)
+{
+    dispatchStatus[tid] = Running;
+}
+
+void
 IEW::takeOverFrom()
 {
     // Reset all state.

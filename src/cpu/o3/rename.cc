@@ -281,6 +281,12 @@ Rename::setActiveThreads(std::list<ThreadID> *at_ptr)
     activeThreads = at_ptr;
 }
 
+void
+Rename::activateThread(ThreadID tid)
+{
+    renameStatus[tid] = Running;
+}
+
 
 void
 Rename::setRenameMap(UnifiedRenameMap rm_ptr[])
@@ -343,6 +349,7 @@ Rename::squash(const InstSeqNum &squash_seq_num, ThreadID tid)
     // cycle and there should be space to hold everything due to the squash.
     if (renameStatus[tid] == Blocked ||
         renameStatus[tid] == Unblocking) {
+        DPRINTF(Rename, "[tid:%i] Unblocking_at_2\n", tid);
         toDecode->renameUnblock[tid] = 1;
 
         resumeSerialize = false;
@@ -356,6 +363,7 @@ Rename::squash(const InstSeqNum &squash_seq_num, ThreadID tid)
             assert(serializeInst[tid]);
         } else {
             resumeSerialize = false;
+            DPRINTF(Rename, "[tid:%i] Unblocking_at_3\n", tid);
             toDecode->renameUnblock[tid] = 1;
 
             serializeInst[tid] = NULL;
@@ -469,13 +477,17 @@ Rename::rename(bool &status_change, ThreadID tid)
         // this cycle.  Tell the previous stages to block.
         if (resumeSerialize) {
             resumeSerialize = false;
+            DPRINTF(Rename,"[tid:%d] BLOCKING_4\n",tid);
             block(tid);
+            DPRINTF(Rename, "[tid:%i] Unblocking_at_4\n", tid);
             toDecode->renameUnblock[tid] = false;
         }
     } else if (renameStatus[tid] == Unblocking) {
         if (resumeUnblocking) {
+            DPRINTF(Rename,"[tid:%d] BLOCKING_5\n",tid);
             block(tid);
             resumeUnblocking = false;
+            DPRINTF(Rename, "[tid:%i] Unblocking_at_5\n", tid);
             toDecode->renameUnblock[tid] = false;
         }
     }
@@ -540,29 +552,31 @@ Rename::renameInsts(ThreadID tid)
 
     // Check if there's any space left.
     if (min_free_entries <= 0) {
-        DPRINTF(Rename,
-                "[tid:%i] Blocking due to no free ROB/IQ/ entries.\n"
-                "ROB has %i free entries.\n"
-                "IQ has %i free entries.\n",
-                tid, free_rob_entries, free_iq_entries);
+        // DPRINTF(Rename,
+        //         "[tid:%i] Blocking due to no free ROB/IQ/ entries.\n"
+        //         "ROB has %i free entries.\n"
+        //         "IQ has %i free entries.\n",
+        //         tid, free_rob_entries, free_iq_entries);
 
         blockThisCycle = true;
 
+        DPRINTF(Rename,"[tid:%d] BLOCKING_1\n",tid);
         block(tid);
 
         incrFullStat(source);
 
         return;
     } else if (min_free_entries < insts_available) {
-        DPRINTF(Rename,
-                "[tid:%i] "
-                "Will have to block this cycle. "
-                "%i insts available, "
-                "but only %i insts can be renamed due to ROB/IQ/LSQ limits.\n",
-                tid, insts_available, min_free_entries);
+        // DPRINTF(Rename,
+        //         "[tid:%i] "
+        //         "Will have to block this cycle. "
+        //         "%i insts available, "
+        //         "but only %i insts can be renamed due to ROB/IQ/LSQ limits.\n",
+        //         tid, insts_available, min_free_entries);
 
         insts_available = min_free_entries;
 
+        DPRINTF(Rename,"[tid:%d] BLOCK_INSIDE_1\n",tid);
         blockThisCycle = true;
 
         incrFullStat(source);
@@ -571,16 +585,16 @@ Rename::renameInsts(ThreadID tid)
     InstQueue &insts_to_rename = renameStatus[tid] == Unblocking ?
         skidBuffer[tid] : insts[tid];
 
-    DPRINTF(Rename,
-            "[tid:%i] "
-            "%i available instructions to send iew.\n",
-            tid, insts_available);
+    // DPRINTF(Rename,
+    //         "[tid:%i] "
+    //         "%i available instructions to send iew.\n",
+    //         tid, insts_available);
 
-    DPRINTF(Rename,
-            "[tid:%i] "
-            "%i insts pipelining from Rename | "
-            "%i insts dispatched to IQ last cycle.\n",
-            tid, instsInProgress[tid], fromIEW->iewInfo[tid].dispatched);
+    // DPRINTF(Rename,
+    //         "[tid:%i] "
+    //         "%i insts pipelining from Rename | "
+    //         "%i insts dispatched to IQ last cycle.\n",
+    //         tid, instsInProgress[tid], fromIEW->iewInfo[tid].dispatched);
 
     // Handle serializing the next instruction if necessary.
     if (serializeOnNextInst[tid]) {
@@ -595,7 +609,7 @@ Rename::renameInsts(ThreadID tid)
     int renamed_insts = 0;
 
     while (insts_available > 0 &&  toIEWIndex < renameWidth) {
-        DPRINTF(Rename, "[tid:%i] Sending instructions to IEW.\n", tid);
+        //DPRINTF(Rename, "[tid:%i] Sending instructions to IEW.\n", tid);
 
         assert(!insts_to_rename.empty());
 
@@ -608,8 +622,8 @@ Rename::renameInsts(ThreadID tid)
 
         if (inst->isLoad()) {
             if (calcFreeLQEntries(tid) <= 0) {
-                DPRINTF(Rename, "[tid:%i] Cannot rename due to no free LQ\n",
-                        tid);
+                // DPRINTF(Rename, "[tid:%i] Cannot rename due to no free LQ\n",
+                //         tid);
                 source = LQ;
                 incrFullStat(source);
                 break;
@@ -618,8 +632,8 @@ Rename::renameInsts(ThreadID tid)
 
         if (inst->isStore() || inst->isAtomic()) {
             if (calcFreeSQEntries(tid) <= 0) {
-                DPRINTF(Rename, "[tid:%i] Cannot rename due to no free SQ\n",
-                        tid);
+                // DPRINTF(Rename, "[tid:%i] Cannot rename due to no free SQ\n",
+                //         tid);
                 source = SQ;
                 incrFullStat(source);
                 break;
@@ -629,17 +643,17 @@ Rename::renameInsts(ThreadID tid)
         insts_to_rename.pop_front();
 
         if (renameStatus[tid] == Unblocking) {
-            DPRINTF(Rename,
-                    "[tid:%i] "
-                    "Removing [sn:%llu] PC:%s from rename skidBuffer\n",
-                    tid, inst->seqNum, inst->pcState());
+            // DPRINTF(Rename,
+            //         "[tid:%i] "
+            //         "Removing [sn:%llu] PC:%s from rename skidBuffer\n",
+            //         tid, inst->seqNum, inst->pcState());
         }
 
         if (inst->isSquashed()) {
-            DPRINTF(Rename,
-                    "[tid:%i] "
-                    "instruction %i with PC %s is squashed, skipping.\n",
-                    tid, inst->seqNum, inst->pcState());
+            // DPRINTF(Rename,
+            //         "[tid:%i] "
+            //         "instruction %i with PC %s is squashed, skipping.\n",
+            //         tid, inst->seqNum, inst->pcState());
 
             ++stats.squashedInsts;
 
@@ -649,17 +663,19 @@ Rename::renameInsts(ThreadID tid)
             continue;
         }
 
-        DPRINTF(Rename,
-                "[tid:%i] "
-                "Processing instruction [sn:%llu] with PC %s.\n",
-                tid, inst->seqNum, inst->pcState());
+        // DPRINTF(Rename,
+        //         "[tid:%i] "
+        //         "Processing instruction [sn:%llu] with PC %s.\n",
+        //         tid, inst->seqNum, inst->pcState());
 
         // Check here to make sure there are enough destination registers
         // to rename to.  Otherwise block.
         if (!renameMap[tid]->canRename(inst)) {
-            DPRINTF(Rename,
-                    "Blocking due to "
-                    " lack of free physical registers to rename to.\n");
+            // DPRINTF(Rename,
+            //         "Blocking due to "
+            //         " lack of free physical registers to rename to.\n");
+
+            DPRINTF(Rename,"[tid:%d] BLOCK_INSIDE_2\n",tid);
             blockThisCycle = true;
             insts_to_rename.push_front(inst);
             ++stats.fullRegistersEvents;
@@ -693,6 +709,7 @@ Rename::renameInsts(ThreadID tid)
 
             serializeInst[tid] = inst;
 
+            DPRINTF(Rename,"[tid:%d] BLOCK_INSIDE_3\n",tid);
             blockThisCycle = true;
 
             break;
@@ -748,8 +765,11 @@ Rename::renameInsts(ThreadID tid)
     }
 
     if (blockThisCycle) {
+        DPRINTF(Rename,"[tid:%d] BLOCKING_2\n",tid);
         block(tid);
+        DPRINTF(Rename, "[tid:%i] Unblocking_at_6\n", tid);
         toDecode->renameUnblock[tid] = false;
+        DPRINTF(Rename,"[tid:%d] ##readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d \n",tid,toDecode->renameBlock[tid],toDecode->renameUnblock[tid]);
     }
 }
 
@@ -765,8 +785,8 @@ Rename::skidInsert(ThreadID tid)
 
         assert(tid == inst->threadNumber);
 
-        DPRINTF(Rename, "[tid:%i] Inserting [sn:%llu] PC: %s into Rename "
-                "skidBuffer\n", tid, inst->seqNum, inst->pcState());
+        // DPRINTF(Rename, "[tid:%i] Inserting [sn:%llu] PC: %s into Rename "
+        //         "skidBuffer\n", tid, inst->seqNum, inst->pcState());
 
         ++stats.skidInsts;
 
@@ -858,22 +878,29 @@ Rename::updateStatus()
 bool
 Rename::block(ThreadID tid)
 {
-    DPRINTF(Rename, "[tid:%i] Blocking.\n", tid);
+    DPRINTF(Rename, "[tid:%i] Blocking. status %d resumeUnblocking %d Blocked %d\n", tid,renameStatus[tid],resumeUnblocking,Blocked);
 
     // Add the current inputs onto the skid buffer, so they can be
     // reprocessed when this stage unblocks.
     skidInsert(tid);
 
+    DPRINTF(Rename, "[tid:%i] Blocking. step AA status %d resumeUnblocking %d Blocked %d\n", tid,renameStatus[tid],resumeUnblocking,Blocked);
+
     // Only signal backwards to block if the previous stages do not think
     // rename is already blocked.
+
     if (renameStatus[tid] != Blocked) {
+        DPRINTF(Rename, "[tid:%i] Blocking step 2 resumeUnblocking %d renameStatus[tid] %d\n",tid,resumeUnblocking,renameStatus[tid]);
         // If resumeUnblocking is set, we unblocked during the squash,
         // but now we're have unblocking status. We need to tell earlier
         // stages to block.
         if (resumeUnblocking || renameStatus[tid] != Unblocking) {
+            DPRINTF(Rename, "[tid:%i] Blocking step 3 resumeUnblocking %d renameStatus[tid] %d\n",tid,resumeUnblocking,renameStatus[tid]);
             toDecode->renameBlock[tid] = true;
+            DPRINTF(Rename, "[tid:%i] Unblocking_at_7\n", tid);
             toDecode->renameUnblock[tid] = false;
             wroteToTimeBuffer = true;
+            DPRINTF(Rename,"[tid:%d] **readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d \n",tid,toDecode->renameBlock[tid],toDecode->renameUnblock[tid]);
         }
 
         // Rename can not go from SerializeStall to Blocked, otherwise
@@ -898,6 +925,7 @@ Rename::unblock(ThreadID tid)
 
         DPRINTF(Rename, "[tid:%i] Done unblocking.\n", tid);
 
+        DPRINTF(Rename, "[tid:%i] Unblocking_at_1\n", tid);
         toDecode->renameUnblock[tid] = true;
         wroteToTimeBuffer = true;
 
@@ -983,11 +1011,11 @@ Rename::removeFromHistory(InstSeqNum inst_seq_num, ThreadID tid)
            hb_it != historyBuffer[tid].end() &&
            hb_it->instSeqNum <= inst_seq_num) {
 
-        DPRINTF(Rename, "[tid:%i] Freeing up older rename of reg %i (%s), "
-                "[sn:%llu].\n",
-                tid, hb_it->prevPhysReg->index(),
-                hb_it->prevPhysReg->className(),
-                hb_it->instSeqNum);
+        // DPRINTF(Rename, "[tid:%i] Freeing up older rename of reg %i (%s), "
+        //         "[sn:%llu].\n",
+        //         tid, hb_it->prevPhysReg->index(),
+        //         hb_it->prevPhysReg->className(),
+        //         hb_it->instSeqNum);
 
         // Don't free special phys regs like misc and zero regs, which
         // can be recognized because the new mapping is the same as
@@ -1042,30 +1070,30 @@ Rename::renameSrcRegs(const DynInstPtr &inst, ThreadID tid)
             panic("Invalid register class: %d.", flat_reg.classValue());
         }
 
-        DPRINTF(Rename,
-                "[tid:%i] "
-                "Looking up %s arch reg %i, got phys reg %i (%s)\n",
-                tid, flat_reg.className(),
-                src_reg.index(), renamed_reg->index(),
-                renamed_reg->className());
+        // DPRINTF(Rename,
+        //         "[tid:%i] "
+        //         "Looking up %s arch reg %i, got phys reg %i (%s)\n",
+        //         tid, flat_reg.className(),
+        //         src_reg.index(), renamed_reg->index(),
+        //         renamed_reg->className());
 
         inst->renameSrcReg(src_idx, renamed_reg);
 
         // See if the register is ready or not.
         if (scoreboard->getReg(renamed_reg)) {
-            DPRINTF(Rename,
-                    "[tid:%i] "
-                    "Register %d (flat: %d) (%s) is ready.\n",
-                    tid, renamed_reg->index(), renamed_reg->flatIndex(),
-                    renamed_reg->className());
+            // DPRINTF(Rename,
+            //         "[tid:%i] "
+            //         "Register %d (flat: %d) (%s) is ready.\n",
+            //         tid, renamed_reg->index(), renamed_reg->flatIndex(),
+            //         renamed_reg->className());
 
             inst->markSrcRegReady(src_idx);
         } else {
-            DPRINTF(Rename,
-                    "[tid:%i] "
-                    "Register %d (flat: %d) (%s) is not ready.\n",
-                    tid, renamed_reg->index(), renamed_reg->flatIndex(),
-                    renamed_reg->className());
+            // DPRINTF(Rename,
+            //         "[tid:%i] "
+            //         "Register %d (flat: %d) (%s) is not ready.\n",
+            //         tid, renamed_reg->index(), renamed_reg->flatIndex(),
+            //         renamed_reg->className());
         }
 
         ++stats.lookups;
@@ -1094,12 +1122,12 @@ Rename::renameDestRegs(const DynInstPtr &inst, ThreadID tid)
 
         scoreboard->unsetReg(rename_result.first);
 
-        DPRINTF(Rename,
-                "[tid:%i] "
-                "Renaming arch reg %i (%s) to physical reg %i (%i).\n",
-                tid, dest_reg.index(), dest_reg.className(),
-                rename_result.first->index(),
-                rename_result.first->flatIndex());
+        // DPRINTF(Rename,
+        //         "[tid:%i] "
+        //         "Renaming arch reg %i (%s) to physical reg %i (%i).\n",
+        //         tid, dest_reg.index(), dest_reg.className(),
+        //         rename_result.first->index(),
+        //         rename_result.first->flatIndex());
 
         // Record the rename information so that a history can be kept.
         RenameHistory hb_entry(inst->seqNum, flat_dest_regid,
@@ -1108,10 +1136,10 @@ Rename::renameDestRegs(const DynInstPtr &inst, ThreadID tid)
 
         historyBuffer[tid].push_front(hb_entry);
 
-        DPRINTF(Rename, "[tid:%i] [sn:%llu] "
-                "Adding instruction to history buffer (size=%i).\n",
-                tid,(*historyBuffer[tid].begin()).instSeqNum,
-                historyBuffer[tid].size());
+        // DPRINTF(Rename, "[tid:%i] [sn:%llu] "
+        //         "Adding instruction to history buffer (size=%i).\n",
+        //         tid,(*historyBuffer[tid].begin()).instSeqNum,
+        //         historyBuffer[tid].size());
 
         // Tell the instruction to rename the appropriate destination
         // register (dest_idx) to the new physical register
@@ -1195,7 +1223,7 @@ Rename::readStallSignals(ThreadID tid)
 
     if (fromIEW->iewUnblock[tid]) {
         DPRINTF(Rename,"[tid:%d] G\n",tid);
-        //assert(stalls[tid].iew);
+        assert(stalls[tid].iew);
         stalls[tid].iew = false;
     }
 }
@@ -1283,6 +1311,8 @@ Rename::checkSignalsAndUpdate(ThreadID tid)
     readFreeEntries(tid);
     readStallSignals(tid);
 
+    DPRINTF(Rename,"[tid:%d] CHECKING STATUS OF THREAD renameStatus[tid]: %d squash %d checkStall(tid) %d\n",tid,renameStatus[tid],fromCommit->commitInfo[tid].squash,checkStall(tid));
+
     if (fromCommit->commitInfo[tid].squash) {
         DPRINTF(Rename, "[tid:%i] Squashing instructions due to squash from "
                 "commit.\n", tid);
@@ -1293,6 +1323,7 @@ Rename::checkSignalsAndUpdate(ThreadID tid)
     }
 
     if (checkStall(tid)) {
+        DPRINTF(Rename,"[tid:%d] BLOCKING_3\n",tid);
         return block(tid);
     }
 

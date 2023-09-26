@@ -246,8 +246,8 @@ ROB::retireHead(ThreadID tid)
     assert(head_inst->readyToCommit());
 
     DPRINTF(ROB, "[tid:%i] Retiring head instruction, "
-            "instruction PC %s, [sn:%llu]\n", tid, head_inst->pcState(),
-            head_inst->seqNum);
+            "instruction PC %s, [sn:%llu] threadEntries[tid] %d\n", tid, head_inst->pcState(),
+            head_inst->seqNum,threadEntries[tid]);
 
     --numInstsInROB;
     --threadEntries[tid];
@@ -342,10 +342,10 @@ ROB::doSquash(ThreadID tid)
          (*squashIt[tid])->seqNum > squashedSeqNum[tid];
          ++numSquashed)
     {
-        DPRINTF(ROB, "[tid:%i] Squashing instruction PC %s, seq num %i.\n",
+        DPRINTF(ROB, "[tid:%i] Squashing instruction PC %s, seq num %i head %i.\n",
                 (*squashIt[tid])->threadNumber,
                 (*squashIt[tid])->pcState(),
-                (*squashIt[tid])->seqNum);
+                (*squashIt[tid])->seqNum,(*instList[tid].begin())->seqNum);
 
         // Mark the instruction as squashed, and ready to commit so that
         // it can drain out of the pipeline.

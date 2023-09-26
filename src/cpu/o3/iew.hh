@@ -217,6 +217,8 @@ class IEW
     /** Tells CPU that the IEW stage is inactive and idle. */
     void deactivateStage();
 
+    void activateThread(ThreadID tid);
+
     /** Returns if the LSQ has any stores to writeback. */
     bool hasStoresToWB() { return ldstQueue.hasStoresToWB(); }
 

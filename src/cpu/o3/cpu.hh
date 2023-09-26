@@ -247,7 +247,7 @@ class CPU : public BaseCPU
      *  If a thread is trying to exit and its corresponding trap event
      *  has been completed, schedule an event to terminate the thread.
      */
-    void scheduleThreadExitEvent(ThreadID tid);
+    int scheduleThreadExitEvent(ThreadID tid);
 
     /** Terminate all threads that are ready to exit */
     void exitThreads();
@@ -436,7 +436,17 @@ class CPU : public BaseCPU
      *  is mapped to a boolean value denoting whether the thread is ready
      *  to exit.
      */
-    std::unordered_map<ThreadID, bool> exitingThreads;
+    //std::unordered_map<ThreadID, bool> exitingThreads;
+    //std::vector<std::pair<ThreadID, bool>> exitingThreads;
+
+    struct ThreadData {
+      ThreadID thread_id;
+      bool finished;
+      int cycle_number;
+    
+      ThreadData(ThreadID id, bool fin, int cycle) : thread_id(id), finished(fin), cycle_number(cycle) {}
+    };
+    std::vector<ThreadData> exitingThreads;
 
     /** Integer Register Scoreboard */
     Scoreboard scoreboard;

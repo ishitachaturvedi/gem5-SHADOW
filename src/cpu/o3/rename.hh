@@ -163,6 +163,9 @@ class Rename
     /** Initializes variables for the stage. */
     void startupStage();
 
+    /** Activate thread after startup */
+    void activateThread(ThreadID tid);
+
     /** Clear all thread-specific states */
     void clearStates(ThreadID tid);
 
