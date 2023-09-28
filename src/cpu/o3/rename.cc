@@ -284,7 +284,8 @@ Rename::setActiveThreads(std::list<ThreadID> *at_ptr)
 void
 Rename::activateThread(ThreadID tid)
 {
-    renameStatus[tid] = Running;
+    //renameStatus[tid] = Running;
+    renameStatus[tid] = Idle;
 }
 
 
@@ -418,6 +419,8 @@ Rename::tick()
         status_change = checkSignalsAndUpdate(tid) || status_change;
 
         rename(status_change, tid);
+
+        DPRINTF(Rename,"[tid:%d] check_vals3 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",tid,toDecode->renameBlock[tid],toDecode->renameUnblock[tid],&toDecode->renameUnblock[tid]);
     }
 
     if (status_change) {
@@ -449,11 +452,17 @@ Rename::tick()
         instsInProgress[tid] -= fromIEW->iewInfo[tid].dispatched;
         loadsInProgress[tid] -= fromIEW->iewInfo[tid].dispatchedToLQ;
         storesInProgress[tid] -= fromIEW->iewInfo[tid].dispatchedToSQ;
+
+        if(!(instsInProgress[tid] >=0))
+        {
+            DPRINTF(Rename,"ASSERT_FAILED tid:%d instsInProgress[tid] %d fromIEW->iewInfo[tid].dispatched %d\n",tid,instsInProgress[tid],fromIEW->iewInfo[tid].dispatched);
+        }
+
         assert(loadsInProgress[tid] >= 0);
         assert(storesInProgress[tid] >= 0);
         assert(instsInProgress[tid] >=0);
     }
-
+    DPRINTF(Rename,"[tid:1] check_vals4 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",toDecode->renameBlock[1],toDecode->renameUnblock[1],&toDecode->renameUnblock[1]);
 }
 
 void
@@ -512,7 +521,10 @@ Rename::rename(bool &status_change, ThreadID tid)
         // If we switched over to blocking, then there's a potential for
         // an overall status change.
         status_change = unblock(tid) || status_change || blockThisCycle;
+
+        DPRINTF(Rename,"[tid:%d] check_vals1 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",tid,toDecode->renameBlock[tid],toDecode->renameUnblock[tid],&toDecode->renameUnblock[tid]);
     }
+    DPRINTF(Rename,"[tid:%d] check_vals2 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",tid,toDecode->renameBlock[tid],toDecode->renameUnblock[tid],&toDecode->renameUnblock[tid]);
 }
 
 void
@@ -925,7 +937,7 @@ Rename::unblock(ThreadID tid)
 
         DPRINTF(Rename, "[tid:%i] Done unblocking.\n", tid);
 
-        DPRINTF(Rename, "[tid:%i] Unblocking_at_1\n", tid);
+        DPRINTF(Rename, "[tid:%i] Unblocking_at_1 addr %p\n", tid, &toDecode->renameUnblock[tid]);
         toDecode->renameUnblock[tid] = true;
         wroteToTimeBuffer = true;
 

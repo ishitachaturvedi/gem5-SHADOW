@@ -335,8 +335,12 @@ class Rename
     /** Wire to get commit's output from backwards time buffer. */
     TimeBuffer<TimeStruct>::wire fromCommit;
 
+    public:
+
     /** Wire to write infromation heading to previous stages. */
     TimeBuffer<TimeStruct>::wire toDecode;
+
+    private:
 
     /** Rename instruction queue. */
     TimeBuffer<RenameStruct> *renameQueue;

@@ -62,6 +62,7 @@
 #include "sim/stat_control.hh"
 #include "sim/system.hh"
 #include "sim/syscall_debug_macros.hh"
+#include "debug/Decode.hh"
 
 namespace gem5
 {
@@ -450,6 +451,10 @@ CPU::CPUStats::CPUStats(CPU *cpu)
 void
 CPU::tick()
 {
+    DPRINTF(Decode,"[tid:1] check_vals14 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",decode.fromRename->renameBlock[1],decode.fromRename->renameUnblock[1],&decode.fromRename->renameUnblock[1]);
+
+    DPRINTF(Decode,"[tid:1] check_vals15 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",rename.toDecode->renameBlock[1],rename.toDecode->renameUnblock[1],&rename.toDecode->renameUnblock[1]);
+
     DPRINTF(O3CPU, "\n\nO3CPU: Ticking main, O3CPU.\n");
     assert(!switchedOut());
     assert(drainState() != DrainState::Drained);
@@ -457,14 +462,30 @@ CPU::tick()
     ++baseStats.numCycles;
     updateCycleCounters(BaseCPU::CPU_STATE_ON);
 
+    DPRINTF(Decode,"[tid:1] check_vals16 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",decode.fromRename->renameBlock[1],decode.fromRename->renameUnblock[1],&decode.fromRename->renameUnblock[1]);
+
+    DPRINTF(Decode,"[tid:1] check_vals17 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",rename.toDecode->renameBlock[1],rename.toDecode->renameUnblock[1],&rename.toDecode->renameUnblock[1]);
+
 //    activity = false;
 
     //Tick each of the stages
     fetch.tick();
 
+    DPRINTF(Decode,"[tid:1] check_vals6 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",decode.fromRename->renameBlock[1],decode.fromRename->renameUnblock[1],&decode.fromRename->renameUnblock[1]);
+
+    DPRINTF(Decode,"[tid:1] check_vals7 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",rename.toDecode->renameBlock[1],rename.toDecode->renameUnblock[1],&rename.toDecode->renameUnblock[1]);
+
     decode.tick();
 
+    DPRINTF(Decode,"[tid:1] check_vals8 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",decode.fromRename->renameBlock[1],decode.fromRename->renameUnblock[1],&decode.fromRename->renameUnblock[1]);
+
+    DPRINTF(Decode,"[tid:1] check_vals9 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",rename.toDecode->renameBlock[1],rename.toDecode->renameUnblock[1],&rename.toDecode->renameUnblock[1]);
+
     rename.tick();
+
+    DPRINTF(Decode,"[tid:1] check_vals10 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",decode.fromRename->renameBlock[1],decode.fromRename->renameUnblock[1],&decode.fromRename->renameUnblock[1]);
+
+    DPRINTF(Decode,"[tid:1] check_vals11 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",rename.toDecode->renameBlock[1],rename.toDecode->renameUnblock[1],&rename.toDecode->renameUnblock[1]);
 
     iew.tick();
 
@@ -503,6 +524,10 @@ CPU::tick()
         updateThreadPriority();
 
     tryDrain();
+
+    DPRINTF(Decode,"[tid:1] check_vals12 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",decode.fromRename->renameBlock[1],decode.fromRename->renameUnblock[1],&decode.fromRename->renameUnblock[1]);
+
+    DPRINTF(Decode,"[tid:1] check_vals13 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",rename.toDecode->renameBlock[1],rename.toDecode->renameUnblock[1],&rename.toDecode->renameUnblock[1]);
 }
 
 void
@@ -552,9 +577,9 @@ CPU::activateThread(ThreadID tid)
 
     commit.activateThread(tid);
     fetch.activateThread(tid);
-    rename.activateThread(tid);
-    iew.activateThread(tid);
-    decode.activateThread(tid);
+    rename.activateThread(tid); 
+    iew.activateThread(tid); 
+    decode.activateThread(tid); 
 }
 
 void
@@ -578,6 +603,7 @@ CPU::deactivateThread(ThreadID tid)
     }
 
     fetch.deactivateThread(tid);
+
     commit.deactivateThread(tid);
 }
 
@@ -727,6 +753,11 @@ CPU::insertThread(ThreadID tid)
 void
 CPU::removeThread(ThreadID tid)
 {
+
+    DPRINTF(Decode,"[tid:1] check_vals50 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",decode.fromRename->renameBlock[1],decode.fromRename->renameUnblock[1],&decode.fromRename->renameUnblock[1]);
+
+    DPRINTF(Decode,"[tid:1] check_vals51 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",rename.toDecode->renameBlock[1],rename.toDecode->renameUnblock[1],&rename.toDecode->renameUnblock[1]);
+
     DPRINTF(O3CPU,"EXITTEST [tid:%i] Removing thread context from CPU size.\n", tid);
 
     // Copy Thread Data From RegFile
@@ -741,19 +772,92 @@ CPU::removeThread(ThreadID tid)
     // clear all thread-specific states in each stage of the pipeline
     // since this thread is going to be completely removed from the CPU
     commit.clearStates(tid);
+
     fetch.clearStates(tid);
+
     decode.clearStates(tid);
+
     rename.clearStates(tid);
+
     iew.clearStates(tid);
 
     // Flush out any old data from the time buffers.
+    // for (int i = 0; i < timeBuffer.getSize(); ++i) {
+    //     timeBuffer.advance();
+
+    //     DPRINTF(Decode,"[tid:1] check_vals64 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p timeBuffer.getSize() %d\n",decode.fromRename->renameBlock[1],decode.fromRename->renameUnblock[1],&decode.fromRename->renameUnblock[1],timeBuffer.getSize());
+
+    //     DPRINTF(Decode,"[tid:1] check_vals65 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",rename.toDecode->renameBlock[1],rename.toDecode->renameUnblock[1],&rename.toDecode->renameUnblock[1]);
+
+    //     fetchQueue.advance();
+
+    //     DPRINTF(Decode,"[tid:1] check_vals66 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p timeBuffer.getSize() %d\n",decode.fromRename->renameBlock[1],decode.fromRename->renameUnblock[1],&decode.fromRename->renameUnblock[1],timeBuffer.getSize());
+
+    //     DPRINTF(Decode,"[tid:1] check_vals67 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",rename.toDecode->renameBlock[1],rename.toDecode->renameUnblock[1],&rename.toDecode->renameUnblock[1]);
+
+    //     decodeQueue.advance();
+
+    //     DPRINTF(Decode,"[tid:1] check_vals68 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p timeBuffer.getSize() %d\n",decode.fromRename->renameBlock[1],decode.fromRename->renameUnblock[1],&decode.fromRename->renameUnblock[1],timeBuffer.getSize());
+
+    //     DPRINTF(Decode,"[tid:1] check_vals69 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",rename.toDecode->renameBlock[1],rename.toDecode->renameUnblock[1],&rename.toDecode->renameUnblock[1]);
+
+    //     renameQueue.advance();
+
+    //     DPRINTF(Decode,"[tid:1] check_vals70 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p timeBuffer.getSize() %d\n",decode.fromRename->renameBlock[1],decode.fromRename->renameUnblock[1],&decode.fromRename->renameUnblock[1],timeBuffer.getSize());
+
+    //     DPRINTF(Decode,"[tid:1] check_vals71 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",rename.toDecode->renameBlock[1],rename.toDecode->renameUnblock[1],&rename.toDecode->renameUnblock[1]);
+
+    //     iewQueue.advance();
+
+    //     DPRINTF(Decode,"[tid:1] check_vals72 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p timeBuffer.getSize() %d\n",decode.fromRename->renameBlock[1],decode.fromRename->renameUnblock[1],&decode.fromRename->renameUnblock[1],timeBuffer.getSize());
+
+    //     DPRINTF(Decode,"[tid:1] check_vals73 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",rename.toDecode->renameBlock[1],rename.toDecode->renameUnblock[1],&rename.toDecode->renameUnblock[1]);
+    // }
+
+
+    // try to flush out states of timeStruct for the exiting thread -> In this cycle set all future signals to zero? But I will need to do this for all pointers in timebuf 
+
     for (int i = 0; i < timeBuffer.getSize(); ++i) {
-        timeBuffer.advance();
-        fetchQueue.advance();
-        decodeQueue.advance();
-        renameQueue.advance();
-        iewQueue.advance();
+        timeBuffer[i].decodeInfo[tid].branchCount = 0;
+        timeBuffer[i].decodeInfo[tid].squash = 0;
+        timeBuffer[i].decodeInfo[tid].predIncorrect = 0;
+        timeBuffer[i].decodeInfo[tid].branchMispredict = 0;
+        timeBuffer[i].decodeInfo[tid].branchTaken = 0;
+
+        timeBuffer[i].iewInfo[tid].freeIQEntries = 0;
+        timeBuffer[i].iewInfo[tid].freeLQEntries = 0;
+        timeBuffer[i].iewInfo[tid].freeSQEntries = 0;
+        timeBuffer[i].iewInfo[tid].dispatchedToLQ = 0;
+        timeBuffer[i].iewInfo[tid].dispatchedToSQ = 0;
+        timeBuffer[i].iewInfo[tid].iqCount = 0;
+        timeBuffer[i].iewInfo[tid].ldstqCount = 0;
+        timeBuffer[i].iewInfo[tid].dispatched = 0;
+        timeBuffer[i].iewInfo[tid].usedIQ = 0;
+        timeBuffer[i].iewInfo[tid].usedLSQ = 0;
+
+        timeBuffer[i].commitInfo[tid].freeROBEntries = 0;
+        timeBuffer[i].commitInfo[tid].squash = 0;
+        timeBuffer[i].commitInfo[tid].robSquashing = 0;
+        timeBuffer[i].commitInfo[tid].usedROB = 0;
+        timeBuffer[i].commitInfo[tid].emptyROB = 0;
+        timeBuffer[i].commitInfo[tid].branchTaken = 0;
+        timeBuffer[i].commitInfo[tid].interruptPending = 0;
+        timeBuffer[i].commitInfo[tid].clearInterrupt = 0;
+        timeBuffer[i].commitInfo[tid].strictlyOrdered = 0;
+
+        timeBuffer[i].decodeBlock[tid] = 0;
+        timeBuffer[i].decodeUnblock[tid] = 0;
+        timeBuffer[i].renameBlock[tid] = 0;
+        timeBuffer[i].renameUnblock[tid] = 0;
+        timeBuffer[i].iewBlock[tid] = 0;
+        timeBuffer[i].iewUnblock[tid] = 0;
+
+        iewQueue[i].squash[tid] = 0;
+        iewQueue[i].branchMispredict[tid] = 0;
+        iewQueue[i].branchTaken[tid] = 0;
+        iewQueue[i].includeSquashInst[tid] = 0;
     }
+
 
     // at this step, all instructions in the pipeline should be already
     // either committed successfully or squashed. All thread-specific
@@ -1479,27 +1583,92 @@ CPU::addThreadToExitingList(ThreadID tid)
     // the thread trying to exit can't be already halted
     assert(tcBase(tid)->status() != gem5::ThreadContext::Halted);
 
-    bool threadIdExists = false;
-    for (const ThreadData& data : exitingThreads) {
+    assert(exitingThreads.count(tid) == 0);
+
+    bool threadIdExists = false; // Comment_out
+    for (const ThreadData& data : exitingThreads1) {
         if (data.thread_id == tid) {
             threadIdExists = true;
             break;  // Exit the loop after finding the thread
         }
     }
-    assert(!threadIdExists);
+    assert(!threadIdExists); // Comment_out
 
     // add the thread to exitingThreads list to mark that this thread is
     // trying to exit. The boolean value in the pair denotes if a thread is
     // ready to exit. The thread is not ready to exit until the corresponding
     // exit trap event is processed in the future. Until then, it'll be still
     // an active thread that is trying to exit.
-    exitingThreads.emplace_back(tid, false, 0);
+    exitingThreads.emplace(std::make_pair(tid, false));
+    
+    exitingThreads1.emplace_back(tid, false, 0); // Comment_out
+
+    for (const ThreadData& data : exitingThreads1) {
+        DPRINTF(O3CPU,"111Current thread tid:%d ready %d\n",data.thread_id,data.finished);
+    }
+
+    auto it1 = exitingThreads.begin();
+    while (it1 != exitingThreads.end()) {
+        ThreadID thread_id = it1->first;
+        bool readyToExit = it1->second;
+        bool readyToExit1 = 0;
+        bool threadIdExists = 0;
+        for (const ThreadData& data : exitingThreads1) {
+            if (data.thread_id == thread_id) {
+                threadIdExists = 1;
+                readyToExit1 = data.finished;
+            }
+        }
+        assert(threadIdExists);
+        if(!threadIdExists)
+        {
+            DPRINTF(O3CPU,"[tid:%d] Does11 not exist!!\n",thread_id);
+        }
+        if((readyToExit1 != readyToExit))
+        {
+            DPRINTF(O3CPU,"[tid:%d] VALS1 NOT EQUAL readyToExit1: %d readyToExit: %d\n",thread_id,readyToExit1,readyToExit);
+        }
+        assert(readyToExit1 == readyToExit);
+        it1++;
+    }
 }
 
 bool
 CPU::isThreadExiting(ThreadID tid) const
 {
-    for (const ThreadData& data : exitingThreads) {
+    //return exitingThreads.count(tid) == 1;
+
+
+    for (const ThreadData& data : exitingThreads1) {
+        DPRINTF(O3CPU,"222Current thread tid:%d ready %d\n",data.thread_id,data.finished);
+    }
+
+    auto it1 = exitingThreads.begin();
+    while (it1 != exitingThreads.end()) {
+        ThreadID thread_id = it1->first;
+        bool readyToExit = it1->second;
+        bool readyToExit1 = 0;
+        bool threadIdExists = 0;
+        for (const ThreadData& data : exitingThreads1) {
+            if (data.thread_id == thread_id) {
+                threadIdExists = 1;
+                readyToExit1 = data.finished;
+            }
+        }
+        if(!threadIdExists)
+        {
+            DPRINTF(O3CPU,"[tid:%d] Does22 not exist!!\n",thread_id);
+        }
+        assert(threadIdExists);
+        if((readyToExit1 != readyToExit))
+        {
+            DPRINTF(O3CPU,"[tid:%d] VALS2 NOT EQUAL readyToExit1: %d readyToExit: %d\n",thread_id,readyToExit1,readyToExit);
+        }
+        assert(readyToExit1 == readyToExit);
+        it1++;
+    }
+
+    for (const ThreadData& data : exitingThreads1) { // Comment_out
         if (data.thread_id == tid) {
             return true;
         }
@@ -1510,13 +1679,48 @@ CPU::isThreadExiting(ThreadID tid) const
 int
 CPU::scheduleThreadExitEvent(ThreadID tid)
 {
-    int threadIdExists = 0;
-    for (const ThreadData& data : exitingThreads) {
+    assert(exitingThreads.count(tid) == 1);
+    exitingThreads[tid] = true;
+    
+    int threadIdExists = 0; // Comment_out
+    for (ThreadData& data : exitingThreads1) {
         if (data.thread_id == tid) {
             threadIdExists++;
+            data.finished = true;
+            data.cycle_number = curTick();
+            assert(data.finished);
         }
     }
     assert(threadIdExists==1);
+
+    for (const ThreadData& data : exitingThreads1) {
+        DPRINTF(O3CPU,"333Current thread tid:%d ready %d\n",data.thread_id,data.finished);
+    }
+
+    auto it1 = exitingThreads.begin();
+    while (it1 != exitingThreads.end()) {
+        ThreadID thread_id = it1->first;
+        bool readyToExit = it1->second;
+        bool readyToExit1 = 0;
+        bool threadIdExists = 0;
+        for (const ThreadData& data : exitingThreads1) {
+            if (data.thread_id == thread_id) {
+                threadIdExists = 1;
+                readyToExit1 = data.finished;
+            }
+        }
+        assert(threadIdExists);
+        if(!threadIdExists)
+        {
+            DPRINTF(O3CPU,"[tid:%d] Does33 not exist!!\n",thread_id);
+        }
+        if((readyToExit1 != readyToExit))
+        {
+            DPRINTF(O3CPU,"[tid:%d] VALS3 NOT EQUAL readyToExit1: %d readyToExit: %d\n",thread_id,readyToExit1,readyToExit);
+        }
+        assert(readyToExit1 == readyToExit);
+        it1++;
+    }
 
     // we schedule a threadExitEvent in the next cycle to properly clean
     // up the thread's states in the pipeline. threadExitEvent has lower
@@ -1538,22 +1742,138 @@ CPU::scheduleThreadExitEvent(ThreadID tid)
 void
 CPU::exitThreads()
 {
-    // there must be at least one thread trying to exit
-    assert(exitingThreads.size() > 0);
 
-    for (auto it = exitingThreads.begin(); it != exitingThreads.end();) {
+    // there must be at least one thread trying to exit
+    assert(exitingThreads1.size() > 0);
+
+    for (const ThreadData& data : exitingThreads1) {
+        DPRINTF(O3CPU,"444Current thread tid:%d ready %d\n",data.thread_id,data.finished);
+    }
+
+    bool did_thread_exit = false;
+
+    auto it1 = exitingThreads.begin();
+    while (it1 != exitingThreads.end()) {
+        ThreadID thread_id = it1->first;
+        bool readyToExit = it1->second;
+        bool readyToExit1 = 0;
+        bool threadIdExists = 0;
+        for (const ThreadData& data : exitingThreads1) {
+            if (data.thread_id == thread_id) {
+                threadIdExists = 1;
+                readyToExit1 = data.finished;
+            }
+        }
+        assert(threadIdExists);
+        if(!threadIdExists)
+        {
+            DPRINTF(O3CPU,"[tid:%d] Does44 not exist!!\n",thread_id);
+        }
+        if((readyToExit1 != readyToExit))
+        {
+            DPRINTF(O3CPU,"[tid:%d] VALS4 NOT EQUAL readyToExit1: %d readyToExit: %d\n",thread_id,readyToExit1,readyToExit);
+        }
+        assert(readyToExit1 == readyToExit);
+        it1++;
+    }
+
+    std::vector<int> exit_thread;
+
+    int exit_size = exitingThreads1.size();
+
+    for (auto it = exitingThreads1.begin(); it != exitingThreads1.end();) {
         bool readyToExit = it->finished;
-        if (it->cycle_number != curTick() && readyToExit) {
-            DPRINTF(O3CPU,"[tid:%d] EXITTEST actual exit size %d\n",it->thread_id,exitingThreads.size());
+        if ((it->cycle_number != curTick() || exit_size == 1) && readyToExit) {
+        //if (readyToExit) {
+            DPRINTF(O3CPU,"[tid:%d] EXITTEST actual exit size %d ready %d cycle %d\n",it->thread_id,exitingThreads.size(),it->finished,it->cycle_number);
+
             haltContext(it->thread_id);
+
             tcBase(it->thread_id)->setStatus(gem5::ThreadContext::Halted);
-            it = exitingThreads.erase(it);  // Erase the element and get the next iterator
+
+            exit_thread.push_back(it->thread_id);
+
+            it = exitingThreads1.erase(it);  // Erase the element and get the next iterator
+            did_thread_exit = true;
             //break;
         } else {
             it++;  // Move to the next element if no match
         }
     }
 
+    if(!did_thread_exit)
+    {
+        for (const ThreadData& data : exitingThreads1) {
+            DPRINTF(O3CPU,"444No exit found:%d ready %d cycle %d\n",data.thread_id,data.finished,data.cycle_number);
+        }
+    }
+    assert(did_thread_exit);
+
+    auto it = exitingThreads.begin();
+    while (it != exitingThreads.end()) {
+        ThreadID thread_id = it->first;
+        bool readyToExit = it->second;
+        auto found = false;
+        for (int value : exit_thread) {
+            if (value == thread_id) {
+                found = true;  // Set the flag to true if found
+                break;         // Exit the loop early, no need to continue searching
+            }
+        }
+        if (readyToExit && found) {
+            DPRINTF(O3CPU, "Exiting thread %d\n", thread_id);
+            it = exitingThreads.erase(it);
+            //break;
+        } else {
+            it++;
+        }
+    }
+
+    // terminate all threads that are ready to exit
+    // auto it = exitingThreads.begin();
+    // while (it != exitingThreads.end()) {
+    //     ThreadID thread_id = it->first;
+    //     bool readyToExit = it->second;
+    //     if (readyToExit) {
+    //         DPRINTF(O3CPU, "Exiting thread %d\n", thread_id);
+    //         DPRINTF(O3CPU,"[tid:%d] EXITTEST actual exit size %d\n",it->first,exitingThreads.size());
+    //         haltContext(thread_id);
+    //         tcBase(thread_id)->setStatus(ThreadContext::Halted);
+    //         exit_thread.push_back(thread_id);
+    //         it = exitingThreads.erase(it);
+    //     } else {
+    //         it++;
+    //     }
+    // }
+
+    // for (auto it = exitingThreads1.begin(); it != exitingThreads1.end();) {
+    //     bool readyToExit = it->finished;
+    //     ThreadID thread_id = it->thread_id;
+    //     auto found = false;
+    //     for (int value : exit_thread) {
+    //         if (value == thread_id) {
+    //             found = true;  // Set the flag to true if found
+    //             auto newEnd = std::remove(exit_thread.begin(), exit_thread.end(), value);
+    //             exit_thread.erase(newEnd, exit_thread.end());
+    //             break;         // Exit the loop early, no need to continue searching
+    //         }
+    //     }
+    //     if (it->cycle_number != curTick() && readyToExit && found) {
+    //     //if (readyToExit) {
+    //         it = exitingThreads1.erase(it);  // Erase the element and get the next iterator
+    //         //break;
+    //     } else {
+    //         it++;  // Move to the next element if no match
+    //     }
+    // }
+    // if(exit_thread.size()!=0)
+    // {
+    //     for (int value : exit_thread) 
+    //     {
+    //         DPRINTF(O3CPU,"Value not removed %d\n",value);
+    //     }
+    // }
+    // assert(exit_thread.size()==0);
 }
 
 void

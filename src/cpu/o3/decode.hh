@@ -212,8 +212,12 @@ class Decode
     /** Time buffer interface. */
     TimeBuffer<TimeStruct> *timeBuffer;
 
+  public:
+
     /** Wire to get rename's output from backwards time buffer. */
     TimeBuffer<TimeStruct>::wire fromRename;
+
+  private:
 
     /** Wire to get iew's information from backwards time buffer. */
     TimeBuffer<TimeStruct>::wire fromIEW;

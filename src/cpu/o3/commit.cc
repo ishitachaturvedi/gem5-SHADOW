@@ -840,7 +840,7 @@ Commit::commit()
                 if(event_scheduled == 0)
                 {
                     DPRINTF(Commit,"EXITTEST [tid:%d] SETTING TRAP TRUE AGAIN\n",tid);
-                    trapSquash[tid] = true;
+                    trapSquash[tid] = true; 
                 }
             }
         } else if (tcSquash[tid]) {
@@ -1035,7 +1035,7 @@ Commit::commitInsts()
         // If the head instruction is squashed, it is ready to retire
         // (be removed from the ROB) at any time.
         if (head_inst->isSquashed()) {
-            while(rob->isHeadReady(commit_thread) && rob->readHeadInst(commit_thread)->isSquashed())
+            while(rob->isHeadReady(commit_thread) && rob->readHeadInst(commit_thread)->isSquashed()) 
             {
                 DPRINTF(Commit, "[tid:%d] Retiring squashed instruction from "
                         "ROB.\n",tid);
@@ -1165,7 +1165,6 @@ Commit::commitInsts()
                         "[tid:%i] [sn:%llu].\n",
                         head_inst->pcState(), tid ,head_inst->seqNum);
                 break;
-                //commit_possible[tid] = 0;
             }
         }
     }
@@ -1518,7 +1517,7 @@ Commit::roundRobin()
     while (pri_iter != end) {
         ThreadID tid = *pri_iter;
 
-        DPRINTF(Commit,"[tid:%d] Inside RR status %d ready %d list_len %d\n",tid,commitStatus[tid],rob->isHeadReady(tid),priority_list.size());
+        //DPRINTF(Commit,"[tid:%d] Inside RR status %d ready %d list_len %d\n",tid,commitStatus[tid],rob->isHeadReady(tid),priority_list.size());
 
         if (commitStatus[tid] == Running ||
             commitStatus[tid] == Idle ||

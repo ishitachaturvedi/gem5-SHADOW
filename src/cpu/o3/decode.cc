@@ -473,7 +473,7 @@ Decode::sortInsts()
 void
 Decode::readStallSignals(ThreadID tid)
 {
-    DPRINTF(Decode,"[tid:%d] readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d\n",tid,fromRename->renameBlock[tid],fromRename->renameUnblock[tid]);
+    DPRINTF(Decode,"[tid:%d] readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",tid,fromRename->renameBlock[tid],fromRename->renameUnblock[tid],&fromRename->renameUnblock[tid]);
     if (fromRename->renameBlock[tid]) {
         DPRINTF(Decode,"[tid:%d] renameUnblockBlock\n",tid);
         stalls[tid].rename = true;
@@ -489,7 +489,10 @@ Decode::readStallSignals(ThreadID tid)
 void
 Decode::activateThread(ThreadID tid)
 {
-    decodeStatus[tid] = Running;
+    //decodeStatus[tid] = Running;
+    // stalls[tid].rename = false;
+
+    decodeStatus[tid] = Idle;
     stalls[tid].rename = false;
 }
 
@@ -552,6 +555,8 @@ Decode::checkSignalsAndUpdate(ThreadID tid)
 void
 Decode::tick()
 {
+    DPRINTF(Decode,"[tid:1] check_vals5 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",fromRename->renameBlock[1],fromRename->renameUnblock[1],&fromRename->renameUnblock[1]);
+
     wroteToTimeBuffer = false;
 
     bool status_change = false;

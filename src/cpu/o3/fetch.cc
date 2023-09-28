@@ -517,6 +517,18 @@ Fetch::activateThread(ThreadID tid)
         DPRINTF(Fetch,"[tid:%d] FINALLY_ACTIVATING_THREAD\n",tid);
         priorityList.push_back(tid);
     }
+
+    fetchStatus[tid] = Running;
+    set(pc[tid], cpu->pcState(tid));
+    fetchOffset[tid] = 0;
+    macroop[tid] = NULL;
+    delayedCommit[tid] = false;
+    memReq[tid] = NULL;
+    stalls[tid].decode = false;
+    stalls[tid].drain = false;
+    fetchBufferPC[tid] = 0;
+    fetchBufferValid[tid] = false;
+    fetchQueue[tid].clear();
 }
 
 bool
