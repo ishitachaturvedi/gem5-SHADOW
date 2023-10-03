@@ -391,10 +391,14 @@ MemState::fixupFault(Addr vaddr)
      * Check if we are accessing a mapped virtual address. If so then we
      * just haven't allocated it a physical page yet and can do so here.
      */
+
+    DPRINTF(Vma,"fixupFault step1\n");
     for (const auto &vma : _vmaList) {
         if (vma.contains(vaddr)) {
             Addr vpage_start = roundDown(vaddr, _pageBytes);
             _ownerProcess->allocateMem(vpage_start, _pageBytes);
+
+            DPRINTF(Vma,"fixupFault step2\n");
 
             /**
              * We are assuming that fresh pages are zero-filled, so there is
@@ -407,16 +411,20 @@ MemState::fixupFault(Addr vaddr)
                  * Write the memory for the host buffer contents for all
                  * ThreadContexts associated with this process.
                  */
+                DPRINTF(Vma,"fixupFault step3\n");
                 for (auto &cid : _ownerProcess->contextIds) {
                     auto *tc = _ownerProcess->system->threads[cid];
                     SETranslatingPortProxy
                         virt_mem(tc, SETranslatingPortProxy::Always);
                     vma.fillMemPages(vpage_start, _pageBytes, virt_mem);
                 }
+                DPRINTF(Vma,"fixupFault step6\n");
             }
+            DPRINTF(Vma,"fixupFault step7\n");
             return true;
         }
     }
+    DPRINTF(Vma,"fixupFault step4\n");
 
     /**
      * Check if the stack needs to be grown in the case where the ISAs
@@ -426,9 +434,11 @@ MemState::fixupFault(Addr vaddr)
      * yet.
      */
     if (vaddr >= _stackMin && vaddr < _stackBase) {
+        DPRINTF(Vma,"fixupFault step5\n");
         _ownerProcess->allocateMem(roundDown(vaddr, _pageBytes), _pageBytes);
         return true;
     }
+    DPRINTF(Vma,"fixupFault step8\n");
 
     /**
      * We've accessed the next page of the stack, so extend it to include
@@ -436,16 +446,19 @@ MemState::fixupFault(Addr vaddr)
      */
     if (vaddr < _stackMin && vaddr >= _stackBase - _maxStackSize) {
         while (vaddr < _stackMin) {
+            DPRINTF(Vma,"fixupFault step9\n");
             _stackMin -= _pageBytes;
             if (_stackBase - _stackMin > _maxStackSize) {
                 fatal("Maximum stack size exceeded\n");
             }
+            DPRINTF(Vma,"fixupFault step10\n");
             _ownerProcess->allocateMem(_stackMin, _pageBytes);
             inform("Increasing stack size by one page.");
         }
+        DPRINTF(Vma,"fixupFault step11\n");
         return true;
     }
-
+    DPRINTF(Vma,"fixupFault step12\n");
     return false;
 }
 

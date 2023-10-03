@@ -451,10 +451,6 @@ CPU::CPUStats::CPUStats(CPU *cpu)
 void
 CPU::tick()
 {
-    DPRINTF(Decode,"[tid:1] check_vals14 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",decode.fromRename->renameBlock[1],decode.fromRename->renameUnblock[1],&decode.fromRename->renameUnblock[1]);
-
-    DPRINTF(Decode,"[tid:1] check_vals15 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",rename.toDecode->renameBlock[1],rename.toDecode->renameUnblock[1],&rename.toDecode->renameUnblock[1]);
-
     DPRINTF(O3CPU, "\n\nO3CPU: Ticking main, O3CPU.\n");
     assert(!switchedOut());
     assert(drainState() != DrainState::Drained);
@@ -462,33 +458,13 @@ CPU::tick()
     ++baseStats.numCycles;
     updateCycleCounters(BaseCPU::CPU_STATE_ON);
 
-    DPRINTF(Decode,"[tid:1] check_vals16 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",decode.fromRename->renameBlock[1],decode.fromRename->renameUnblock[1],&decode.fromRename->renameUnblock[1]);
-
-    DPRINTF(Decode,"[tid:1] check_vals17 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",rename.toDecode->renameBlock[1],rename.toDecode->renameUnblock[1],&rename.toDecode->renameUnblock[1]);
-
 //    activity = false;
 
     //Tick each of the stages
     fetch.tick();
-
-    DPRINTF(Decode,"[tid:1] check_vals6 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",decode.fromRename->renameBlock[1],decode.fromRename->renameUnblock[1],&decode.fromRename->renameUnblock[1]);
-
-    DPRINTF(Decode,"[tid:1] check_vals7 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",rename.toDecode->renameBlock[1],rename.toDecode->renameUnblock[1],&rename.toDecode->renameUnblock[1]);
-
     decode.tick();
-
-    DPRINTF(Decode,"[tid:1] check_vals8 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",decode.fromRename->renameBlock[1],decode.fromRename->renameUnblock[1],&decode.fromRename->renameUnblock[1]);
-
-    DPRINTF(Decode,"[tid:1] check_vals9 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",rename.toDecode->renameBlock[1],rename.toDecode->renameUnblock[1],&rename.toDecode->renameUnblock[1]);
-
     rename.tick();
-
-    DPRINTF(Decode,"[tid:1] check_vals10 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",decode.fromRename->renameBlock[1],decode.fromRename->renameUnblock[1],&decode.fromRename->renameUnblock[1]);
-
-    DPRINTF(Decode,"[tid:1] check_vals11 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",rename.toDecode->renameBlock[1],rename.toDecode->renameUnblock[1],&rename.toDecode->renameUnblock[1]);
-
     iew.tick();
-
     commit.tick();
 
     // Now advance the time buffers
@@ -524,10 +500,6 @@ CPU::tick()
         updateThreadPriority();
 
     tryDrain();
-
-    DPRINTF(Decode,"[tid:1] check_vals12 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",decode.fromRename->renameBlock[1],decode.fromRename->renameUnblock[1],&decode.fromRename->renameUnblock[1]);
-
-    DPRINTF(Decode,"[tid:1] check_vals13 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",rename.toDecode->renameBlock[1],rename.toDecode->renameUnblock[1],&rename.toDecode->renameUnblock[1]);
 }
 
 void
@@ -754,10 +726,6 @@ void
 CPU::removeThread(ThreadID tid)
 {
 
-    DPRINTF(Decode,"[tid:1] check_vals50 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",decode.fromRename->renameBlock[1],decode.fromRename->renameUnblock[1],&decode.fromRename->renameUnblock[1]);
-
-    DPRINTF(Decode,"[tid:1] check_vals51 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",rename.toDecode->renameBlock[1],rename.toDecode->renameUnblock[1],&rename.toDecode->renameUnblock[1]);
-
     DPRINTF(O3CPU,"EXITTEST [tid:%i] Removing thread context from CPU size.\n", tid);
 
     // Copy Thread Data From RegFile
@@ -784,36 +752,11 @@ CPU::removeThread(ThreadID tid)
     // Flush out any old data from the time buffers.
     // for (int i = 0; i < timeBuffer.getSize(); ++i) {
     //     timeBuffer.advance();
-
-    //     DPRINTF(Decode,"[tid:1] check_vals64 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p timeBuffer.getSize() %d\n",decode.fromRename->renameBlock[1],decode.fromRename->renameUnblock[1],&decode.fromRename->renameUnblock[1],timeBuffer.getSize());
-
-    //     DPRINTF(Decode,"[tid:1] check_vals65 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",rename.toDecode->renameBlock[1],rename.toDecode->renameUnblock[1],&rename.toDecode->renameUnblock[1]);
-
     //     fetchQueue.advance();
-
-    //     DPRINTF(Decode,"[tid:1] check_vals66 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p timeBuffer.getSize() %d\n",decode.fromRename->renameBlock[1],decode.fromRename->renameUnblock[1],&decode.fromRename->renameUnblock[1],timeBuffer.getSize());
-
-    //     DPRINTF(Decode,"[tid:1] check_vals67 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",rename.toDecode->renameBlock[1],rename.toDecode->renameUnblock[1],&rename.toDecode->renameUnblock[1]);
-
     //     decodeQueue.advance();
-
-    //     DPRINTF(Decode,"[tid:1] check_vals68 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p timeBuffer.getSize() %d\n",decode.fromRename->renameBlock[1],decode.fromRename->renameUnblock[1],&decode.fromRename->renameUnblock[1],timeBuffer.getSize());
-
-    //     DPRINTF(Decode,"[tid:1] check_vals69 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",rename.toDecode->renameBlock[1],rename.toDecode->renameUnblock[1],&rename.toDecode->renameUnblock[1]);
-
     //     renameQueue.advance();
-
-    //     DPRINTF(Decode,"[tid:1] check_vals70 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p timeBuffer.getSize() %d\n",decode.fromRename->renameBlock[1],decode.fromRename->renameUnblock[1],&decode.fromRename->renameUnblock[1],timeBuffer.getSize());
-
-    //     DPRINTF(Decode,"[tid:1] check_vals71 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",rename.toDecode->renameBlock[1],rename.toDecode->renameUnblock[1],&rename.toDecode->renameUnblock[1]);
-
     //     iewQueue.advance();
-
-    //     DPRINTF(Decode,"[tid:1] check_vals72 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p timeBuffer.getSize() %d\n",decode.fromRename->renameBlock[1],decode.fromRename->renameUnblock[1],&decode.fromRename->renameUnblock[1],timeBuffer.getSize());
-
-    //     DPRINTF(Decode,"[tid:1] check_vals73 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",rename.toDecode->renameBlock[1],rename.toDecode->renameUnblock[1],&rename.toDecode->renameUnblock[1]);
     // }
-
 
     // try to flush out states of timeStruct for the exiting thread -> In this cycle set all future signals to zero? But I will need to do this for all pointers in timebuf 
 

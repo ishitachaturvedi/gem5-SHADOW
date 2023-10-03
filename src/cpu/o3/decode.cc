@@ -555,8 +555,6 @@ Decode::checkSignalsAndUpdate(ThreadID tid)
 void
 Decode::tick()
 {
-    DPRINTF(Decode,"[tid:1] check_vals5 readStallSignalsVALUES renameBlock[tid] %d renameUnblock[tid] %d addr %p\n",fromRename->renameBlock[1],fromRename->renameUnblock[1],&fromRename->renameUnblock[1]);
-
     wroteToTimeBuffer = false;
 
     bool status_change = false;

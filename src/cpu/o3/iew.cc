@@ -55,6 +55,7 @@
 #include "debug/Activity.hh"
 #include "debug/Drain.hh"
 #include "debug/IEW.hh"
+#include "debug/Rename.hh"
 #include "debug/O3PipeView.hh"
 #include "params/BaseO3CPU.hh"
 
@@ -448,6 +449,7 @@ IEW::squash(ThreadID tid)
         }
 
         toRename->iewInfo[tid].dispatched++;
+        DPRINTF(Rename,"[tid:%d] from skidbuffer increase dispatched %d\n",tid,toRename->iewInfo[tid].dispatched);
 
         skidBuffer[tid].pop();
     }
@@ -800,6 +802,7 @@ IEW::emptyRenameInsts(ThreadID tid)
         }
 
         toRename->iewInfo[tid].dispatched++;
+        DPRINTF(Rename,"[tid:%d] emptyRenameInsts dispatched %d\n",tid,toRename->iewInfo[tid].dispatched);
 
         insts[tid].pop();
     }
@@ -936,6 +939,7 @@ IEW::dispatchInsts(ThreadID tid)
             }
 
             toRename->iewInfo[tid].dispatched++;
+            DPRINTF(Rename,"[tid:%d] isSquashed %d\n",tid,toRename->iewInfo[tid].dispatched);
 
             continue;
         }
@@ -1091,6 +1095,8 @@ IEW::dispatchInsts(ThreadID tid)
         insts_to_dispatch.pop();
 
         toRename->iewInfo[tid].dispatched++;
+        DPRINTF(Rename,"[tid:%d] InMiddle %d\n",tid,toRename->iewInfo[tid].dispatched);
+
 
         ++iewStats.dispatchedInsts;
 

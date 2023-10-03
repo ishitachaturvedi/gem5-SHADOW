@@ -142,8 +142,8 @@ class BaseO3CPU(BaseCPU):
         5, "Time buffer size for forward communication"
     )
 
-    LQEntries = Param.Unsigned(32, "Number of load queue entries")
-    SQEntries = Param.Unsigned(32, "Number of store queue entries")
+    LQEntries = Param.Unsigned(100, "Number of load queue entries")
+    SQEntries = Param.Unsigned(100, "Number of store queue entries")
     LSQDepCheckShift = Param.Unsigned(
         4, "Number of places to shift addr before check"
     )
@@ -163,20 +163,20 @@ class BaseO3CPU(BaseCPU):
     numRobs = Param.Unsigned(1, "Number of Reorder Buffers")
 
     numPhysIntRegs = Param.Unsigned(
-        256, "Number of physical integer registers"
+        6000, "Number of physical integer registers" # orig: 256
     )
     numPhysFloatRegs = Param.Unsigned(
-        256, "Number of physical floating point " "registers"
+        6000, "Number of physical floating point " "registers" # orig: 256
     )
     numPhysVecRegs = Param.Unsigned(
-        256, "Number of physical vector " "registers"
+        6000, "Number of physical vector " "registers" # orig: 256
     )
     numPhysVecPredRegs = Param.Unsigned(
-        32, "Number of physical predicate " "registers"
+        800, "Number of physical predicate " "registers" # orig: 32
     )
     # most ISAs don't use condition-code regs, so default is 0
     numPhysCCRegs = Param.Unsigned(0, "Number of physical cc registers")
-    numIQEntries = Param.Unsigned(64, "Number of instruction queue entries")
+    numIQEntries = Param.Unsigned(640, "Number of instruction queue entries")
     numROBEntries = Param.Unsigned(192, "Number of reorder buffer entries")
 
     smtNumFetchingThreads = Param.Unsigned(1, "SMT Number of Fetching Threads")
@@ -184,9 +184,9 @@ class BaseO3CPU(BaseCPU):
     smtLSQPolicy = Param.SMTQueuePolicy(
         "Partitioned", "SMT LSQ Sharing Policy"
     )
-    smtLSQThreshold = Param.Int(100, "SMT LSQ Threshold Sharing Parameter")
+    smtLSQThreshold = Param.Int(1000, "SMT LSQ Threshold Sharing Parameter")
     smtIQPolicy = Param.SMTQueuePolicy("Partitioned", "SMT IQ Sharing Policy")
-    smtIQThreshold = Param.Int(100, "SMT IQ Threshold Sharing Parameter")
+    smtIQThreshold = Param.Int(1000, "SMT IQ Threshold Sharing Parameter")
     smtROBPolicy = Param.SMTQueuePolicy(
         "Partitioned", "SMT ROB Sharing Policy"
     )

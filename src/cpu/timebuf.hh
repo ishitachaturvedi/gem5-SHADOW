@@ -195,7 +195,7 @@ class TimeBuffer
     inline int calculateVectorIndex(int idx) const
     {
         //Need more complex math here to calculate index.
-        valid(idx);
+        //valid(idx);
 
         int vector_index = idx + base;
         if (vector_index >= (int)size) {
