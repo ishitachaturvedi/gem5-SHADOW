@@ -449,8 +449,7 @@ IEW::squash(ThreadID tid)
         }
 
         toRename->iewInfo[tid].dispatched++;
-        DPRINTF(Rename,"[tid:%d] from skidbuffer increase dispatched %d\n",tid,toRename->iewInfo[tid].dispatched);
-
+        DPRINTF(IEW,"[tid:%d] dispatch add 1\n",tid);
         skidBuffer[tid].pop();
     }
 
@@ -783,6 +782,11 @@ IEW::sortInsts()
 // #endif
     for (int i = 0; i < insts_from_rename; ++i) {
         insts[fromRename->insts[i]->threadNumber].push(fromRename->insts[i]);
+        //if(fromRename->insts[i]->threadNumber == 4)
+        {
+            int tid = fromRename->insts[i]->threadNumber;
+            DPRINTF(IEW, "[tid:%d] Inserting inst in instqueue\n",tid);
+        }
     }
 }
 
@@ -802,7 +806,7 @@ IEW::emptyRenameInsts(ThreadID tid)
         }
 
         toRename->iewInfo[tid].dispatched++;
-        DPRINTF(Rename,"[tid:%d] emptyRenameInsts dispatched %d\n",tid,toRename->iewInfo[tid].dispatched);
+        DPRINTF(IEW,"[tid:%d] dispatch add 4\n",tid);
 
         insts[tid].pop();
     }
@@ -928,6 +932,10 @@ IEW::dispatchInsts(ThreadID tid)
 
             ++iewStats.dispSquashedInsts;
 
+
+            DPRINTF(IEW,"[tid:%d] isSquashed %d dispatchStatus[tid] %d insts_to_dispatch.size() %d\n",tid,toRename->iewInfo[tid].dispatched,dispatchStatus[tid],insts_to_dispatch.size());
+
+
             insts_to_dispatch.pop();
 
             //Tell Rename That An Instruction has been processed
@@ -939,7 +947,7 @@ IEW::dispatchInsts(ThreadID tid)
             }
 
             toRename->iewInfo[tid].dispatched++;
-            DPRINTF(Rename,"[tid:%d] isSquashed %d\n",tid,toRename->iewInfo[tid].dispatched);
+            DPRINTF(IEW,"[tid:%d] dispatch add 2\n",tid);
 
             continue;
         }
@@ -1095,7 +1103,7 @@ IEW::dispatchInsts(ThreadID tid)
         insts_to_dispatch.pop();
 
         toRename->iewInfo[tid].dispatched++;
-        DPRINTF(Rename,"[tid:%d] InMiddle %d\n",tid,toRename->iewInfo[tid].dispatched);
+        DPRINTF(IEW,"[tid:%d] dispatch add 3\n",tid);
 
 
         ++iewStats.dispatchedInsts;
@@ -1566,8 +1574,9 @@ IEW::tick()
         DPRINTF(Activity, "Activity this cycle.\n");
         cpu->activityThisCycle();
     }
-}
 
+    //DPRINTF(IEW,"[tid:19] endoftickcheck %d dispatchStatus[tid] %d skidBuffer[tid].size() %d insts[tid].size() %d\n",toRename->iewInfo[19].dispatched,dispatchStatus[19],skidBuffer[19].size(),insts[19].size());
+}
 void
 IEW::updateExeInstStats(const DynInstPtr& inst)
 {

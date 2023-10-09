@@ -799,6 +799,72 @@ CPU::removeThread(ThreadID tid)
         iewQueue[i].branchMispredict[tid] = 0;
         iewQueue[i].branchTaken[tid] = 0;
         iewQueue[i].includeSquashInst[tid] = 0;
+
+        // temporary array to store queues as we want to remove the values from the thread that has committed
+        DynInstPtr insts_temp[MaxWidth];
+        int counter_temp;
+
+        counter_temp = 0;
+        // look for inst with different tid as exiting thread and save them in temp array
+        for(int j = 0; j< fetchQueue[i].size; j++)
+        {
+            if(fetchQueue[i].insts[j]->threadNumber != tid)
+            {
+                insts_temp[counter_temp] = fetchQueue[i].insts[j];
+                counter_temp++;
+            }
+        }
+        for(int j = 0; j< counter_temp; j++)
+        {
+            fetchQueue[i].insts[j] = insts_temp[j];
+        }
+        fetchQueue[i].size = counter_temp;
+
+        counter_temp = 0;
+        for(int j = 0; j< decodeQueue[i].size; j++)
+        {
+            if(decodeQueue[i].insts[j]->threadNumber != tid)
+            {
+                insts_temp[counter_temp] = decodeQueue[i].insts[j];
+                counter_temp++;
+            }
+        }
+        for(int j = 0; j< counter_temp; j++)
+        {
+            decodeQueue[i].insts[j] = insts_temp[j];
+        }
+        decodeQueue[i].size = counter_temp;
+
+        counter_temp = 0;
+        for(int j = 0; j< renameQueue[i].size; j++)
+        {
+            if(renameQueue[i].insts[j]->threadNumber != tid)
+            {
+                insts_temp[counter_temp] = renameQueue[i].insts[j];
+                counter_temp++;
+            }
+        }
+        for(int j = 0; j< counter_temp; j++)
+        {
+            renameQueue[i].insts[j] = insts_temp[j];
+        }
+        renameQueue[i].size = counter_temp;
+
+        counter_temp = 0;
+        for(int j = 0; j< iewQueue[i].size; j++)
+        {
+            if(iewQueue[i].insts[j]->threadNumber != tid)
+            {
+                insts_temp[counter_temp] = iewQueue[i].insts[j];
+                counter_temp++;
+            }
+        }
+        for(int j = 0; j< counter_temp; j++)
+        {
+            iewQueue[i].insts[j] = insts_temp[j];
+        }
+        iewQueue[i].size = counter_temp;
+
     }
 
 

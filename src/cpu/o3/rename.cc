@@ -451,9 +451,9 @@ Rename::tick()
         loadsInProgress[tid] -= fromIEW->iewInfo[tid].dispatchedToLQ;
         storesInProgress[tid] -= fromIEW->iewInfo[tid].dispatchedToSQ;
 
-        if(!(instsInProgress[tid] >=0) || tid == 4)
+        if(!(instsInProgress[tid] >=0))
         {
-            DPRINTF(Rename,"[tid:%d] thread_issue progress instsInProgress[tid] %d fromIEW->iewInfo[tid].dispatched %d\n",tid,instsInProgress[tid],fromIEW->iewInfo[tid].dispatched);
+            DPRINTF(Rename,"[tid:%d] thread_issue progress instsInProgress[tid] %d fromIEW->iewInfo[tid].dispatched %d insts[tid].size() %d\n",tid,instsInProgress[tid],fromIEW->iewInfo[tid].dispatched,insts[tid].size());
         }
         assert(loadsInProgress[tid] >= 0);
         assert(storesInProgress[tid] >= 0);
@@ -739,6 +739,11 @@ Rename::renameInsts(ThreadID tid)
             loadsInProgress[tid]++;
         }
 
+        //if(tid == 4)
+        {
+            DPRINTF(Rename,"[tid:%d] PUTTING_INST_TO_IEW renameStatus[tid] %d\n",tid,renameStatus[tid]);
+        }
+
         ++renamed_insts;
         // Notify potential listeners that source and destination registers for
         // this instruction have been renamed.
@@ -818,6 +823,10 @@ Rename::sortInsts()
     for (int i = 0; i < insts_from_decode; ++i) {
         const DynInstPtr &inst = fromDecode->insts[i];
         insts[inst->threadNumber].push_back(inst);
+        if(inst->threadNumber == 4)
+        {
+            DPRINTF(Rename, "FROM rename putting in queue\n");
+        }
 #if TRACING_ON
         if (debug::O3PipeView) {
             inst->renameTick = curTick() - inst->fetchTick;
@@ -1227,7 +1236,6 @@ Rename::readStallSignals(ThreadID tid)
     }
 
     if (fromIEW->iewUnblock[tid]) {
-        DPRINTF(Rename,"[tid:%d] G\n",tid);
         assert(stalls[tid].iew);
         stalls[tid].iew = false;
     }
