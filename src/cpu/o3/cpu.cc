@@ -459,7 +459,7 @@ CPU::tick()
     updateCycleCounters(BaseCPU::CPU_STATE_ON);
 
 //    activity = false;
-
+    DPRINTF(O3CPU,"To_decode_signal step1 %d %d \n",rename.toDecode->renameUnblock[0],decode.fromRename->renameUnblock[0]);
     //Tick each of the stages
     fetch.tick();
     decode.tick();
@@ -468,14 +468,20 @@ CPU::tick()
     commit.tick();
 
     // Now advance the time buffers
+
+    DPRINTF(O3CPU,"To_decode_signal step2 %d %d \n",rename.toDecode->renameUnblock[0],decode.fromRename->renameUnblock[0]);
     timeBuffer.advance();
-
+    DPRINTF(O3CPU,"To_decode_signal step3 %d %d \n",rename.toDecode->renameUnblock[0],decode.fromRename->renameUnblock[0]);
     fetchQueue.advance();
+    DPRINTF(O3CPU,"To_decode_signal step4 %d %d \n",rename.toDecode->renameUnblock[0],decode.fromRename->renameUnblock[0]);
     decodeQueue.advance();
+    DPRINTF(O3CPU,"To_decode_signal step5 %d %d \n",rename.toDecode->renameUnblock[0],decode.fromRename->renameUnblock[0]);
     renameQueue.advance();
+    DPRINTF(O3CPU,"To_decode_signal step6 %d %d \n",rename.toDecode->renameUnblock[0],decode.fromRename->renameUnblock[0]);
     iewQueue.advance();
-
+    DPRINTF(O3CPU,"To_decode_signal step7 %d %d \n",rename.toDecode->renameUnblock[0],decode.fromRename->renameUnblock[0]);
     activityRec.advance();
+    DPRINTF(O3CPU,"To_decode_signal step8 %d %d \n",rename.toDecode->renameUnblock[0],decode.fromRename->renameUnblock[0]);
 
     if (removeInstsThisCycle) {
         cleanUpRemovedInsts();
@@ -500,6 +506,7 @@ CPU::tick()
         updateThreadPriority();
 
     tryDrain();
+    DPRINTF(O3CPU,"To_decode_signal step9 %d %d \n",rename.toDecode->renameUnblock[0],decode.fromRename->renameUnblock[0]);
 }
 
 void
@@ -559,6 +566,18 @@ CPU::deactivateThread(ThreadID tid)
 {
     // hardware transactional memory
     // shouldn't deactivate thread in the middle of a transaction
+
+
+    // test stuff Ishita
+    for (int i = 0; i < timeBuffer.getSize(); ++i) {
+        timeBuffer[i].decodeBlock[tid] = 0;
+        timeBuffer[i].decodeUnblock[tid] = 0;
+        timeBuffer[i].renameBlock[tid] = 0;
+        timeBuffer[i].renameUnblock[tid] = 0;
+        timeBuffer[i].iewBlock[tid] = 0;
+        timeBuffer[i].iewUnblock[tid] = 0;
+    }
+
     assert(!commit.executingHtmTransaction(tid));
 
     //Remove From Active List, if Active
