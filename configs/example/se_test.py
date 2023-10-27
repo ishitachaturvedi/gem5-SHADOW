@@ -40,17 +40,6 @@
 #
 # "m5 test.py"
 
-
-###
-# Run command: build/X86/gem5.opt configs/example/se_SMT.py --cmd=test_codes/hello_pthreads --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu-type=DerivO3CPU --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=3 --smt > out
-
-# debug command: build/X86/gem5.opt --debug-start=343400000 --debug-flags=O3CPU configs/example/se_SMT.py --cmd=test_codes/hello_pthreads --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu-type=DerivO3CPU --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=2 --smt > out
-
-# for more debug flags, look up --debug-flags in gem5. 
-# --debug-start= start printing from debug cycle (for faster debugging)
-# --debug-end = end printing from debug cycle (for faster debugging)
-###
-
 import argparse
 import sys
 import os
@@ -174,8 +163,7 @@ multiprocesses = []
 #numThreads = 1
 
 # Change numThreads to change SMT Ishita
-numThreads = 64
-
+numThreads = 2
 
 if args.bench:
     apps = args.bench.split("-")
@@ -207,6 +195,7 @@ if args.bench:
             sys.exit(1)
 elif args.cmd:
     multiprocesses, numThreads = get_processes(args,numThreads)
+    print("GETTING_PROCESS_FROM_HERE ",len(multiprocesses))
 else:
     print("No workload specified. Exiting!\n", file=sys.stderr)
     sys.exit(1)
@@ -229,7 +218,9 @@ system = System(
     cache_line_size=args.cacheline_size,
 )
 
+print("CHECKING_MULTITHREADING\n")
 if numThreads > 1:
+    print("SETTING_MULTITHREADING_TRUE\n")
     system.multi_thread = True
 
 # Create a top-level voltage domain
@@ -278,9 +269,12 @@ if args.simpoint_profile:
 for i in range(np):
     if args.smt:
         system.cpu[i].workload = multiprocesses
+        print("CREATE0 ",len(multiprocesses)," ",multiprocesses)
     elif len(multiprocesses) == 1:
+        print("CREATE1")
         system.cpu[i].workload = multiprocesses[0]
     else:
+        print("CREATE2")
         system.cpu[i].workload = multiprocesses[i]
 
     if args.simpoint_profile:
