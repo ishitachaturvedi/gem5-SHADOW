@@ -255,8 +255,9 @@ class Fetch
      */
     void drainStall(ThreadID tid);
 
-    /** Tells fetch to wake up from a quiesce instruction. */
-    void wakeFromQuiesce();
+    /** Tells fetch to wake up from a quiesce instruction. */ // Daniel Modified
+    void wakeFromQuiesce(ThreadID tid);
+    //void wakeFromQuiesce();
 
     /** For priority-based fetch policies, need to keep update priorityList */
     void deactivateThread(ThreadID tid);

@@ -645,7 +645,7 @@ CPU::activateContext(ThreadID tid)
         // Be sure to signal that there's some activity so the CPU doesn't
         // deschedule itself.
         activityRec.activity();
-        fetch.wakeFromQuiesce();
+        fetch.wakeFromQuiesce(tid);
 
         Cycles cycles(curCycle() - lastRunningCycle);
         // @todo: This is an oddity that is only here to match the stats

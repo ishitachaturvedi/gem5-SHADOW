@@ -753,6 +753,7 @@ Rename::renameInsts(ThreadID tid)
         toIEW->insts[toIEWIndex] = inst;
         ++(toIEW->size);
 
+
         // Increment which instruction we're on.
         ++toIEWIndex;
 
@@ -787,22 +788,23 @@ void
 Rename::skidInsert(ThreadID tid)
 {
     DynInstPtr inst = NULL;
-
-    while (!insts[tid].empty()) {
+    //Daniel Modified:
+    while (!insts[tid].empty() && skidBuffer[tid].size() < skidBufferMax) {
         inst = insts[tid].front();
 
         insts[tid].pop_front();
 
         assert(tid == inst->threadNumber);
 
-        // DPRINTF(Rename, "[tid:%i] Inserting [sn:%llu] PC: %s into Rename "
-        //         "skidBuffer\n", tid, inst->seqNum, inst->pcState());
+        DPRINTF(Rename, "[tid:%i] Inserting [sn:%llu] PC: %s into Rename "
+                "skidBuffer\n", tid, inst->seqNum, inst->pcState());
 
         ++stats.skidInsts;
 
         skidBuffer[tid].push_back(inst);
     }
-
+    //Daniel Debug
+    DPRINTF(Rename, "[tid:%i] skidBuffer size: %i, skidBufferMax: %i\n", tid, skidBuffer[tid].size(), skidBufferMax);
     if (skidBuffer[tid].size() > skidBufferMax) {
         InstQueue::iterator it;
         warn("Skidbuffer contents:\n");
@@ -823,6 +825,8 @@ Rename::sortInsts()
     for (int i = 0; i < insts_from_decode; ++i) {
         const DynInstPtr &inst = fromDecode->insts[i];
         insts[inst->threadNumber].push_back(inst);
+        //Daniel debug
+        DPRINTF(Rename, "[tid:%i] insts[] size: %i\n", inst->threadNumber, insts[inst->threadNumber].size());
         if(inst->threadNumber == 4)
         {
             DPRINTF(Rename, "FROM rename putting in queue\n");
