@@ -118,8 +118,8 @@ class O3_ARM_v7a_BP(BiModeBP):
 
 
 class O3_ARM_v7a_3(ArmO3CPU):
-    LQEntries = 16
-    SQEntries = 16
+    LQEntries = 500 # 16
+    SQEntries = 500 #16
     LSQDepCheckShift = 0
     LFSTSize = 1024
     SSITSize = 1024
@@ -152,11 +152,11 @@ class O3_ARM_v7a_3(ArmO3CPU):
     trapLatency = 13
     backComSize = 5
     forwardComSize = 5
-    numPhysIntRegs = 128
-    numPhysFloatRegs = 192
-    numPhysVecRegs = 48
-    numIQEntries = 32
-    numROBEntries = 40
+    numPhysIntRegs = 600 #128
+    numPhysFloatRegs = 600 #192
+    numPhysVecRegs = 600 # orig 48
+    numIQEntries = 320 # 32
+    numROBEntries = 90 # 40
 
     switched_out = False
     branchPred = O3_ARM_v7a_BP()

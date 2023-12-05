@@ -169,7 +169,6 @@ class BaseCPU(ClockedObject):
 
     #   SMT_added
     def createTLB(self, policy):
-        #if buildEnv['TARGET_ISA'] == 'x86':
         self.dtb.numThreads = self.numThreads
         self.itb.numThreads = self.numThreads
 
@@ -178,19 +177,20 @@ class BaseCPU(ClockedObject):
 
     def createInterruptController(self):
         self.interrupts = [self.ArchInterrupts() for i in range(self.numThreads)]
-        #if buildEnv['TARGET_ISA'] == 'x86':
-        for i in range (1, self.numThreads):
-            self._uncached_interrupt_response_ports += \
-            ["interrupts[%s].pio" % i,
-                "interrupts[%s].int_slave" % i]
-            self._uncached_interrupt_request_ports += [
-                "interrupts[%s].int_master" % i]
+        if buildEnv['USE_X86_ISA'] == True:
+            for i in range (1, self.numThreads):
+                self._uncached_interrupt_response_ports += \
+                ["interrupts[%s].pio" % i,
+                    "interrupts[%s].int_slave" % i]
+                self._uncached_interrupt_request_ports += [
+                    "interrupts[%s].int_master" % i]
 
     def connectCachedPorts(self, in_ports):
         for p in self._cached_ports:
             exec("self.%s = in_ports" % p)
 
     def connectUncachedPorts(self, in_ports, out_ports):
+        #if buildEnv['buildEnv'] == True:
         for p in self._uncached_interrupt_response_ports:
             exec("self.%s = out_ports" % p)
         for p in self._uncached_interrupt_request_ports:

@@ -922,7 +922,7 @@ Fetch::tick()
     }
 
     for (threadFetched = 0; threadFetched < numFetchingThreads;
-         threadFetched++) {
+        threadFetched++) {
         // Fetch each of the actively fetching threads.
         fetch(status_change);
     }
@@ -1499,14 +1499,15 @@ Fetch::getFetchingThread()
 ThreadID
 Fetch::roundRobin()
 {
-    std::list<ThreadID>::iterator pri_iter = priorityList.begin();
-    std::list<ThreadID>::iterator end      = priorityList.end();
+    // std::list<ThreadID>::iterator pri_iter = priorityList.begin();
+    // std::list<ThreadID>::iterator end      = priorityList.end();
+
+    std::list<ThreadID>::iterator pri_iter = activeThreads->begin();
+    std::list<ThreadID>::iterator end = activeThreads->end();
 
     ThreadID high_pri;
-
     while (pri_iter != end) {
         high_pri = *pri_iter;
-
         assert(high_pri <= numThreads);
 
         if (fetchStatus[high_pri] == Running ||

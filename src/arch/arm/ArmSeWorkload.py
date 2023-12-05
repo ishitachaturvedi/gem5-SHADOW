@@ -42,6 +42,7 @@ class ArmEmuLinux(ArmSEWorkload):
 
     @classmethod
     def _is_compatible_with(cls, obj):
+        print(obj," ",type(obj))
         return obj.get_arch() in (
             "arm64",
             "arm",

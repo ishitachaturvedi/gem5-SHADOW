@@ -180,7 +180,7 @@ class BaseO3CPU(BaseCPU):
     numROBEntries = Param.Unsigned(192, "Number of reorder buffer entries")
 
     smtNumFetchingThreads = Param.Unsigned(1, "SMT Number of Fetching Threads")
-    smtFetchPolicy = Param.SMTFetchPolicy("RoundRobin", "SMT Fetch policy")
+    smtFetchPolicy = Param.SMTFetchPolicy("IQCount", "SMT Fetch policy")
     smtLSQPolicy = Param.SMTQueuePolicy(
         "Partitioned", "SMT LSQ Sharing Policy"
     )

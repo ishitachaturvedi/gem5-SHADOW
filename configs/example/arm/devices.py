@@ -106,6 +106,7 @@ class CpuCluster(SubSystem):
         l1i_type,
         l1d_type,
         l2_type,
+        numThreads
     ):
         super(CpuCluster, self).__init__()
         self._cpu_type = cpu_type
@@ -128,6 +129,7 @@ class CpuCluster(SubSystem):
         ]
 
         for cpu in self.cpus:
+            cpu.numThreads = numThreads
             cpu.createThreads()
             cpu.createInterruptController()
             cpu.socket_id = system.numCpuClusters()
