@@ -41,6 +41,26 @@
 
 # Debug test: build/ARM/gem5.opt --debug-flags=O3CPU configs/example/se_SMT_ARM.py "test_codes/hello_pthreads-arm" --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=3 --smt > out
 
+# build/ARM/gem5.opt --debug-flags=Exec configs/example/se_SMT_ARM.py "/scratch/ishitac/starbench/streamcluster/pthread/streamcluster 10 20 32 100 20 50 none output.txt 5 0" --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=3 --smt
+
+# build/ARM/gem5.opt configs/example/se_SMT_ARM.py "/scratch/ishitac/starbench/kmeans/pthread/kmeans -i /scratch/ishitac/starbench/kmeans/pthread/file_io.o -n 10 -t 10 -o output.txt" --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=3 --smt
+
+# build/ARM/gem5.opt --debug-start=21411250 --debug-flags=O3CPUAll configs/example/se_SMT_ARM.py "/scratch/ishitac/splash2/codes/apps/barnes/BARNES < /scratch/ishitac/splash2/codes/apps/barnes/input" --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=3 --smt
+
+# Bayesian
+# build/ARM/gem5.opt configs/example/se_SMT_ARM.py "/scratch/ishitac/NU-MineBench-3.0.1/Bayesian/bayes/src/bci -d /scratch/ishitac/NU-MineBench-3.0.1/inputs/Bayesian/F26-A64-D250K_bayes.dom /scratch/ishitac/NU-MineBench-3.0.1/inputs/Bayesian/F26-A64-D250K_bayes.tab /scratch/ishitac/NU-MineBench-3.0.1/inputs/Bayesian/F26-A64-D250K_bayes.nbc" --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=3 --smt
+
+# build/ARM/gem5.opt configs/example/se_SMT_ARM.py "/scratch/ishitac/starbench/rgbyuv/pthread/rgbyuv -i /scratch/ishitac/starbench/rgbyuv/pthread/sample_1280_853.ppm -c 1 -t 1 -p 0" --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=3 --smt
+
+# build/ARM/gem5.opt configs/example/se_SMT_ARM.py "/scratch/ishitac/starbench/rgbyuv/seq/rgbyuv -i /scratch/ishitac/starbench/rgbyuv/seq/sample_1280_853.ppm -c 1" --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=3 
+
+
+# DEBUG: build/ARM/gem5.opt --debug-flags=O3CPU configs/example/se_SMT_ARM.py "/scratch/ishitac/starbench/rgbyuv/seq/rgbyuv -i /scratch/ishitac/starbench/rgbyuv/seq/sample_1280_853.ppm -c 1" --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=3 
+
+# build/ARM/gem5.opt configs/example/se_SMT_ARM.py "test_codes/matrix_mul_arm" --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=3 --smt
+
+# build/ARM/gem5.opt configs/example/se_SMT_ARM.py "test_codes/matrix_mul_pthreads" --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=3 --smt
+
 """This script is the syscall emulation example script from the ARM
 Research Starter Kit on System Modeling. More information can be found
 at: http://www.arm.com/ResearchEnablement/SystemModeling
@@ -65,7 +85,7 @@ import sys
 pathadd = os.getcwd()+'/configs/example/arm/'
 sys.path.append(pathadd)
 import devices
-numThreads = 10
+numThreads = 1
 
 
 # Pre-defined CPU configurations. Each tuple must be ordered as : (cpu_class,
@@ -204,7 +224,6 @@ def create(args):
 
     for cpu in system.cpu_cluster.cpus:
         cpu.workload = workload
-        print("STATUS ",cpu.isa)
 
     return system
 
