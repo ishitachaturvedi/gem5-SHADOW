@@ -96,7 +96,7 @@ class SimpleSeSystem(System):
         # Add CPUs to the system. A cluster of CPUs typically have
         # private L1 caches and a shared L2 cache.
         self.cpu_cluster = devices.CpuCluster(
-            self, args.num_cores, args.cpu_freq, "1.2V", *cpu_types[args.cpu]
+            self, args.num_cores, args.cpu_freq, "1.2V", *cpu_types[args.cpu], 1
         )
 
         # Create a cache hierarchy (unless we are simulating a
