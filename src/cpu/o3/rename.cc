@@ -788,8 +788,7 @@ void
 Rename::skidInsert(ThreadID tid)
 {
     DynInstPtr inst = NULL;
-    //Daniel Modified:
-    while (!insts[tid].empty() && skidBuffer[tid].size() < skidBufferMax) {
+    while (!insts[tid].empty()) {
         inst = insts[tid].front();
 
         insts[tid].pop_front();
@@ -803,7 +802,6 @@ Rename::skidInsert(ThreadID tid)
 
         skidBuffer[tid].push_back(inst);
     }
-    //Daniel Debug
     DPRINTF(Rename, "[tid:%i] skidBuffer size: %i, skidBufferMax: %i\n", tid, skidBuffer[tid].size(), skidBufferMax);
     if (skidBuffer[tid].size() > skidBufferMax) {
         InstQueue::iterator it;
