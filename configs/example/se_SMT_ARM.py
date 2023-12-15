@@ -50,16 +50,12 @@
 # Bayesian
 # build/ARM/gem5.opt configs/example/se_SMT_ARM.py "/scratch/ishitac/NU-MineBench-3.0.1/Bayesian/bayes/src/bci -d /scratch/ishitac/NU-MineBench-3.0.1/inputs/Bayesian/F26-A64-D250K_bayes.dom /scratch/ishitac/NU-MineBench-3.0.1/inputs/Bayesian/F26-A64-D250K_bayes.tab /scratch/ishitac/NU-MineBench-3.0.1/inputs/Bayesian/F26-A64-D250K_bayes.nbc" --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=3 --smt
 
-# build/ARM/gem5.opt configs/example/se_SMT_ARM.py "/scratch/ishitac/starbench/rgbyuv/pthread/rgbyuv -i /scratch/ishitac/starbench/rgbyuv/pthread/sample_1280_853.ppm -c 1 -t 1 -p 0" --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=3 --smt
-
-# build/ARM/gem5.opt configs/example/se_SMT_ARM.py "/scratch/ishitac/starbench/rgbyuv/seq/rgbyuv -i /scratch/ishitac/starbench/rgbyuv/seq/sample_1280_853.ppm -c 1" --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=3 
-
+# build/ARM/gem5.opt configs/example/se_SMT_ARM.py "/scratch/ishitac/starbench/rgbyuv/pthread/rgbyuv -i /scratch/ishitac/starbench/rgbyuv/pthread/sample_1280_853.ppm -c 1 -t 2 -p 1" --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="hpi" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=3 --smt
 
 # DEBUG: build/ARM/gem5.opt --debug-flags=O3CPU configs/example/se_SMT_ARM.py "/scratch/ishitac/starbench/rgbyuv/seq/rgbyuv -i /scratch/ishitac/starbench/rgbyuv/seq/sample_1280_853.ppm -c 1" --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=3 
 
 # build/ARM/gem5.opt configs/example/se_SMT_ARM.py "test_codes/matrix_mul_arm" --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=3 --smt
 
-# build/ARM/gem5.opt configs/example/se_SMT_ARM.py "test_codes/matrix_mul_pthreads" --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=3 --smt
 
 """This script is the syscall emulation example script from the ARM
 Research Starter Kit on System Modeling. More information can be found
@@ -78,7 +74,7 @@ m5.util.addToPath("..")
 from common import Options
 from common import ObjectList
 from common import MemConfig
-from common.cores.arm import O3_ARM_v7a, HPI
+from common.cores.arm import O3_ARM_v7a, HPI, O3_Novocore, O3_ARM_grace
 from common import Simulation
 
 import sys
@@ -101,6 +97,18 @@ cpu_type = {
         O3_ARM_v7a.O3_ARM_v7a_ICache,
         O3_ARM_v7a.O3_ARM_v7a_DCache,
         O3_ARM_v7a.O3_ARM_v7aL2,
+    ),
+    "o3_novo": (
+        O3_Novocore.NovoO3CPU,
+        O3_Novocore.O3_ARM_Novocore_ICache,
+        O3_Novocore.O3_ARM_Novocore_DCache,
+        O3_Novocore.O3_ARM_Novocore_L2,
+    ),
+    "o3_grace": (
+        O3_ARM_grace.Grace12Wide,
+        O3_ARM_grace.O3_ARM_grace_ICache,
+        O3_ARM_grace.O3_ARM_grace_DCache,
+        O3_ARM_grace.O3_ARM_grace_L2,
     ),
 }
 
