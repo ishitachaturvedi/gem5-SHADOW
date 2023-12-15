@@ -39,6 +39,7 @@
 
 #include <functional>
 
+#include "cpu.hh"
 #include "cpu/minor/cpu.hh"
 #include "cpu/minor/exec_context.hh"
 #include "cpu/minor/fetch1.hh"
@@ -1463,6 +1464,7 @@ Execute::evaluate()
 
     BranchData &branch = *out.inputWire;
 
+
     unsigned int num_issued = 0;
 
     /* Do all the cycle-wise activities for dcachePort here to potentially
@@ -1657,7 +1659,7 @@ Execute::checkInterrupts(BranchData& branch, bool& interrupted)
              * interrupt controller isn't always set */
             thread_interrupted = executeInfo[tid].drainState == NotDraining &&
                 isInterrupted(tid);
-            interrupted = interrupted || thread_interrupted;
+            interrupted = interrupted || thread_interrupted; 
         } else {
             DPRINTF(MinorInterrupt, "No interrupt controller\n");
         }
@@ -1747,7 +1749,8 @@ Execute::getCommittingThread()
             MinorDynInstPtr inst = head_inflight_inst->inst;
 
             can_commit_insts = can_commit_insts &&
-                (!inst->inLSQ || (lsq.findResponse(inst) != NULL));
+                (!inst->inLSQ || (lsq.findResponse(inst) != NULL))
+                && (!cpu.getContext(tid)->status() == ThreadContext::Suspended);
 
             if (!inst->inLSQ) {
                 bool can_transfer_mem_inst = false;
@@ -1765,6 +1768,7 @@ Execute::getCommittingThread()
                 }
 
                 bool can_execute_fu_inst = inst->fuIndex == noCostFUIndex;
+
                 if (can_commit_insts && !can_transfer_mem_inst &&
                         inst->fuIndex != noCostFUIndex)
                 {
@@ -1777,7 +1781,6 @@ Execute::getCommittingThread()
                     (can_transfer_mem_inst || can_execute_fu_inst);
             }
         }
-
 
         if (can_commit_insts) {
             commitPriority = tid;

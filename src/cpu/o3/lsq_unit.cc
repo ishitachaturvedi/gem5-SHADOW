@@ -382,8 +382,6 @@ LSQUnit::insertStore(const DynInstPtr& store_inst)
     assert(!storeQueue.full());
     assert(storeQueue.size() < storeQueue.capacity());
 
-    DPRINTF(LSQUnit, "Inserting store PC %s, idx:%i [sn:%lli]\n",
-            store_inst->pcState(), storeQueue.tail(), store_inst->seqNum);
     storeQueue.advance_tail();
 
     store_inst->sqIdx = storeQueue.tail();
@@ -394,6 +392,9 @@ LSQUnit::insertStore(const DynInstPtr& store_inst)
     store_inst->lqIt = loadQueue.end();
 
     storeQueue.back().set(store_inst);
+
+    DPRINTF(LSQUnit, "Inserting store PC %s, idx:%i [sn:%lli] size %d\n",
+            store_inst->pcState(), storeQueue.tail(), store_inst->seqNum, storeQueue[store_inst->sqIdx].size());
 }
 
 DynInstPtr
@@ -661,8 +662,8 @@ LSQUnit::executeStore(const DynInstPtr &store_inst)
 
     ssize_t store_idx = store_inst->sqIdx;
 
-    DPRINTF(LSQUnit, "Executing store PC %s [sn:%lli]\n",
-            store_inst->pcState(), store_inst->seqNum);
+    DPRINTF(LSQUnit, "Executing store PC %s [sn:%lli] size %d\n",
+            store_inst->pcState(), store_inst->seqNum,storeQueue[store_idx].size());
 
     assert(!store_inst->isSquashed());
 
@@ -684,8 +685,8 @@ LSQUnit::executeStore(const DynInstPtr &store_inst)
     }
 
     if (storeQueue[store_idx].size() == 0) {
-        DPRINTF(LSQUnit,"Fault on Store PC %s, [sn:%lli], Size = 0\n",
-                store_inst->pcState(), store_inst->seqNum);
+        DPRINTF(LSQUnit,"Fault on Store PC %s, [sn:%lli], Size = 0 store_idx %d\n",
+                store_inst->pcState(), store_inst->seqNum,store_idx);
 
         if (store_inst->isAtomic()) {
             // If the instruction faulted, then we need to send it along
@@ -1604,9 +1605,9 @@ LSQUnit::write(LSQRequest *request, uint8_t *data, ssize_t store_idx)
     assert(storeQueue[store_idx].valid());
 
     DPRINTF(LSQUnit, "Doing write to store idx %i, addr %#x | storeHead:%i "
-            "[sn:%llu]\n",
+            "[sn:%llu] PC %d size %d\n",
             store_idx - 1, request->req()->getPaddr(), storeQueue.head() - 1,
-            storeQueue[store_idx].instruction()->seqNum);
+            storeQueue[store_idx].instruction()->seqNum,storeQueue[store_idx].instruction()->pcState(),request->_size);
 
     storeQueue[store_idx].setRequest(request);
     unsigned size = request->_size;
