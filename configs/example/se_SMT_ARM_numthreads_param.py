@@ -50,12 +50,16 @@
 # Bayesian
 # build/ARM/gem5.opt configs/example/se_SMT_ARM.py "/scratch/ishitac/NU-MineBench-3.0.1/Bayesian/bayes/src/bci -d /scratch/ishitac/NU-MineBench-3.0.1/inputs/Bayesian/F26-A64-D250K_bayes.dom /scratch/ishitac/NU-MineBench-3.0.1/inputs/Bayesian/F26-A64-D250K_bayes.tab /scratch/ishitac/NU-MineBench-3.0.1/inputs/Bayesian/F26-A64-D250K_bayes.nbc" --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=3 --smt
 
-# build/ARM/gem5.opt configs/example/se_SMT_ARM.py "/scratch/ishitac/starbench/rgbyuv/pthread/rgbyuv -i /scratch/ishitac/starbench/rgbyuv/pthread/sample_1280_853.ppm -c 1 -t 2 -p 1" --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="hpi" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=3 --smt
+# build/ARM/gem5.opt configs/example/se_SMT_ARM.py "/scratch/ishitac/starbench/rgbyuv/pthread/rgbyuv -i /scratch/ishitac/starbench/rgbyuv/pthread/sample_1280_853.ppm -c 1 -t 1 -p 0" --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=3 --smt
+
+# build/ARM/gem5.opt configs/example/se_SMT_ARM.py "/scratch/ishitac/starbench/rgbyuv/seq/rgbyuv -i /scratch/ishitac/starbench/rgbyuv/seq/sample_1280_853.ppm -c 1" --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=3 
+
 
 # DEBUG: build/ARM/gem5.opt --debug-flags=O3CPU configs/example/se_SMT_ARM.py "/scratch/ishitac/starbench/rgbyuv/seq/rgbyuv -i /scratch/ishitac/starbench/rgbyuv/seq/sample_1280_853.ppm -c 1" --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=3 
 
 # build/ARM/gem5.opt configs/example/se_SMT_ARM.py "test_codes/matrix_mul_arm" --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=3 --smt
 
+# build/ARM/gem5.opt configs/example/se_SMT_ARM.py "test_codes/matrix_mul_pthreads" --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=3 --smt
 
 """This script is the syscall emulation example script from the ARM
 Research Starter Kit on System Modeling. More information can be found
@@ -74,14 +78,17 @@ m5.util.addToPath("..")
 from common import Options
 from common import ObjectList
 from common import MemConfig
-from common.cores.arm import O3_ARM_v7a, HPI, O3_Novocore, O3_ARM_grace
+from common.cores.arm import O3_ARM_v7a, HPI
 from common import Simulation
 
 import sys
 pathadd = os.getcwd()+'/configs/example/arm/'
 sys.path.append(pathadd)
 import devices
+<<<<<<< HEAD
+=======
 numThreads = 1
+>>>>>>> ccafcefb18a6f904b4afcb0662a7083cc1e95d02
 
 
 # Pre-defined CPU configurations. Each tuple must be ordered as : (cpu_class,
@@ -97,18 +104,6 @@ cpu_type = {
         O3_ARM_v7a.O3_ARM_v7a_ICache,
         O3_ARM_v7a.O3_ARM_v7a_DCache,
         O3_ARM_v7a.O3_ARM_v7aL2,
-    ),
-    "o3_novo": (
-        O3_Novocore.NovoO3CPU,
-        O3_Novocore.O3_ARM_Novocore_ICache,
-        O3_Novocore.O3_ARM_Novocore_DCache,
-        O3_Novocore.O3_ARM_Novocore_L2,
-    ),
-    "o3_grace": (
-        O3_ARM_grace.Grace12Wide,
-        O3_ARM_grace.O3_ARM_grace_ICache,
-        O3_ARM_grace.O3_ARM_grace_DCache,
-        O3_ARM_grace.O3_ARM_grace_L2,
     ),
 }
 
@@ -146,11 +141,11 @@ class SimpleSeSystem(System):
         # private L1 caches and a shared L2 cache.
 
         self.cpu_cluster = devices.CpuCluster(
-            self, args.num_cpus, args.cpu_freq, "1.2V", *cpu_type[args.cpu], numThreads
+            self, args.num_cpus, args.cpu_freq, "1.2V", *cpu_type[args.cpu], args.t
         )
 
         for cpu in self.cpu_cluster.cpus:
-            cpu.numThreads = numThreads
+            cpu.numThreads = args.t
 
         # Create a cache hierarchy (unless we are simulating a
         # functional CPU in atomic memory mode) for the CPU cluster
@@ -258,7 +253,10 @@ def main():
     parser.add_argument(
         "--num-cores", type=int, default=1, help="Number of CPU cores"
     )
+    #Daniel Change
+    parser.add_argument('-t', type=int, default = 1)
 
+    # Change numThreads to change SMT Ishita
     args = parser.parse_args()
 
     # Create a single root node for gem5's object hierarchy. There can
