@@ -65,7 +65,6 @@ import sys
 pathadd = os.getcwd()+'/configs/example/arm/'
 sys.path.append(pathadd)
 import devices
-numThreads = 10
 
 
 # Pre-defined CPU configurations. Each tuple must be ordered as : (cpu_class,
@@ -118,11 +117,11 @@ class SimpleSeSystem(System):
         # private L1 caches and a shared L2 cache.
 
         self.cpu_cluster = devices.CpuCluster(
-            self, args.num_cpus, args.cpu_freq, "1.2V", *cpu_type[args.cpu], numThreads
+            self, args.num_cpus, args.cpu_freq, "1.2V", *cpu_type[args.cpu], args.t
         )
 
         for cpu in self.cpu_cluster.cpus:
-            cpu.numThreads = numThreads
+            cpu.numThreads = args.t
 
         # Create a cache hierarchy (unless we are simulating a
         # functional CPU in atomic memory mode) for the CPU cluster
@@ -231,7 +230,10 @@ def main():
     parser.add_argument(
         "--num-cores", type=int, default=1, help="Number of CPU cores"
     )
+    #Daniel Change
+    parser.add_argument('-t', type=int, default = 1)
 
+    # Change numThreads to change SMT Ishita
     args = parser.parse_args()
 
     # Create a single root node for gem5's object hierarchy. There can
