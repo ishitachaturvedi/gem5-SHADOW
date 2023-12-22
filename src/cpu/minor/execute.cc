@@ -1447,6 +1447,11 @@ Execute::commit(ThreadID thread_id, bool only_commit_microops, bool discard,
                 DPRINTF(MinorExecute, "Reached mem ref commit limit\n");
         }
     }
+    if(num_insts_committed == 0)
+    {
+        cpu.stats.NoCommitCycles++;
+    }
+    cpu.stats.cyclesInCommit++;
 }
 
 bool

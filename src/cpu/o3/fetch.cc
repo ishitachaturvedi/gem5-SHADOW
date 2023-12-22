@@ -277,6 +277,30 @@ Fetch::setActiveThreads(std::list<ThreadID> *at_ptr)
 }
 
 void
+Fetch::setSActiveThreads(std::list<ThreadID> *at_ptr)
+{
+    activeSThreads = at_ptr;
+}
+
+void
+Fetch::setWActiveThreads(std::list<ThreadID> *at_ptr)
+{
+    activeWThreads = at_ptr;
+}
+
+void
+Fetch::setAllSThreads(std::list<ThreadID> *at_ptr)
+{
+    allSThreads = at_ptr;
+}
+
+void
+Fetch::setAllWThreads(std::list<ThreadID> *at_ptr)
+{
+    allWThreads = at_ptr;
+}
+
+void
 Fetch::setFetchQueue(TimeBuffer<FetchStruct> *ftb_ptr)
 {
     // Create wire to write information to proper place in fetch time buf.

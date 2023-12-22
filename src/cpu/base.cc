@@ -131,6 +131,7 @@ BaseCPU::BaseCPU(const Params &p, bool is_checker)
       _taskId(context_switch_task_id::Unknown), _pid(invldPid),
       _switchedOut(p.switched_out), _cacheLineSize(p.system->cacheLineSize()),
       interrupts(p.interrupts), numThreads(p.numThreads), system(p.system),
+      SThreads(p.SThreads),WThreads(p.WThreads),
       previousCycle(0), previousState(CPU_STATE_SLEEP),
       functionTraceStream(nullptr), currentFunctionStart(0),
       currentFunctionEnd(0), functionEntryTick(0),

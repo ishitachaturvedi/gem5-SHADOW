@@ -156,6 +156,32 @@ CPU::CPU(const BaseO3CPUParams &params)
     iew.setActiveThreads(&activeThreads);
     commit.setActiveThreads(&activeThreads);
 
+    // Set threads as W threads and S threads
+    fetch.setSActiveThreads(&activeSThreads);
+    fetch.setWActiveThreads(&activeWThreads);
+    fetch.setAllSThreads(&allSThreads);
+    fetch.setAllWThreads(&allWThreads);
+
+    decode.setSActiveThreads(&activeSThreads);
+    decode.setWActiveThreads(&activeWThreads);
+    decode.setAllSThreads(&allSThreads);
+    decode.setAllWThreads(&allWThreads);
+
+    rename.setSActiveThreads(&activeSThreads);
+    rename.setWActiveThreads(&activeWThreads);
+    rename.setAllSThreads(&allSThreads);
+    rename.setAllWThreads(&allWThreads);
+
+    iew.setSActiveThreads(&activeSThreads);
+    iew.setWActiveThreads(&activeWThreads);
+    iew.setAllSThreads(&allSThreads);
+    iew.setAllWThreads(&allWThreads);
+
+    commit.setSActiveThreads(&activeSThreads);
+    commit.setWActiveThreads(&activeWThreads);
+    commit.setAllSThreads(&allSThreads);
+    commit.setAllWThreads(&allWThreads);
+
     // Give each of the stages the time buffer they will use.
     fetch.setTimeBuffer(&timeBuffer);
     decode.setTimeBuffer(&timeBuffer);
@@ -179,6 +205,7 @@ CPU::CPU(const BaseO3CPUParams &params)
     rename.setIEWStage(&iew);
     rename.setCommitStage(&commit);
 
+
     ThreadID active_threads;
     if (FullSystem) {
         active_threads = 1;
@@ -193,7 +220,14 @@ CPU::CPU(const BaseO3CPUParams &params)
 
     // Make Sure That this a Valid Architeture
     assert(numThreads);
+    DPRINTF(O3CPU,"numThreads %d SThreads %d WThreads %d\n",numThreads,SThreads,WThreads);
+    assert(numThreads == (SThreads + WThreads));
     const auto &regClasses = params.isa[0]->regClasses();
+
+    printf("Per thread Reg size IntRegClass: %d, FloatRegClass: %d, VecRegClass: %d, VecPredRegClass: %d, CCRegClass: %d\n",regClasses.at(IntRegClass)->numRegs(),regClasses.at(FloatRegClass)->numRegs(),regClasses.at(VecRegClass)->numRegs(),regClasses.at(VecPredRegClass)->numRegs(),regClasses.at(CCRegClass)->numRegs());
+
+    printf("Total thread Reg size IntRegClass: %d, FloatRegClass: %d, VecRegClass: %d, VecPredRegClass: %d, CCRegClass: %d\n",numThreads * regClasses.at(IntRegClass)->numRegs(),numThreads * regClasses.at(FloatRegClass)->numRegs(),numThreads * regClasses.at(VecRegClass)->numRegs(),numThreads * regClasses.at(VecPredRegClass)->numRegs(),numThreads * regClasses.at(CCRegClass)->numRegs());
+
 
     assert(params.numPhysIntRegs >=
             numThreads * regClasses.at(IntRegClass)->numRegs());
@@ -226,16 +260,18 @@ CPU::CPU(const BaseO3CPUParams &params)
     // Initialize rename map to assign physical registers to the
     // architectural registers for active threads only.
 
-    //for (ThreadID tid = 0; tid < active_threads; tid++) { // Ishita Change
+    //for (ThreadID tid = 0; tid < active_threads; tid++) { 
     for (ThreadID tid = 0; tid < numThreads; tid++) {
         for (auto type = (RegClassType)0; type <= CCRegClass;
                 type = (RegClassType)(type + 1)) {
+            int counter = 0;
             for (auto &id: *regClasses.at(type)) {
                 // Note that we can't use the rename() method because we don't
                 // want special treatment for the zero register at this point
                 PhysRegIdPtr phys_reg = freeList.getReg(type);
                 renameMap[tid].setEntry(id, phys_reg);
                 commitRenameMap[tid].setEntry(id, phys_reg);
+                counter++;
             }
         }
     }
@@ -459,7 +495,6 @@ CPU::tick()
     updateCycleCounters(BaseCPU::CPU_STATE_ON);
 
 //    activity = false;
-    DPRINTF(O3CPU,"To_decode_signal step1 %d %d \n",rename.toDecode->renameUnblock[0],decode.fromRename->renameUnblock[0]);
     //Tick each of the stages
     fetch.tick();
     decode.tick();
@@ -469,19 +504,12 @@ CPU::tick()
 
     // Now advance the time buffers
 
-    DPRINTF(O3CPU,"To_decode_signal step2 %d %d \n",rename.toDecode->renameUnblock[0],decode.fromRename->renameUnblock[0]);
     timeBuffer.advance();
-    DPRINTF(O3CPU,"To_decode_signal step3 %d %d \n",rename.toDecode->renameUnblock[0],decode.fromRename->renameUnblock[0]);
     fetchQueue.advance();
-    DPRINTF(O3CPU,"To_decode_signal step4 %d %d \n",rename.toDecode->renameUnblock[0],decode.fromRename->renameUnblock[0]);
     decodeQueue.advance();
-    DPRINTF(O3CPU,"To_decode_signal step5 %d %d \n",rename.toDecode->renameUnblock[0],decode.fromRename->renameUnblock[0]);
     renameQueue.advance();
-    DPRINTF(O3CPU,"To_decode_signal step6 %d %d \n",rename.toDecode->renameUnblock[0],decode.fromRename->renameUnblock[0]);
     iewQueue.advance();
-    DPRINTF(O3CPU,"To_decode_signal step7 %d %d \n",rename.toDecode->renameUnblock[0],decode.fromRename->renameUnblock[0]);
     activityRec.advance();
-    DPRINTF(O3CPU,"To_decode_signal step8 %d %d \n",rename.toDecode->renameUnblock[0],decode.fromRename->renameUnblock[0]);
 
     if (removeInstsThisCycle) {
         cleanUpRemovedInsts();
@@ -506,7 +534,6 @@ CPU::tick()
         updateThreadPriority();
 
     tryDrain();
-    DPRINTF(O3CPU,"To_decode_signal step9 %d %d \n",rename.toDecode->renameUnblock[0],decode.fromRename->renameUnblock[0]);
 }
 
 void
@@ -568,7 +595,6 @@ CPU::deactivateThread(ThreadID tid)
     // shouldn't deactivate thread in the middle of a transaction
 
 
-    // test stuff Ishita
     for (int i = 0; i < timeBuffer.getSize(); ++i) {
         timeBuffer[i].decodeBlock[tid] = 0;
         timeBuffer[i].decodeUnblock[tid] = 0;
@@ -1738,14 +1764,6 @@ CPU::scheduleThreadExitEvent(ThreadID tid)
             }
         }
         assert(threadIdExists);
-        if(!threadIdExists)
-        {
-            DPRINTF(O3CPU,"[tid:%d] Does33 not exist!!\n",thread_id);
-        }
-        if((readyToExit1 != readyToExit))
-        {
-            DPRINTF(O3CPU,"[tid:%d] VALS3 NOT EQUAL readyToExit1: %d readyToExit: %d\n",thread_id,readyToExit1,readyToExit);
-        }
         assert(readyToExit1 == readyToExit);
         it1++;
     }
@@ -1757,11 +1775,11 @@ CPU::scheduleThreadExitEvent(ThreadID tid)
     // We want all stages to complete squashing instructions before doing
     // the cleanup.
 
-    int event_scheduled = 0;
+    int event_scheduled = 1; // 0
     if (!threadExitEvent.scheduled()) {
         schedule(threadExitEvent, nextCycle());
         event_scheduled = 1;
-        DPRINTF(O3CPU,"EXITTEST next cycle exit scheduled nextCycle() %d\n",nextCycle());
+        DPRINTF(O3CPU,"[tid:%d] EXITTEST next cycle exit scheduled nextCycle() %d\n",tid,nextCycle());
     }
 
     return event_scheduled;

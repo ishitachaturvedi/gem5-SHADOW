@@ -356,7 +356,7 @@ ROB::doSquash(ThreadID tid)
 
         if (squashIt[tid] == instList[tid].begin()) {
             DPRINTF(ROB, "Reached head of instruction list while "
-                    "squashing.\n");
+                    "squashing numInstsInROB %d.\n",numInstsInROB);
 
             squashIt[tid] = instList[tid].end();
 

@@ -50,6 +50,10 @@ MinorStats::MinorStats(BaseCPU *base_cpu)
              "Number of instructions committed"),
     ADD_STAT(numOps, statistics::units::Count::get(),
              "Number of ops (including micro ops) committed"),
+    ADD_STAT(NoCommitCycles, statistics::units::Count::get(),
+             "Number of cycles with no committed instructions"),
+    ADD_STAT(cyclesInCommit, statistics::units::Count::get(),
+             "Number of cycles commit was checked"),
     ADD_STAT(numDiscardedOps, statistics::units::Count::get(),
              "Number of ops (including micro ops) which were discarded before "
              "commit"),

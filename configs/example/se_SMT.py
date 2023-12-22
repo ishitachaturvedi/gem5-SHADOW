@@ -46,6 +46,8 @@
 
 # debug command: build/X86/gem5.opt --debug-start=343400000 --debug-flags=O3CPU configs/example/se_SMT.py --cmd=test_codes/hello_pthreads --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu-type=DerivO3CPU --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=2 --smt > out
 
+# build/X86/gem5.opt configs/example/se_SMT.py --cmd=/scratch/ishitac/starbench/rgbyuv/seq/--options="rgbyuv -i /scratch/ishitac/starbench/rgbyuv/seq/sample_1280_853.ppm -c 1" --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu-type=DerivO3CPU --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=3 > out
+
 # for more debug flags, look up --debug-flags in gem5. 
 # --debug-start= start printing from debug cycle (for faster debugging)
 # --debug-end = end printing from debug cycle (for faster debugging)
@@ -77,6 +79,8 @@ from common.FileSystemConfig import config_filesystem
 from common.Caches import *
 from common.cpu2000 import *
 
+X86_system = True
+
 
 def get_processes(args,numThreads):
     """Interprets provided args and returns a list of processes"""
@@ -98,35 +102,9 @@ def get_processes(args,numThreads):
         pargs = args.options.split(";")
 
     idx = 0
-    # for wrkld in workloads:
-    #     process = Process(pid=100 + idx)
-    #     process.executable = wrkld
-    #     process.cwd = os.getcwd()
-    #     process.gid = os.getgid()
 
-    #     if args.env:
-    #         with open(args.env, "r") as f:
-    #             process.env = [line.rstrip() for line in f]
+    print("workloads ",workloads)
 
-    #     if len(pargs) > idx:
-    #         process.cmd = [wrkld] + pargs[idx].split()
-    #     else:
-    #         process.cmd = [wrkld]
-
-    #     if len(inputs) > idx:
-    #         process.input = inputs[idx]
-    #     if len(outputs) > idx:
-    #         process.output = outputs[idx]
-    #     if len(errouts) > idx:
-    #         process.errout = errouts[idx]
-
-    #     multiprocesses.append(process)
-    #     idx += 1
-
-    # Added this to append the same workload to multiple SMT threads
-
-
-                
     for wrkld in workloads:
         process = Process(pid=100 + idx)
         process.executable = wrkld
@@ -174,7 +152,7 @@ multiprocesses = []
 #numThreads = 1
 
 # Change numThreads to change SMT Ishita
-numThreads = 64
+numThreads = 1
 
 
 if args.bench:
@@ -314,6 +292,7 @@ if args.ruby:
         # Create the interrupt controller and connect its ports to Ruby
         # Note that the interrupt controller is always present but only
         # in x86 does it have message ports that need to be connected
+        
         system.cpu[i].createInterruptController()
 
         # Connect the cpu's cache ports to Ruby
@@ -321,10 +300,13 @@ if args.ruby:
 else:
     MemClass = Simulation.setMemClass(args)
     system.membus = SystemXBar()
-    system.system_port = system.membus.cpu_side_ports
+    if X86_system:
+        system.system_port = system.membus.cpu_side_ports
     CacheConfig.config_cache(args, system)
     MemConfig.config_mem(args, system)
     config_filesystem(system, args)
+
+    print(type(mp0_path))
 
 system.workload = SEWorkload.init_compatible(mp0_path)
 

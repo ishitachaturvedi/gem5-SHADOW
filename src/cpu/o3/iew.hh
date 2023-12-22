@@ -153,6 +153,18 @@ class IEW
     /** Sets pointer to list of active threads. */
     void setActiveThreads(std::list<ThreadID> *at_ptr);
 
+    /** Sets pointer to list of active S threads. */
+    void setSActiveThreads(std::list<ThreadID> *at_ptr);
+
+    /** Sets pointer to list of active W threads. */
+    void setWActiveThreads(std::list<ThreadID> *at_ptr);
+
+    /** Sets pointer to all S threads. */
+    void setAllSThreads(std::list<ThreadID> *at_ptr);
+
+    /** Sets pointer to all W threads. */
+    void setAllWThreads(std::list<ThreadID> *at_ptr);
+
     /** Sets pointer to the scoreboard. */
     void setScoreboard(Scoreboard *sb_ptr);
 
@@ -413,6 +425,18 @@ class IEW
     /** Pointer to list of active threads. */
     std::list<ThreadID> *activeThreads;
 
+    /** Active S-Threads List */
+    std::list<ThreadID> *activeSThreads;
+
+    /** Active W-Threads List */
+    std::list<ThreadID> *activeWThreads;
+
+    /** All S-Threads List */
+    std::list<ThreadID> *allSThreads;
+
+    /** All W-Threads List */
+    std::list<ThreadID> *allWThreads;
+
     /** Maximum size of the skid buffer. */
     unsigned skidBufferMax;
 
@@ -429,6 +453,8 @@ class IEW
         statistics::Scalar blockCycles;
         /** Stat for total number of unblocking cycles. */
         statistics::Scalar unblockCycles;
+        /** Stat for total number of running cycles. */
+        statistics::Scalar runningCycles;
         /** Stat for total number of instructions dispatched. */
         statistics::Scalar dispatchedInsts;
         /** Stat for total number of squashed instructions dispatch skips. */

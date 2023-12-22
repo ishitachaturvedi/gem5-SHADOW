@@ -301,6 +301,30 @@ Commit::setActiveThreads(std::list<ThreadID> *at_ptr)
 }
 
 void
+Commit::setSActiveThreads(std::list<ThreadID> *at_ptr)
+{
+    activeSThreads = at_ptr;
+}
+
+void
+Commit::setWActiveThreads(std::list<ThreadID> *at_ptr)
+{
+    activeWThreads = at_ptr;
+}
+
+void
+Commit::setAllSThreads(std::list<ThreadID> *at_ptr)
+{
+    allSThreads = at_ptr;
+}
+
+void
+Commit::setAllWThreads(std::list<ThreadID> *at_ptr)
+{
+    allWThreads = at_ptr;
+}
+
+void
 Commit::setRenameMap(UnifiedRenameMap rm_ptr[])
 {
     for (ThreadID tid = 0; tid < numThreads; tid++)

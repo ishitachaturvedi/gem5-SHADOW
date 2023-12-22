@@ -122,6 +122,18 @@ class Decode
     /** Sets pointer to list of active threads. */
     void setActiveThreads(std::list<ThreadID> *at_ptr);
 
+    /** Sets pointer to list of active S threads. */
+    void setSActiveThreads(std::list<ThreadID> *at_ptr);
+
+    /** Sets pointer to list of active W threads. */
+    void setWActiveThreads(std::list<ThreadID> *at_ptr);
+
+    /** Sets pointer to all S threads. */
+    void setAllSThreads(std::list<ThreadID> *at_ptr);
+
+    /** Sets pointer to all W threads. */
+    void setAllWThreads(std::list<ThreadID> *at_ptr);
+
     /** Perform sanity checks after a drain. */
     void drainSanityCheck() const;
 
@@ -284,6 +296,18 @@ class Decode
 
     /** List of active thread ids */
     std::list<ThreadID> *activeThreads;
+
+    /** Active S-Threads List */
+    std::list<ThreadID> *activeSThreads;
+
+    /** Active W-Threads List */
+    std::list<ThreadID> *activeWThreads;
+
+    /** All S-Threads List */
+    std::list<ThreadID> *allSThreads;
+
+    /** All W-Threads List */
+    std::list<ThreadID> *allWThreads;
 
     /** Maximum size of the skid buffer. */
     unsigned skidBufferMax;

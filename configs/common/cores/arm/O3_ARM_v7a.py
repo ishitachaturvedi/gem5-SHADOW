@@ -152,11 +152,11 @@ class O3_ARM_v7a_3(ArmO3CPU):
     trapLatency = 13
     backComSize = 5
     forwardComSize = 5
-    numPhysIntRegs = 600 #128
-    numPhysFloatRegs = 600 #192
-    numPhysVecRegs = 600 # orig 48
-    numIQEntries = 320 # 32
-    numROBEntries = 90 # 40
+    numPhysIntRegs = 600 #600 #128
+    numPhysFloatRegs = 600 #600 #192
+    numPhysVecRegs = 600 #600 # orig 48
+    numIQEntries = 320 #320 # 32
+    numROBEntries = 90 #90 # 40
 
     switched_out = False
     branchPred = O3_ARM_v7a_BP()

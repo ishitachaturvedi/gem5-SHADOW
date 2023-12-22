@@ -282,12 +282,35 @@ Rename::setActiveThreads(std::list<ThreadID> *at_ptr)
 }
 
 void
+Rename::setSActiveThreads(std::list<ThreadID> *at_ptr)
+{
+    activeSThreads = at_ptr;
+}
+
+void
+Rename::setWActiveThreads(std::list<ThreadID> *at_ptr)
+{
+    activeWThreads = at_ptr;
+}
+
+void
+Rename::setAllSThreads(std::list<ThreadID> *at_ptr)
+{
+    allSThreads = at_ptr;
+}
+
+void
+Rename::setAllWThreads(std::list<ThreadID> *at_ptr)
+{
+    allWThreads = at_ptr;
+}
+
+void
 Rename::activateThread(ThreadID tid)
 {
     //renameStatus[tid] = Running;
     renameStatus[tid] = Idle;
 }
-
 
 void
 Rename::setRenameMap(UnifiedRenameMap rm_ptr[])
@@ -1261,7 +1284,7 @@ Rename::checkStall(ThreadID tid)
         DPRINTF(Rename,"[tid:%i] Stall: LSQ has 0 free entries.\n", tid);
         ret_val = true;
     } else if (renameMap[tid]->numFreeEntries() <= 0) {
-        DPRINTF(Rename,"[tid:%i] Stall: RenameMap has 0 free entries.\n", tid);
+        DPRINTF(Rename,"[tid:%i] Stall: RenameMap has 0 free entries renameMap[tid].numFreeEntries() %d\n", tid,renameMap[tid]->numFreeEntries());
         ret_val = true;
     } else if (renameStatus[tid] == SerializeStall &&
                (!emptyROB[tid] || instsInProgress[tid])) {

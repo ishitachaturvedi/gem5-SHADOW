@@ -194,6 +194,30 @@ Decode::setActiveThreads(std::list<ThreadID> *at_ptr)
 }
 
 void
+Decode::setSActiveThreads(std::list<ThreadID> *at_ptr)
+{
+    activeSThreads = at_ptr;
+}
+
+void
+Decode::setWActiveThreads(std::list<ThreadID> *at_ptr)
+{
+    activeWThreads = at_ptr;
+}
+
+void
+Decode::setAllSThreads(std::list<ThreadID> *at_ptr)
+{
+    allSThreads = at_ptr;
+}
+
+void
+Decode::setAllWThreads(std::list<ThreadID> *at_ptr)
+{
+    allWThreads = at_ptr;
+}
+
+void
 Decode::drainSanityCheck() const
 {
     for (ThreadID tid = 0; tid < numThreads; ++tid) {

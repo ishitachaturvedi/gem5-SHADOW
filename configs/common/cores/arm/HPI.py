@@ -1722,7 +1722,7 @@ class HPI_L2(Cache):
     tgts_per_mshr = 8
     size = "1024kB"
     assoc = 16
-    write_buffers = 16
+    write_buffers = 8
     # prefetcher FIXME
 
 

@@ -101,6 +101,8 @@ class BaseCPU(ClockedObject):
     cpu_id = Param.Int(-1, "CPU identifier")
     socket_id = Param.Unsigned(0, "Physical Socket identifier")
     numThreads = Param.Unsigned(1, "number of HW thread contexts")
+    SThreads = Param.Unsigned(1, "number of Strong thread contexts")
+    WThreads = Param.Unsigned(0, "number of Strong thread contexts")
     pwr_gating_latency = Param.Cycles(
         300,
         "Latency to enter power gating state when all contexts are suspended",
@@ -175,6 +177,9 @@ class BaseCPU(ClockedObject):
         self.dtb.smtTLBPolicy = policy(numThreads=self.numThreads)
         self.itb.smtTLBPolicy = policy(numThreads=self.numThreads)
 
+        self.dtb.SThreads = self.SThreads
+        self.dtb.WThreads = self.WThreads
+
     def createInterruptController(self):
         self.interrupts = [self.ArchInterrupts() for i in range(self.numThreads)]
         if buildEnv['USE_X86_ISA'] == True:
@@ -188,7 +193,7 @@ class BaseCPU(ClockedObject):
     def connectCachedPorts(self, in_ports):
         for p in self._cached_ports:
             exec("self.%s = in_ports" % p)
-
+        
     def connectUncachedPorts(self, in_ports, out_ports):
         #if buildEnv['buildEnv'] == True:
         for p in self._uncached_interrupt_response_ports:

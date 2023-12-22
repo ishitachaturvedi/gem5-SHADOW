@@ -66,6 +66,12 @@ struct MinorStats : public statistics::Group
     /** Number of simulated insts and microops */
     statistics::Scalar numOps;
 
+    /** Number of cycles commit was checked */
+    statistics::Scalar cyclesInCommit;
+
+    /** Number of simulated insts and microops */
+    statistics::Scalar NoCommitCycles;
+
     /** Number of ops discarded before committing */
     statistics::Scalar numDiscardedOps;
 

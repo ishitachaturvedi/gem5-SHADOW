@@ -346,6 +346,30 @@ IEW::setActiveThreads(std::list<ThreadID> *at_ptr)
 }
 
 void
+IEW::setSActiveThreads(std::list<ThreadID> *at_ptr)
+{
+    activeSThreads = at_ptr;
+}
+
+void
+IEW::setWActiveThreads(std::list<ThreadID> *at_ptr)
+{
+    activeWThreads = at_ptr;
+}
+
+void
+IEW::setAllSThreads(std::list<ThreadID> *at_ptr)
+{
+    allSThreads = at_ptr;
+}
+
+void
+IEW::setAllWThreads(std::list<ThreadID> *at_ptr)
+{
+    allWThreads = at_ptr;
+}
+
+void
 IEW::setScoreboard(Scoreboard *sb_ptr)
 {
     scoreboard = sb_ptr;
@@ -864,6 +888,7 @@ IEW::dispatch(ThreadID tid)
                 "dispatch.\n", tid);
 
         dispatchInsts(tid);
+        ++iewStats.runningCycles;
     } else if (dispatchStatus[tid] == Unblocking) {
         // Make sure that the skid buffer has something in it if the
         // status is unblocking.

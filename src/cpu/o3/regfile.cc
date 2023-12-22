@@ -40,7 +40,7 @@
  */
 
 #include "cpu/o3/regfile.hh"
-
+#include "debug/Rename.hh"
 #include "cpu/o3/free_list.hh"
 
 namespace gem5
@@ -135,7 +135,6 @@ PhysRegFile::initFreeList(UnifiedFreeList *freeList)
 {
     // Initialize the free lists.
     int reg_idx = 0;
-
     // The initial batch of registers are the integer ones
     for (reg_idx = 0; reg_idx < numPhysicalIntRegs; reg_idx++) {
         assert(intRegIds[reg_idx].index() == reg_idx);

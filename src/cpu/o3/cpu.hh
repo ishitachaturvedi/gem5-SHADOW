@@ -431,6 +431,18 @@ class CPU : public BaseCPU
     /** Active Threads List */
     std::list<ThreadID> activeThreads;
 
+    /** Active S-Threads List */
+    std::list<ThreadID> activeSThreads;
+
+    /** Active W-Threads List */
+    std::list<ThreadID> activeWThreads;
+
+    /** All S-Threads List */
+    std::list<ThreadID> allSThreads;
+
+    /** All W-Threads List */
+    std::list<ThreadID> allWThreads;
+
     /**
      *  This is a list of threads that are trying to exit. Each thread id
      *  is mapped to a boolean value denoting whether the thread is ready
