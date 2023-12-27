@@ -637,6 +637,15 @@ CPU::deactivateThread(ThreadID tid)
         DPRINTF(O3CPU,"[tid:%i] Removing from active threads list\n",
                 tid);
         activeThreads.erase(thread_it);
+
+
+        printf("[tid:%d] deactivateThread Removing new thread Type: %d Strong ActiveThreads: %d TotalThreads: %d Weak ActiveThreads: %d TotalThreads: %d\n",tid,thread[tid]->tc->getProcessPtr()->getprocessThreadType(),SThreadsAvailable,SThreads,WThreadsAvailable,WThreads); 
+        if(thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
+            SThreadsAvailable--;
+        else    
+            WThreadsAvailable--;
+        assert(SThreadsAvailable>=0);
+        assert(WThreadsAvailable>=0);
     }
 
     fetch.deactivateThread(tid);
