@@ -1498,6 +1498,8 @@ Fetch::getFetchingThread()
             return lsqCount();
           case SMTFetchPolicy::Branch:
             return branchCount();
+          case SMTFetchPolicy::SWIQCount:
+            return SWiqCount();
           default:
             return InvalidThreadID;
         }
@@ -1545,6 +1547,62 @@ Fetch::roundRobin()
         }
 
         pri_iter++;
+    }
+
+    return InvalidThreadID;
+}
+
+ThreadID
+Fetch::SWiqCount()
+{
+    std::priority_queue<unsigned, std::vector<unsigned>,
+                        std::greater<unsigned> > SQ;
+    std::priority_queue<unsigned, std::vector<unsigned>,
+                        std::greater<unsigned> > WQ;
+    std::map<unsigned, ThreadID> SthreadMap;
+    std::map<unsigned, ThreadID> WthreadMap;
+
+    std::list<ThreadID>::iterator threads = activeThreads->begin();
+    std::list<ThreadID>::iterator end = activeThreads->end();
+
+    // create 2 lists for S threads and W threads 
+    while (threads != end) {
+        ThreadID tid = *threads++;
+        unsigned iqCount = fromIEW->iewInfo[tid].iqCount;
+
+        //we can potentially get tid collisions if two threads
+        //have the same iqCount, but this should be rare.
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
+        {
+            SQ.push(iqCount);
+            SthreadMap[iqCount] = tid;
+        }
+        else
+        {
+            WQ.push(iqCount);
+            WthreadMap[iqCount] = tid;
+        }
+    }
+
+    while (!SQ.empty()) {
+        ThreadID high_pri = SthreadMap[SQ.top()];
+
+        if (fetchStatus[high_pri] == Running ||
+            fetchStatus[high_pri] == IcacheAccessComplete ||
+            fetchStatus[high_pri] == Idle)
+            return high_pri;
+        else
+            SQ.pop();
+    }
+    while (!WQ.empty()) {
+        ThreadID high_pri = WthreadMap[WQ.top()];
+
+        if (fetchStatus[high_pri] == Running ||
+            fetchStatus[high_pri] == IcacheAccessComplete ||
+            fetchStatus[high_pri] == Idle)
+            return high_pri;
+        else
+            WQ.pop();
     }
 
     return InvalidThreadID;

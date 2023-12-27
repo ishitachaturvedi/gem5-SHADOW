@@ -391,6 +391,9 @@ class Fetch
     /** Returns the appropriate thread to fetch using the LSQ count policy. */
     ThreadID lsqCount();
 
+    /** Returns the approporiate thread to fetch by prioritizing S threads over W threads and using the IQ count policy internally for and W threads **/
+    ThreadID SWiqCount();
+
     /** Returns the appropriate thread to fetch using the branch count
      * policy. */
     ThreadID branchCount();
