@@ -65,6 +65,11 @@ class SyscallReturn;
 class System;
 class ThreadContext;
 
+enum ThreadTypes {
+  Strong = 1,
+  Weak
+};
+
 class Process : public SimObject
 {
   public:
@@ -89,6 +94,7 @@ class Process : public SimObject
     inline uint64_t pgid() { return _pgid; }
     inline void pgid(uint64_t pgid) { _pgid = pgid; }
     inline uint64_t tgid() { return _tgid; }
+    int getprocessThreadType() { return processThreadType; }
 
     const char *progName() const { return executable.c_str(); }
 
@@ -268,6 +274,9 @@ class Process : public SimObject
 
     // Syscall emulation uname release.
     std::string release;
+
+    // The thread type for this process (weak/strong)
+    int processThreadType;
 
     // Id of the owner of the process
     uint64_t _uid;

@@ -37,19 +37,12 @@
 
 # Run gem5 command: build/ARM/gem5.opt configs/example/se_SMT_ARM.py "test_codes/hello_pthreads-arm" --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=5 --smt > out
 
-# Debug test: build/ARM/gem5.opt --debug-flags=O3CPUAll --debug-start=29610500 configs/example/se_SMT_ARM.py "test_codes/hello_pthreads-arm" --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=3 --smt > out
-
-# build/ARM/gem5.opt configs/example/se_SMT_ARM.py "/scratch/ishitac/starbench/rgbyuv/pthread/rgbyuv -i /scratch/ishitac/starbench/rgbyuv/pthread/sample_1280_853.ppm -c 1 -t 8 -p 1" --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="hpi" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=10 --smt
-
-# build/ARM/gem5.opt configs/example/se_SMT_ARM.py "/scratch/ishitac/starbench/rgbyuv/pthread/rgbyuv -i /scratch/ishitac/starbench/rgbyuv/pthread/sample_1280_853.ppm -c 1 -t 8 -p 1" --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=3 --smt
-
 # build/ARM/gem5.opt configs/example/se_SMT_ARM.py "/scratch/ishitac/starbench/rgbyuv/pthread/rgbyuv -i /scratch/ishitac/starbench/rgbyuv/pthread/sample_1280_853.ppm -c 1 -t 8 -p 1" --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3_grace" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=3 --smt
 
-# build/ARM/gem5.opt configs/example/se_SMT_ARM.py "/scratch/ishitac/starbench/rgbyuv/pthread/rgbyuv -i /scratch/ishitac/starbench/rgbyuv/pthread/sample_1280_853.ppm -c 1 -t 8 -p 1" --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3_grace" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=3 --smt
+# multiple workloads: Many workloads run on 1 cpu. We dont have a config with many workloads and many CPUs. It brings in the question of load balancing between CPUs. That is beyond
+# the scope of this work. 
+#time build/ARM/gem5.opt -d out_md5_1_dir configs/example/se_SMT_ARM.py "/scratch/ishitac/starbench/md5/pthread/md5 -i 3 -c 1 -t 1 " "/scratch/ishitac/starbench/md5/pthread/md5 -i 3 -c 1 -t 1" --caches --l1d_size=3kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3_grace" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=11 --smt -t 3
 
-# build/ARM/gem5.opt configs/example/se_SMT_ARM.py "/scratch/ishitac/starbench/md5/pthread/md5 -i 3 -c 1 -t 10" --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3_grace" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=11 --smt -t 1
-
-# time build/ARM/gem5.opt -d out_md5_hpi_dir configs/example/se_SMT_ARM.py "/scratch/ishitac/starbench/md5/pthread/md5 -i 3 -c 1 -t 10" --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="hpi" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=11 --smt -t 1 &> out_md5_hpi
 
 """This script is the syscall emulation example script from the ARM
 Research Starter Kit on System Modeling. More information can be found
@@ -62,6 +55,7 @@ from m5.util import addToPath
 from m5.objects import *
 import argparse
 import shlex
+from pdb import set_trace as bp
 
 m5.util.addToPath("..")
 
@@ -174,20 +168,25 @@ class SimpleSeSystem(System):
         return self._num_cpus
 
 
-def get_processes(cmd):
+def get_processes(cmd,threadTypes):
     """Interprets provided args and returns a list of processes"""
 
     cwd = os.getcwd()
     multiprocesses = []
-    processType = [] # Process maps to strong or weak threads
+
+    index = 0
+
     for idx, c in enumerate(cmd):
         argv = shlex.split(c)
 
+        #bp()
         process = Process(pid=100 + idx, cwd=cwd, cmd=argv, executable=argv[0])
         process.gid = os.getgid()
+        process.processThreadType = threadTypes[index]
 
         print("info: %d. command and arguments: %s" % (idx + 1, process.cmd))
         multiprocesses.append(process)
+        index = index + 1
 
     return multiprocesses
 
@@ -208,11 +207,13 @@ def create(args):
 
     # Parse the command line and get a list of Processes instances
     # that we can pass to gem5.
-    processes = get_processes(args.commands_to_run)
-    if len(processes) != args.num_cores:
-        print("Error: Cannot map %d command(s) onto %d CPU(s)"% (len(processes), args.num_cores)
-        )
-        sys.exit(1)
+    processes = get_processes(args.commands_to_run,args.threadTypes)
+
+    #print("ARGS :",args.commands_to_run)
+    # if len(processes) != args.num_cores:
+    #     print("Error: Cannot map %d command(s) onto %d CPU(s)"% (len(processes), args.num_cores)
+    #     )
+    #     sys.exit(1)
 
     system.workload = SEWorkload.init_compatible(processes[0].executable)
 
@@ -225,10 +226,17 @@ def create(args):
     #     cpu.numThreads = 1
 
     # For 1 process per many threads
-    workload = processes[0]
+    # workload = processes[0]
+
+    # for cpu in system.cpu_cluster.cpus:
+    #     cpu.workload = workload
+
+    # For many workloads with many threads
+    # Constraint: All processes run on 1 CPU. We dont have support for multiple CPUs currently if we want to run multiple 
 
     for cpu in system.cpu_cluster.cpus:
-        cpu.workload = workload
+        cpu.workload = processes
+        cpu.threadTypes = args.threadTypes
 
     return system
 
@@ -244,6 +252,14 @@ def main():
         nargs="*",
         help="Command(s) to run",
     )
+
+    parser.add_argument(
+        "--threadTypes",
+        metavar="type",
+        nargs="+",
+        help="Thread types Strong or Weak for this application. If 2 Strong applications: --threadTypes S S",
+    )
+
     parser.add_argument(
         "--cpu",
         type=str,
@@ -262,12 +278,16 @@ def main():
 
     parser.add_argument('-WThreads', type=int, default = 0)
 
-    parser.add_argument('-WThreads', type=int, default = 0)
-
     args = parser.parse_args()
 
     if(args.WThreads == 0):
         args.SThreads =  args.t
+
+    # Create a mapping dictionary for ThreadTypes
+    mapping = {'S': 1, 'W': 2}
+
+    # Use a list comprehension to create a new list with the mapped values
+    args.threadTypes = [mapping[item] for item in args.threadTypes]
 
     # Create a single root node for gem5's object hierarchy. There can
     # only exist one root node in the simulator at any given
@@ -279,9 +299,12 @@ def main():
     # single node with shared memory.
     root.system = create(args)
 
+    #exit(0)
+
     # Instantiate the C++ object hierarchy. After this point,
     # SimObjects can't be instantiated anymore.
     m5.instantiate()
+
 
     # Start the simulator. This gives control to the C++ world and
     # starts the simulator. The returned event tells the simulation

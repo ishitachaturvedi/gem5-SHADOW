@@ -130,6 +130,7 @@ class BaseCPU(ClockedObject):
     )
 
     workload = VectorParam.Process([], "processes to run")
+    threadTypes = VectorParam.String([], "Thread Types for processes (strong/weak)")
 
     mmu = Param.BaseMMU(NULL, "CPU memory management unit")
     interrupts = VectorParam.BaseInterrupts([], "Interrupt Controller")

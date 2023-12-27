@@ -107,6 +107,12 @@ class CPU : public BaseCPU
         SwitchedOut
     };
 
+    enum ThreadType
+    {
+        Strong = 1,
+        Weak
+    };
+
     BaseMMU *mmu;
     using LSQRequest = LSQ::LSQRequest;
 
@@ -453,7 +459,7 @@ class CPU : public BaseCPU
     struct ThreadData { // Comment_out
       ThreadID thread_id;
       bool finished;
-      int cycle_number;
+      Tick cycle_number;
     
       ThreadData(ThreadID id, bool fin, int cycle) : thread_id(id), finished(fin), cycle_number(cycle) {}
     };

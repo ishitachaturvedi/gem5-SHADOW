@@ -58,6 +58,7 @@ class Process(SimObject):
     pid = Param.Int(100, "process id")
     ppid = Param.Int(0, "parent process id")
     pgid = Param.Int(100, "process group id")
+    processThreadType = Param.Int(0, "Thread type (strong [1] or weak [2])")
 
     executable = Param.String("", "executable (overrides cmd[0] if set)")
     cmd = VectorParam.String("command line (executable plus arguments)")

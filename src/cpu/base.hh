@@ -371,8 +371,14 @@ class BaseCPU : public ClockedObject
      * This is a constant for the duration of the simulation.
      */
     ThreadID numThreads;
+
+    // Total number of S and W threads
     ThreadID SThreads;
     ThreadID WThreads;
+
+    // Available S and W threads
+    ThreadID SThreadsAvailable;
+    ThreadID WThreadsAvailable;
 
     System *system;
 

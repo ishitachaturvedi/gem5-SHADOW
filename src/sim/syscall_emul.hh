@@ -1650,6 +1650,7 @@ doClone(SyscallDesc *desc, ThreadContext *tc, RegVal flags, RegVal newStack,
     pp->gid = p->gid();
     pp->egid = p->egid();
     pp->release = p->release;
+    pp->processThreadType = p->processThreadType;
 
     /* Find the first free PID that's less than the maximum */
     std::set<int> const& pids = p->system->PIDs;

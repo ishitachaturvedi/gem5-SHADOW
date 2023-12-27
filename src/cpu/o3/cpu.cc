@@ -291,14 +291,16 @@ CPU::CPU(const BaseO3CPUParams &params)
     thread.resize(numThreads);
 
     for (ThreadID tid = 0; tid < numThreads; ++tid) {
+        int threadSet = 0;
         if (FullSystem) {
             // SMT is not supported in FS mode yet.
             assert(numThreads == 1);
             thread[tid] = new ThreadState(this, 0, NULL);
         } else {
             if (tid < params.workload.size()) {
-                DPRINTF(O3CPU, "Inside Workload[%i] params.workload %d process is %#x Numthreads %d size %d\n", tid, &params.workload,
-                        thread[tid],numThreads,params.workload.size());
+                threadSet = 1;
+                DPRINTF(O3CPU, "Inside Workload[%i] params.workload %d process is %#x Numthreads %d size %d ThreadType %d\n", tid, &params.workload,
+                        thread[tid],numThreads,params.workload.size(),params.workload[tid]->processThreadType);
                 thread[tid] = new ThreadState(this, tid, params.workload[tid]);
             } else {
                 //Allocate Empty thread so M5 can use later
@@ -331,6 +333,11 @@ CPU::CPU(const BaseO3CPUParams &params)
 
         // Add the TC to the CPU's list of TC's.
         threadContexts.push_back(tc);
+
+        if(threadSet)
+        {
+            DPRINTF(O3CPU,"[tid:%d] InitThread Adding new thread Type: %d Strong ActiveThreads: %d TotalThreads: %d Weak ActiveThreads: %d TotalThreads: %d\n",tid,tc->getProcessPtr()->getprocessThreadType(),SThreadsAvailable,SThreads,WThreadsAvailable,WThreads); 
+        }
     }
 
     // O3CPU always requires an interrupt controller.
@@ -579,7 +586,20 @@ CPU::activateThread(ThreadID tid)
         DPRINTF(O3CPU, "[tid:%i] Adding to active threads list\n", tid);
 
         activeThreads.push_back(tid);
+
+
+        printf("[tid:%d] activateThread Adding new thread Type: %d Strong ActiveThreads: %d TotalThreads: %d Weak ActiveThreads: %d TotalThreads: %d\n",tid,thread[tid]->tc->getProcessPtr()->getprocessThreadType(),SThreadsAvailable,SThreads,WThreadsAvailable,WThreads); 
+
+        if(thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
+            SThreadsAvailable++;
+        else    
+            WThreadsAvailable++;
     }
+
+    DPRINTF(O3CPU,"[tid:%d] activateThread Adding new thread Type: %d Strong ActiveThreads: %d TotalThreads: %d Weak ActiveThreads: %d TotalThreads: %d\n",tid,thread[tid]->tc->getProcessPtr()->getprocessThreadType(),SThreadsAvailable,SThreads,WThreadsAvailable,WThreads); 
+    
+    assert(SThreads>=SThreadsAvailable);
+    assert(WThreads>=WThreadsAvailable);
 
     commit.activateThread(tid);
     fetch.activateThread(tid);
@@ -730,7 +750,7 @@ CPU::haltContext(ThreadID tid)
 }
 
 void
-CPU::insertThread(ThreadID tid)
+CPU::insertThread(ThreadID tid) 
 {
     DPRINTF(O3CPU,"[tid:%i] Initializing thread into CPU");
     // Will change now that the PC and thread state is internal to the CPU
@@ -1694,7 +1714,7 @@ CPU::isThreadExiting(ThreadID tid) const
 
 
     for (const ThreadData& data : exitingThreads1) {
-        DPRINTF(O3CPU,"222Current thread tid:%d ready %d\n",data.thread_id,data.finished);
+        DPRINTF(O3CPU,"222Current thread tid:%d ready %d curCycle %d curCycle %d nextCycle %d\n",data.thread_id,data.finished,data.cycle_number,curTick(),nextCycle());
     }
 
     auto it1 = exitingThreads.begin();
@@ -1740,15 +1760,18 @@ CPU::scheduleThreadExitEvent(ThreadID tid)
     for (ThreadData& data : exitingThreads1) {
         if (data.thread_id == tid) {
             threadIdExists++;
-            data.finished = true;
-            data.cycle_number = curTick();
+            if(!data.finished)
+            {
+                data.finished = true;
+                data.cycle_number = nextCycle();
+            }
             assert(data.finished);
         }
     }
     assert(threadIdExists==1);
 
     for (const ThreadData& data : exitingThreads1) {
-        DPRINTF(O3CPU,"333Current thread tid:%d ready %d\n",data.thread_id,data.finished);
+        DPRINTF(O3CPU,"333Current thread tid:%d ready %d curCycle %d curCycle %d nextCycle %d\n",data.thread_id,data.finished,data.cycle_number,curTick(),nextCycle());
     }
 
     auto it1 = exitingThreads.begin();
@@ -1829,9 +1852,10 @@ CPU::exitThreads()
 
     for (auto it = exitingThreads1.begin(); it != exitingThreads1.end();) {
         bool readyToExit = it->finished;
-        if ((it->cycle_number != curTick() || exit_size == 1) && readyToExit) {
+        //if ((it->cycle_number != curTick() || exit_size == 1) && readyToExit) {
+        if ((it->cycle_number == curTick() || exit_size == 1) && readyToExit) {
         //if (readyToExit) {
-            DPRINTF(O3CPU,"[tid:%d] EXITTEST actual exit size %d ready %d cycle %d\n",it->thread_id,exitingThreads.size(),it->finished,it->cycle_number);
+            DPRINTF(O3CPU,"[tid:%d] EXITTEST actual exit size %d ready %d cycle %d curCycle %d\n",it->thread_id,exitingThreads.size(),it->finished,it->cycle_number,curTick());
 
             haltContext(it->thread_id);
 

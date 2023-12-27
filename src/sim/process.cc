@@ -129,6 +129,7 @@ Process::Process(const ProcessParams &params, EmulationPageTable *pTable,
       _gid(params.gid), _egid(params.egid),
       _pid(params.pid), _ppid(params.ppid),
       _pgid(params.pgid), drivers(params.drivers),
+      processThreadType(params.processThreadType),
       fds(std::make_shared<FDArray>(
                   params.input, params.output, params.errout)),
       childClearTID(0),
