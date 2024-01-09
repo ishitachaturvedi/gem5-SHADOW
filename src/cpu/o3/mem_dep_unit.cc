@@ -386,6 +386,9 @@ MemDepUnit::replay()
 {
     DynInstPtr temp_inst;
 
+    DPRINTF(MemDepUnit, "Checking Replaying mem instruction %d.\n",
+                instsToReplay.empty());
+
     // For now this replay function replays all waiting memory ops.
     while (!instsToReplay.empty()) {
         temp_inst = instsToReplay.front();

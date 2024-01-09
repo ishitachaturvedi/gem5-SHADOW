@@ -49,5 +49,6 @@ UnifiedFreeList::UnifiedFreeList(const std::string &_my_name,
     regFile->initFreeList(this);
 }
 
+
 } // namespace o3
 } // namespace gem5

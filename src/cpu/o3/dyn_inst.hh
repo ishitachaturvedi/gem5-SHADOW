@@ -540,8 +540,8 @@ class DynInst : public ExecContext, public RefCounted
     bool isLoad()         const { return staticInst->isLoad(); }
     bool isStore()        const { return staticInst->isStore(); }
     bool isAtomic()       const { return staticInst->isAtomic(); }
-    bool isStoreConditional() const
-    { return staticInst->isStoreConditional(); }
+    bool isStoreConditional() const { return staticInst->isStoreConditional(); }
+    void setStoreConditional()     { staticInst->setStoreConditional(); }
     bool isInstPrefetch() const { return staticInst->isInstPrefetch(); }
     bool isDataPrefetch() const { return staticInst->isDataPrefetch(); }
     bool isInteger()      const { return staticInst->isInteger(); }
@@ -570,6 +570,7 @@ class DynInst : public ExecContext, public RefCounted
     bool isReadBarrier() const { return staticInst->isReadBarrier(); }
     bool isWriteBarrier() const { return staticInst->isWriteBarrier(); }
     bool isNonSpeculative() const { return staticInst->isNonSpeculative(); }
+    void setNonSpeculative() { staticInst->setNonSpeculative(); }
     bool isQuiesce() const { return staticInst->isQuiesce(); }
     bool isUnverifiable() const { return staticInst->isUnverifiable(); }
     bool isSyscall() const { return staticInst->isSyscall(); }

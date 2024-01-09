@@ -728,8 +728,8 @@ Commit::tick()
             ppCommitStall->notify(inst);
 
             DPRINTF(Commit,"[tid:%i] Can't commit, Instruction [sn:%llu] PC "
-                    "%s is head of ROB and not ready\n",
-                    tid, inst->seqNum, inst->pcState());
+                    "%s is head of ROB and not ready and is memory reference? %disload? %d\n",
+                    tid, inst->seqNum, inst->pcState(), inst->isMemRef(), inst->isLoad());
         }
 
         DPRINTF(Commit, "[tid:%i] ROB has %d insts & %d free entries.\n",
@@ -1077,6 +1077,7 @@ Commit::commitInsts()
             set(pc[tid], head_inst->pcState());
 
             // Try to commit the head instruction.
+
             bool commit_success = commitHead(head_inst, num_committed);
 
             if (commit_success) {
@@ -1227,8 +1228,8 @@ Commit::commitHead(const DynInstPtr &head_inst, unsigned inst_num)
         if (inst_num > 0 || iewStage->hasStoresToWB(tid)) {
             DPRINTF(Commit,
                     "[tid:%i] [sn:%llu] "
-                    "Waiting for all stores to writeback.\n",
-                    tid, head_inst->seqNum);
+                    "Waiting for all stores to writeback inst_num %d iewStage->hasStoresToWB(tid) %d.\n",
+                    tid, head_inst->seqNum,inst_num,iewStage->hasStoresToWB(tid));
             return false;
         }
 
@@ -1238,7 +1239,7 @@ Commit::commitHead(const DynInstPtr &head_inst, unsigned inst_num)
         // it is executed.
         head_inst->clearCanCommit();
 
-        if (head_inst->isLoad() && head_inst->strictlyOrdered()) {
+        if (head_inst->isLoad() && (head_inst->strictlyOrdered())) {
             DPRINTF(Commit, "[tid:%i] [sn:%llu] "
                     "Strictly ordered load, PC %s.\n",
                     tid, head_inst->seqNum, head_inst->pcState());
@@ -1270,7 +1271,6 @@ Commit::commitHead(const DynInstPtr &head_inst, unsigned inst_num)
         // If this point is reached and the fault inherits from the HTM fault,
         // then there is no need to raise a new fault
     }
-
     // Stores mark themselves as completed.
     if (!head_inst->isStore() && inst_fault == NoFault) {
         head_inst->setCompleted();
@@ -1335,7 +1335,7 @@ Commit::commitHead(const DynInstPtr &head_inst, unsigned inst_num)
             delete head_inst->traceData;
             head_inst->traceData = NULL;
         }
-
+        
         // Generate trap squash event.
         generateTrapEvent(tid, inst_fault);
         return false;

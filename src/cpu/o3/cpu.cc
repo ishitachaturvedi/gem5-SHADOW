@@ -89,7 +89,7 @@ CPU::CPU(const BaseO3CPUParams &params)
       iew(this, params),
       commit(this, params),
 
-      regFile(params.numPhysIntRegs,
+    regFile(params.numPhysIntRegs,
               params.numPhysFloatRegs,
               params.numPhysVecRegs,
               params.numPhysVecPredRegs,
@@ -148,6 +148,9 @@ CPU::CPU(const BaseO3CPUParams &params)
     // The stages also need their CPU pointer setup.  However this
     // must be done at the upper level CPU because they have pointers
     // to the upper level CPU, and not this CPU.
+
+    SThreadsAvailable = 0;
+    WThreadsAvailable = 0;
 
     // Set up Pointers to the activeThreads list for each stage
     fetch.setActiveThreads(&activeThreads);
@@ -250,36 +253,6 @@ CPU::CPU(const BaseO3CPUParams &params)
     rename.setScoreboard(&scoreboard);
     iew.setScoreboard(&scoreboard);
 
-    // Setup the rename map for whichever stages need it.
-    for (ThreadID tid = 0; tid < numThreads; tid++) {
-        isa[tid] = params.isa[tid];
-        commitRenameMap[tid].init(regClasses, &regFile, &freeList);
-        renameMap[tid].init(regClasses, &regFile, &freeList);
-    }
-
-    // Initialize rename map to assign physical registers to the
-    // architectural registers for active threads only.
-
-    //for (ThreadID tid = 0; tid < active_threads; tid++) { 
-    for (ThreadID tid = 0; tid < numThreads; tid++) {
-        for (auto type = (RegClassType)0; type <= CCRegClass;
-                type = (RegClassType)(type + 1)) {
-            int counter = 0;
-            for (auto &id: *regClasses.at(type)) {
-                // Note that we can't use the rename() method because we don't
-                // want special treatment for the zero register at this point
-                PhysRegIdPtr phys_reg = freeList.getReg(type);
-                renameMap[tid].setEntry(id, phys_reg);
-                commitRenameMap[tid].setEntry(id, phys_reg);
-                counter++;
-            }
-        }
-    }
-
-    rename.setRenameMap(renameMap);
-    commit.setRenameMap(commitRenameMap);
-    rename.setFreeList(&freeList);
-
     // Setup the ROB for whichever stages need it.
     commit.setROB(&rob);
 
@@ -337,6 +310,35 @@ CPU::CPU(const BaseO3CPUParams &params)
         if(threadSet)
         {
             DPRINTF(O3CPU,"[tid:%d] InitThread Adding new thread Type: %d Strong ActiveThreads: %d TotalThreads: %d Weak ActiveThreads: %d TotalThreads: %d\n",tid,tc->getProcessPtr()->getprocessThreadType(),SThreadsAvailable,SThreads,WThreadsAvailable,WThreads); 
+        }
+    }
+
+    // Setup the rename map for whichever stages need it.
+    for (ThreadID tid = 0; tid < numThreads; tid++) {
+        isa[tid] = params.isa[tid];
+        // assign freeList and regFile pointer
+        commitRenameMap[tid].init(regClasses, &regFile, &freeList);
+        renameMap[tid].init(regClasses, &regFile, &freeList);
+    }
+
+    // Initialize rename map to assign physical registers to the
+    // architectural registers for active threads only
+
+    rename.setRenameMap(renameMap);
+    commit.setRenameMap(commitRenameMap);
+    rename.setFreeList(&freeList);
+
+    //for (ThreadID tid = 0; tid < active_threads; tid++) { // Ishita
+    for (ThreadID tid = 0; tid < numThreads; tid++) {
+        for (auto type = (RegClassType)0; type <= CCRegClass;
+                type = (RegClassType)(type + 1)) {
+            for (auto &id: *regClasses.at(type)) {
+                // Note that we can't use the rename() method because we don't
+                // want special treatment for the zero register at this points
+                PhysRegIdPtr phys_reg = freeList.getReg(type);
+                renameMap[tid].setEntry(id, phys_reg);
+                commitRenameMap[tid].setEntry(id, phys_reg);
+            }
         }
     }
 
@@ -582,13 +584,16 @@ CPU::activateThread(ThreadID tid)
     DPRINTF(O3CPU, "[tid:%i] Calling activate thread.\n", tid);
     assert(!switchedOut());
 
+    // adding context to add registers
+
     if (isActive == activeThreads.end()) {
         DPRINTF(O3CPU, "[tid:%i] Adding to active threads list\n", tid);
 
         activeThreads.push_back(tid);
 
+        const auto &regClasses = isa[0]->regClasses();
 
-        printf("[tid:%d] activateThread Adding new thread Type: %d Strong ActiveThreads: %d TotalThreads: %d Weak ActiveThreads: %d TotalThreads: %d\n",tid,thread[tid]->tc->getProcessPtr()->getprocessThreadType(),SThreadsAvailable,SThreads,WThreadsAvailable,WThreads); 
+        DPRINTF(O3CPU,"[tid:%d] activateThread Cycle %d Adding new thread Type: %d Strong ActiveThreads: %d TotalThreads: %d Weak ActiveThreads: %d TotalThreads: %d\n",tid,curCycle(),thread[tid]->tc->getProcessPtr()->getprocessThreadType(),SThreadsAvailable,SThreads,WThreadsAvailable,WThreads); 
 
         if(thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
             SThreadsAvailable++;
@@ -633,13 +638,18 @@ CPU::deactivateThread(ThreadID tid)
     DPRINTF(O3CPU, "[tid:%i] Calling deactivate thread.\n", tid);
     assert(!switchedOut());
 
+    fetch.deactivateThread(tid);
+
+    commit.deactivateThread(tid);
+
     if (thread_it != activeThreads.end()) {
+
         DPRINTF(O3CPU,"[tid:%i] Removing from active threads list\n",
                 tid);
         activeThreads.erase(thread_it);
 
 
-        printf("[tid:%d] deactivateThread Removing new thread Type: %d Strong ActiveThreads: %d TotalThreads: %d Weak ActiveThreads: %d TotalThreads: %d\n",tid,thread[tid]->tc->getProcessPtr()->getprocessThreadType(),SThreadsAvailable,SThreads,WThreadsAvailable,WThreads); 
+        DPRINTF(O3CPU,"[tid:%d] deactivateThread Removing new thread Type: %d Strong ActiveThreads: %d TotalThreads: %d Weak ActiveThreads: %d TotalThreads: %d\n",tid,thread[tid]->tc->getProcessPtr()->getprocessThreadType(),SThreadsAvailable,SThreads,WThreadsAvailable,WThreads); 
         if(thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
             SThreadsAvailable--;
         else    
@@ -648,9 +658,8 @@ CPU::deactivateThread(ThreadID tid)
         assert(WThreadsAvailable>=0);
     }
 
-    fetch.deactivateThread(tid);
-
-    commit.deactivateThread(tid);
+    DPRINTF(O3CPU,"[tid:%i] Thread Removed Successfully\n",
+                tid);
 }
 
 Counter
@@ -733,7 +742,11 @@ CPU::suspendContext(ThreadID tid)
 
     DPRINTF(Quiesce, "Suspending Context\n");
 
+    DPRINTF(O3CPU,"[tid:%i] Suspending Context Here.\n", tid);
+
     BaseCPU::suspendContext(tid);
+
+    DPRINTF(O3CPU,"[tid:%i] Context Fully suspended.\n", tid);
 }
 
 void
@@ -773,17 +786,17 @@ CPU::insertThread(ThreadID tid)
     //Bind Int Regs to Rename Map
     const auto &regClasses = isa[tid]->regClasses();
 
+    //Copy Thread Data Into RegFile
+    //copyFromTC(tid);
+
     for (auto type = (RegClassType)0; type <= CCRegClass;
-            type = (RegClassType)(type + 1)) {
+        type = (RegClassType)(type + 1)) {
         for (auto &id: *regClasses.at(type)) {
             PhysRegIdPtr phys_reg = freeList.getReg(type);
             renameMap[tid].setEntry(id, phys_reg);
             scoreboard.setReg(phys_reg);
         }
     }
-
-    //Copy Thread Data Into RegFile
-    //copyFromTC(tid);
 
     //Set PC/NPC/NNPC
     pcState(src_tc->pcState(), tid);
@@ -991,8 +1004,9 @@ CPU::processInterrupts(const Fault &interrupt)
 void
 CPU::trap(const Fault &fault, ThreadID tid, const StaticInstPtr &inst)
 {
+    DPRINTF(O3CPU,"[tid:%d] invoking trap fault Inst %d\n",tid,inst);
     // Pass the thread's TC into the invoke method.
-    fault->invoke(threadContexts[tid], inst);
+    fault->invoke(threadContexts[tid], inst); 
 }
 
 void
@@ -1381,6 +1395,7 @@ CPU::getWritableArchReg(const RegId &reg, ThreadID tid)
 void
 CPU::setArchReg(const RegId &reg, RegVal val, ThreadID tid)
 {
+    DPRINTF(O3CPU,"[tid:%d] setting Arch Reg\n",tid);
     const RegId flat = reg.flatten(*isa[tid]);
     PhysRegIdPtr phys_reg = commitRenameMap[tid].lookup(flat);
     regFile.setReg(phys_reg, val);
@@ -1992,3 +2007,4 @@ CPU::htmSendAbortSignal(ThreadID tid, uint64_t htm_uid,
 
 } // namespace o3
 } // namespace gem5
+

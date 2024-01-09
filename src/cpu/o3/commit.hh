@@ -111,6 +111,12 @@ class Commit
         SquashAfterPending, //< Committing instructions before a squash.
     };
 
+    enum ThreadType
+    {
+        Strong = 1,
+        Weak
+    };
+
   private:
     /** Overall commit status. */
     CommitStatus _status;

@@ -96,6 +96,12 @@ class IEW
         Inactive
     };
 
+    enum ThreadType
+    {
+        Strong = 1,
+        Weak
+    };
+
     /** Status for Issue, Execute, and Writeback stages. */
     enum StageStatus
     {

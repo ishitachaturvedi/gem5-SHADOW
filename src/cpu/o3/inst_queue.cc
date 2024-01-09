@@ -568,6 +568,7 @@ InstructionQueue::insert(const DynInstPtr &new_inst)
     } else {
         iqIOStats.intInstQueueWrites++;
     }
+
     // Make sure the instruction is valid
     assert(new_inst);
 
@@ -747,6 +748,8 @@ InstructionQueue::processFUCompletion(const DynInstPtr &inst, int fu_idx)
 // @todo: Figure out a better way to remove the squashed items from the
 // lists.  Checking the top item of each list to see if it's squashed
 // wastes time and forces jumps.
+
+// Ishita In-Order execution here?? 
 void
 InstructionQueue::scheduleReadyInsts()
 {
@@ -776,9 +779,13 @@ InstructionQueue::scheduleReadyInsts()
     int total_issued = 0;
     ListOrderIt order_it = listOrder.begin();
     ListOrderIt order_end_it = listOrder.end();
+    int listSize = listOrder.size();
+    int counter = 0;
 
-    while (total_issued < totalWidth && order_it != order_end_it) {
+    while (total_issued < totalWidth && order_it != order_end_it && (counter < listSize)) {
         OpClass op_class = (*order_it).queueType;
+
+        counter++;
 
         assert(!readyInsts[op_class].empty());
 
@@ -790,6 +797,20 @@ InstructionQueue::scheduleReadyInsts()
             iqIOStats.vecInstQueueReads++;
         } else {
             iqIOStats.intInstQueueReads++;
+        }
+
+        
+        if(!issuing_inst->isInROB())
+        {
+            DPRINTF(IQ, "Thread %i: instruction is not in ROB PC %s prior issued %d "
+                    "[sn:%llu]\n",
+                    issuing_inst->threadNumber, issuing_inst->pcState(),cpu->rob.AreOlderInstIssued(issuing_inst->threadNumber,issuing_inst->seqNum),
+                    issuing_inst->seqNum);
+        } else {
+            DPRINTF(IQ, "Thread %i:  instruction is in ROB PC %s prior issued %d "
+                    "[sn:%llu]\n",
+                    issuing_inst->threadNumber, issuing_inst->pcState(),cpu->rob.AreOlderInstIssued(issuing_inst->threadNumber,issuing_inst->seqNum),
+                    issuing_inst->seqNum);
         }
 
         assert(issuing_inst->seqNum == (*order_it).oldestInst);
@@ -814,7 +835,7 @@ InstructionQueue::scheduleReadyInsts()
         int idx = FUPool::NoCapableFU;
         Cycles op_latency = Cycles(1);
         ThreadID tid = issuing_inst->threadNumber;
-
+        
         if (op_class != No_OpClass) {
             idx = fuPool->getUnit(op_class);
             if (issuing_inst->isFloating()) {
@@ -829,9 +850,20 @@ InstructionQueue::scheduleReadyInsts()
             }
         }
 
+        DPRINTF(IQ, "Thread %i: Entering second check PC %s "
+                    "[sn:%llu] (idx != FUPool::NoFreeFU): %d AreOlderInstIssued %d op_class %d freeUnitNumber %d idx %d\n",
+                    tid, issuing_inst->pcState(),
+                    issuing_inst->seqNum,(idx != FUPool::NoFreeFU),cpu->rob.AreOlderInstIssued(issuing_inst->threadNumber,issuing_inst->seqNum),op_class,fuPool->numFreeUnits(op_class),idx);
+
         // If we have an instruction that doesn't require a FU, or a
         // valid FU, then schedule for execution.
-        if (idx != FUPool::NoFreeFU) {
+        if (idx != FUPool::NoFreeFU
+        // condition for in-order execution 
+        && cpu->rob.AreOlderInstIssued(issuing_inst->threadNumber,issuing_inst->seqNum)
+        ) {
+
+            fuPool->markUnitBusy(idx,op_class);
+
             if (op_latency == Cycles(1)) {
                 i2e_info->size++;
                 instsToExecute.push_back(issuing_inst);
@@ -856,6 +888,12 @@ InstructionQueue::scheduleReadyInsts()
                     execution->setFreeFU();
                 } else {
                     // Add the FU onto the list of FU's to be freed next cycle.
+
+                    DPRINTF(IQ, "Thread %i: Free in pipelined 1 cycle %s "
+                    "[sn:%llu] opclass %d\n",
+                    tid, issuing_inst->pcState(),
+                    issuing_inst->seqNum,op_class);
+
                     fuPool->freeUnitNextCycle(idx);
                 }
             }

@@ -148,6 +148,7 @@ class StaticInst : public RefCounted, public StaticInstFlags
     bool isStore()        const { return flags[IsStore]; }
     bool isAtomic()       const { return flags[IsAtomic]; }
     bool isStoreConditional()     const { return flags[IsStoreConditional]; }
+    void setStoreConditional()    { flags[IsStoreConditional] = true; }
     bool isInstPrefetch() const { return flags[IsInstPrefetch]; }
     bool isDataPrefetch() const { return flags[IsDataPrefetch]; }
     bool isPrefetch()     const { return isInstPrefetch() ||
@@ -179,6 +180,7 @@ class StaticInst : public RefCounted, public StaticInstFlags
     bool isReadBarrier() const { return flags[IsReadBarrier]; }
     bool isWriteBarrier() const { return flags[IsWriteBarrier]; }
     bool isNonSpeculative() const { return flags[IsNonSpeculative]; }
+    void setNonSpeculative() { flags[IsNonSpeculative] = true; }
     bool isQuiesce() const { return flags[IsQuiesce]; }
     bool isUnverifiable() const { return flags[IsUnverifiable]; }
     bool isSyscall() const { return flags[IsSyscall]; }

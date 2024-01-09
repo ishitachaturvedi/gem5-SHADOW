@@ -128,5 +128,17 @@ UnifiedRenameMap::canRename(DynInstPtr inst) const
     return true;
 }
 
+int
+UnifiedRenameMap::getRegsAvailable(DynInstPtr inst) const
+{
+    for (int i = 0; i < renameMaps.size(); i++) {
+        if (inst->numDestRegs((RegClassType)i) >
+                renameMaps[i].numFreeEntries()) {
+            return renameMaps[i].numFreeEntries();
+        }
+    }
+    return true;
+}
+
 } // namespace o3
 } // namespace gem5

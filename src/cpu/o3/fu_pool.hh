@@ -142,8 +142,7 @@ class FUPool : public SimObject
     static constexpr auto NoCapableFU = -2;
     static constexpr auto NoFreeFU = -1;
     /**
-     * Gets a FU providing the requested capability. Will mark the
-     * unit as busy, but leaves the freeing of the unit up to the IEW
+     * Gets a FU providing the requested capability, but leaves the freeing of the unit up to the IEW
      * stage.
      *
      * @param capability The capability requested.
@@ -152,6 +151,12 @@ class FUPool : public SimObject
      * otherwise.
      */
     int getUnit(OpClass capability);
+
+    /**
+     *  Marks the unit as busy when it is being used by an instruction 
+     * */
+
+    void markUnitBusy(int fu_idx, OpClass capability);
 
     /** Frees a FU at the end of this cycle. */
     void freeUnitNextCycle(int fu_idx);
@@ -164,6 +169,9 @@ class FUPool : public SimObject
 
     /** Debugging function used to dump FU information. */
     void dump();
+
+    /* number of free units */
+    int numFreeUnits(OpClass capability);
 
     /** Returns the operation execution latency of the given capability. */
     Cycles getOpLatency(OpClass capability) {

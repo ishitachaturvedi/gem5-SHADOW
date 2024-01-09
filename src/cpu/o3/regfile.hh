@@ -50,6 +50,7 @@
 #include "cpu/o3/comm.hh"
 #include "cpu/regfile.hh"
 #include "debug/IEW.hh"
+#include "debug/O3CPU.hh"
 
 namespace gem5
 {

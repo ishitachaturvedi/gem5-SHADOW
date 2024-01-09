@@ -42,7 +42,9 @@
 
 #include <sstream>
 
+#include "base/logging.hh"
 #include "cpu/func_unit.hh"
+#include "debug/IEW.hh"
 
 namespace gem5
 {
@@ -181,9 +183,25 @@ FUPool::getUnit(OpClass capability)
 
     assert(fu_idx < numFU);
 
-    unitBusy[fu_idx] = true;
+    //unitBusy[fu_idx] = true;
+    assert(!unitBusy[fu_idx]);
 
     return fu_idx;
+}
+
+void 
+FUPool::markUnitBusy(int fu_idx, OpClass capability)
+{
+    //  If this pool doesn't have the specified capability,
+    //  return this information to the caller
+    if (!capabilityList[capability])
+        return;
+
+    assert(fu_idx < numFU);
+
+    assert(!unitBusy[fu_idx]);
+
+    unitBusy[fu_idx] = true;
 }
 
 void
@@ -204,6 +222,29 @@ FUPool::processFreeUnits()
 
         unitBusy[fu_idx] = false;
     }
+}
+
+int 
+FUPool::numFreeUnits(OpClass capability)
+{
+    int freeCount = 0;
+    int fu_idx = fuPerCapList[capability].getFU();
+    int start_idx = fu_idx;
+
+    // Iterate through the circular queue if needed, stopping if we've reached
+    // the first element again.
+
+    int start_val = 0;
+    while (start_val == 0) {
+        if(!unitBusy[fu_idx])
+            freeCount++;
+        fu_idx = fuPerCapList[capability].getFU();
+        if (fu_idx == start_idx) {
+            // No FU available
+            start_val = 1;
+        }
+    }
+    return freeCount;
 }
 
 void

@@ -138,6 +138,14 @@ class SimpleRenameMap
         map[arch_reg.index()] = phys_reg;
     }
 
+    /* On deactivation of thread set mapping to NULL */
+    void
+    setEntryDeactivate(const RegId& arch_reg)
+    {
+        assert(arch_reg.index() <= map.size());
+        map[arch_reg.index()] = NULL;
+    }
+
     /** Return the number of free entries on the associated free list. */
     unsigned numFreeEntries() const { return freeList->numFreeRegs(); }
 
@@ -259,6 +267,13 @@ class UnifiedRenameMap
         return renameMaps[arch_reg.classValue()].setEntry(arch_reg, phys_reg);
     }
 
+    /* On deactivation of thread set mapping to NULL */
+    void
+    setEntryDeactivate(const RegId& arch_reg)
+    {
+        return renameMaps[arch_reg.classValue()].setEntryDeactivate(arch_reg);
+    }
+
     /**
      * Return the minimum number of free entries across all of the
      * register classes.  The minimum is used so we guarantee that
@@ -287,6 +302,10 @@ class UnifiedRenameMap
      * Return whether there are enough registers to serve the request.
      */
     bool canRename(DynInstPtr inst) const;
+
+    /** Return number of registers available
+     */
+    int getRegsAvailable(DynInstPtr inst) const;
 };
 
 } // namespace o3

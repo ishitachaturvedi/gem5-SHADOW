@@ -1025,8 +1025,6 @@ IEW::dispatchInsts(ThreadID tid)
             inst->clearHtmTransactionalState();
         }
 
-
-        // Otherwise issue the instruction just fine.
         if (inst->isAtomic()) {
             DPRINTF(IEW, "[tid:%i] Issue: Memory instruction "
                     "encountered, adding to LSQ.\n", tid);
@@ -1103,7 +1101,6 @@ IEW::dispatchInsts(ThreadID tid)
             assert(!inst->isExecuted());
             add_to_iq = true;
         }
-
         if (add_to_iq && inst->isNonSpeculative()) {
             DPRINTF(IEW, "[tid:%i] Issue: Nonspeculative instruction "
                     "encountered, skipping.\n", tid);
@@ -1121,15 +1118,14 @@ IEW::dispatchInsts(ThreadID tid)
 
         // If the instruction queue is not full, then add the
         // instruction.
-        if (add_to_iq) {
+        if (add_to_iq) { 
+            DPRINTF(IEW, "[tid:%i] Issue: insert in instQueue instruction %d.\n", tid, inst->seqNum);
             instQueue.insert(inst);
         }
 
         insts_to_dispatch.pop();
 
         toRename->iewInfo[tid].dispatched++;
-        DPRINTF(IEW,"[tid:%d] dispatch add 3\n",tid);
-
 
         ++iewStats.dispatchedInsts;
 
@@ -1485,6 +1481,8 @@ IEW::tick()
 
     sortInsts();
 
+    DPRINTF(IEW,"Freeing up process units\n");
+
     // Free function units marked as being freed this cycle.
     fuPool->processFreeUnits();
 
@@ -1554,12 +1552,14 @@ IEW::tick()
 
         if (fromCommit->commitInfo[tid].nonSpecSeqNum != 0) {
 
-            //DPRINTF(IEW,"NonspecInst from thread %i",tid);
+            DPRINTF(IEW,"NonspecInst from thread %i seqNum %llu\n",tid,fromCommit->commitInfo[tid].nonSpecSeqNum);
             if (fromCommit->commitInfo[tid].strictlyOrdered) {
+                DPRINTF(IEW,"NonspecInst from thread ReplayMemInst %i seqNum %llu\n",tid,fromCommit->commitInfo[tid].nonSpecSeqNum);
                 instQueue.replayMemInst(
                     fromCommit->commitInfo[tid].strictlyOrderedLoad);
                 fromCommit->commitInfo[tid].strictlyOrderedLoad->setAtCommit();
             } else {
+                DPRINTF(IEW,"NonspecInst from thread ALUInst %i seqNum %llu\n",tid,fromCommit->commitInfo[tid].nonSpecSeqNum);
                 instQueue.scheduleNonSpec(
                     fromCommit->commitInfo[tid].nonSpecSeqNum);
             }

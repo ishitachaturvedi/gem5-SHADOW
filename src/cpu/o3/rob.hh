@@ -153,6 +153,9 @@ class ROB
      */
     void retireHead(ThreadID tid);
 
+/* Are the older instructions issued? If yes we can issue this instruction as well. This check is to ensure in-order issue of instructions for wimpy threads.*/
+    bool AreOlderInstIssued(ThreadID tid, int seq_number);
+
     /** Is the oldest instruction across all threads ready. */
 //    bool isHeadReady();
 
