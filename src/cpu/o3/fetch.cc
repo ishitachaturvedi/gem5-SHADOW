@@ -591,8 +591,13 @@ Fetch::lookupAndUpdateNextPC(const DynInstPtr &inst, PCStateBase &next_pc)
     }
 
     ThreadID tid = inst->threadNumber;
-    predict_taken = branchPred->predict(inst->staticInst, inst->seqNum,
+    // Daniel Change:
+    if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
+        predict_taken = branchPred->predict(inst->staticInst, inst->seqNum,
                                         next_pc, tid);
+    }else{
+        predict_taken = false;
+    }
 
     if (predict_taken) {
         DPRINTF(Fetch, "[tid:%i] [sn:%llu] Branch at PC %#x "
