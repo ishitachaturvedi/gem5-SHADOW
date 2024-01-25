@@ -47,8 +47,11 @@
 # time build/ARM/gem5.opt --debug-flags=Rename -d out_md5_1_dir configs/example/se_SMT_ARM.py "/scratch/ishitac/starbench/md5/pthread/md5 -i 3 -c 1 -t 2 " "/scratch/ishitac/starbench/md5/pthread/md5 -i 3 -c 1 -t 2 " --threadTypes S W --caches --l1d_size=3kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3_grace" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=2 --smt -t 6 -WThreads 3 -SThreads 3
 
 # TEST
-# build/ARM/gem5.opt --debug-flags=O3CPU configs/example/se_SMT_ARM.py "test_codes/hello_pthreads-arm" --threadTypes S --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=5 --smt -t 6 -WThreads 0 -SThreads 6
+# build/ARM/gem5.opt --debug-flags=O3CPU configs/example/se_SMT_ARM.py "test_codes/hello_pthreads-arm" --threadTypes S --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=10 --smt -t 6 -WThreads 0 -SThreads 6
 
+# time build/ARM/gem5.opt -d WThreads configs/example/se_SMT_ARM.py "test_codes/hello_pthreads-arm" --threadTypes W --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=10 --smt -t 6 -WThreads 6 -SThreads 0
+
+# build/ARM/gem5.opt --debug-end=151250 --debug-flags=LSQUnit,O3CPUAll,MemDepUnit configs/example/se_SMT_ARM.py "test_codes/hello_pthreads-arm" --threadTypes S --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=10 --smt -t 6 -WThreads 0 -SThreads 6 > out
 
 """This script is the syscall emulation example script from the ARM
 Research Starter Kit on System Modeling. More information can be found

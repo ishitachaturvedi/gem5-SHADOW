@@ -227,9 +227,9 @@ CPU::CPU(const BaseO3CPUParams &params)
     assert(numThreads == (SThreads + WThreads));
     const auto &regClasses = params.isa[0]->regClasses();
 
-    printf("Per thread Reg size IntRegClass: %d, FloatRegClass: %d, VecRegClass: %d, VecPredRegClass: %d, CCRegClass: %d\n",regClasses.at(IntRegClass)->numRegs(),regClasses.at(FloatRegClass)->numRegs(),regClasses.at(VecRegClass)->numRegs(),regClasses.at(VecPredRegClass)->numRegs(),regClasses.at(CCRegClass)->numRegs());
+    printf("Per thread Reg size IntRegClass: %ld, FloatRegClass: %ld, VecRegClass: %ld, VecPredRegClass: %ld, CCRegClass: %ld\n",regClasses.at(IntRegClass)->numRegs(),regClasses.at(FloatRegClass)->numRegs(),regClasses.at(VecRegClass)->numRegs(),regClasses.at(VecPredRegClass)->numRegs(),regClasses.at(CCRegClass)->numRegs());
 
-    printf("Total thread Reg size IntRegClass: %d, FloatRegClass: %d, VecRegClass: %d, VecPredRegClass: %d, CCRegClass: %d\n",numThreads * regClasses.at(IntRegClass)->numRegs(),numThreads * regClasses.at(FloatRegClass)->numRegs(),numThreads * regClasses.at(VecRegClass)->numRegs(),numThreads * regClasses.at(VecPredRegClass)->numRegs(),numThreads * regClasses.at(CCRegClass)->numRegs());
+    printf("Total thread Reg size IntRegClass: %ld, FloatRegClass: %ld, VecRegClass: %ld, VecPredRegClass: %ld, CCRegClass: %ld\n",numThreads * regClasses.at(IntRegClass)->numRegs(),numThreads * regClasses.at(FloatRegClass)->numRegs(),numThreads * regClasses.at(VecRegClass)->numRegs(),numThreads * regClasses.at(VecPredRegClass)->numRegs(),numThreads * regClasses.at(CCRegClass)->numRegs());
 
 
     assert(params.numPhysIntRegs >=
@@ -590,8 +590,6 @@ CPU::activateThread(ThreadID tid)
         DPRINTF(O3CPU, "[tid:%i] Adding to active threads list\n", tid);
 
         activeThreads.push_back(tid);
-
-        const auto &regClasses = isa[0]->regClasses();
 
         DPRINTF(O3CPU,"[tid:%d] activateThread Cycle %d Adding new thread Type: %d Strong ActiveThreads: %d TotalThreads: %d Weak ActiveThreads: %d TotalThreads: %d\n",tid,curCycle(),thread[tid]->tc->getProcessPtr()->getprocessThreadType(),SThreadsAvailable,SThreads,WThreadsAvailable,WThreads); 
 

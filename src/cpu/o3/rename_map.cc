@@ -46,6 +46,7 @@
 #include "cpu/o3/dyn_inst.hh"
 #include "cpu/reg_class.hh"
 #include "debug/Rename.hh"
+#include "debug/IQ.hh"
 
 namespace gem5
 {
@@ -69,7 +70,7 @@ SimpleRenameMap::init(const RegClass &reg_class, SimpleFreeList *_freeList)
 }
 
 SimpleRenameMap::RenameInfo
-SimpleRenameMap::rename(const RegId& arch_reg)
+SimpleRenameMap::rename(const RegId& arch_reg, bool isWThread)
 {
     PhysRegIdPtr renamed_reg;
     // Record the current physical register that is renamed to the
@@ -88,11 +89,21 @@ SimpleRenameMap::rename(const RegId& arch_reg)
         renamed_reg = prev_reg;
         renamed_reg->decrNumPinnedWrites();
     } else {
-        renamed_reg = freeList->getReg();
-        map[arch_reg.index()] = renamed_reg;
-        renamed_reg->setNumPinnedWrites(arch_reg.getNumPinnedWrites());
-        renamed_reg->setNumPinnedWritesToComplete(
-            arch_reg.getNumPinnedWrites() + 1);
+        if(isWThread && (prev_reg->gethasrenamed() == 1)) { 
+        // do not rename WThread registers. Keep the old mapping
+            renamed_reg = prev_reg;
+            DPRINTF(IQ, "REUSING_REG Renaming reg %d numPinnedWrites %d archwrite %d isPinned %d\n",
+                    renamed_reg->flatIndex(), renamed_reg->getNumPinnedWritesToComplete(),arch_reg.getNumPinnedWrites(),renamed_reg->isPinned());
+        } else {
+            renamed_reg = freeList->getReg();
+            renamed_reg->sethasrenamed();
+            map[arch_reg.index()] = renamed_reg;
+            renamed_reg->setNumPinnedWrites(arch_reg.getNumPinnedWrites());
+            renamed_reg->setNumPinnedWritesToComplete(
+                arch_reg.getNumPinnedWrites() + 1);
+            DPRINTF(IQ, "RENAME_CHECK Renaming reg %d numPinnedWrites %d archwrite %d isPinned %d\n",
+                    renamed_reg->flatIndex(), renamed_reg->getNumPinnedWritesToComplete(),arch_reg.getNumPinnedWrites(),renamed_reg->isPinned());
+        }
     }
 
     DPRINTF(Rename, "Renamed reg %d to physical reg %d (%d) old mapping was"

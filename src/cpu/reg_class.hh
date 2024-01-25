@@ -394,17 +394,18 @@ class PhysRegId : private RegId
     RegIndex flatIdx;
     int numPinnedWritesToComplete;
     bool pinned;
+    int hasrenamed;
 
   public:
     explicit PhysRegId() : RegId(invalidRegClass, -1), flatIdx(-1),
-                           numPinnedWritesToComplete(0)
+                           numPinnedWritesToComplete(0), hasrenamed(0)
     {}
 
     /** Scalar PhysRegId constructor. */
     explicit PhysRegId(const RegClass &reg_class, RegIndex _regIdx,
               RegIndex _flatIdx)
         : RegId(reg_class, _regIdx), flatIdx(_flatIdx),
-          numPinnedWritesToComplete(0), pinned(false)
+          numPinnedWritesToComplete(0), pinned(false), hasrenamed(0)
     {}
 
     /** Visible RegId methods */
@@ -482,6 +483,9 @@ class PhysRegId : private RegId
 
     void decrNumPinnedWritesToComplete() { --numPinnedWritesToComplete; }
     void incrNumPinnedWritesToComplete() { ++numPinnedWritesToComplete; }
+
+    int gethasrenamed() const { return hasrenamed; }
+    void sethasrenamed() { hasrenamed = 1; }
 };
 
 using PhysRegIdPtr = PhysRegId*;

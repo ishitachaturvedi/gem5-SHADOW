@@ -111,7 +111,7 @@ class SimpleRenameMap
      * @return A RenameInfo pair indicating both the new and previous
      * physical registers.
      */
-    RenameInfo rename(const RegId& arch_reg);
+    RenameInfo rename(const RegId& arch_reg, bool isWThread);
 
     /**
      * Look up the physical register mapped to an architectural register.
@@ -209,7 +209,7 @@ class UnifiedRenameMap
      * physical registers.
      */
     RenameInfo
-    rename(const RegId& arch_reg)
+    rename(const RegId& arch_reg, bool isWThread)
     {
         if (!arch_reg.isRenameable()) {
             // misc regs aren't really renamed, just remapped
@@ -219,7 +219,7 @@ class UnifiedRenameMap
             return RenameInfo(phys_reg, phys_reg);
         }
 
-        return renameMaps[arch_reg.classValue()].rename(arch_reg);
+        return renameMaps[arch_reg.classValue()].rename(arch_reg, isWThread);
     }
 
     /**

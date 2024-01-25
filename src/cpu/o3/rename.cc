@@ -51,6 +51,7 @@
 #include "debug/O3PipeView.hh"
 #include "debug/Rename.hh"
 #include "params/BaseO3CPU.hh"
+#include "debug/IQ.hh"
 
 namespace gem5
 {
@@ -1095,15 +1096,19 @@ Rename::renameSrcRegs(const DynInstPtr &inst, ThreadID tid)
 
         inst->renameSrcReg(src_idx, renamed_reg);
 
-        // See if the register is ready or not.
-        if (scoreboard->getReg(renamed_reg)) {
+        // See if the register is ready or not. INORDER
+        if (scoreboard->getReg(renamed_reg) && (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong || renamed_reg->isFixedMapping())) {
             DPRINTF(Rename,
                     "[tid:%i] "
                     "Register %d (flat: %d) (%s) is ready.\n",
                     tid, renamed_reg->index(), renamed_reg->flatIndex(),
                     renamed_reg->className());
 
-            inst->markSrcRegReady(src_idx);
+            if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+                inst->markSrcRegReady(src_idx);
+            } else {
+                inst->markSrcRegReadyW(src_idx);
+            } 
         } else {
             DPRINTF(Rename,
                     "[tid:%i] "
@@ -1132,7 +1137,21 @@ Rename::renameDestRegs(const DynInstPtr &inst, ThreadID tid)
         RegId flat_dest_regid = dest_reg.flatten(*isa);
         flat_dest_regid.setNumPinnedWrites(dest_reg.getNumPinnedWrites());
 
-        rename_result = map->rename(flat_dest_regid);
+        // stop renaming for W threads -> the dest reg rename function maintains the original mapping. We pass if the thread is wimpy or not to this function.
+        bool isWThread = (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak);
+
+        rename_result = map->rename(flat_dest_regid, isWThread);
+
+        // For weak threads, we store the pinned values here. Since we can have WAW hazards, we dont want 
+        // to overwrite pinned values.
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+
+            inst->setNumPinnedWrites(flat_dest_regid.getNumPinnedWrites(),dest_idx);
+            inst->setNumPinnedWritesToComplete(flat_dest_regid.getNumPinnedWrites() + 1,dest_idx);
+            DPRINTF(IQ, "RENAME_PLACE_INST_CHECK [sn:%llu] Renaming reg %d numPinnedWrites %d archwrite %d isPinned %d\n",
+                    inst->seqNum,rename_result.first->flatIndex(), inst->getNumPinnedWritesToComplete(dest_idx),flat_dest_regid.getNumPinnedWrites(),inst->isPinned(dest_idx));
+
+        }
 
         inst->flattenedDestIdx(dest_idx, flat_dest_regid);
 

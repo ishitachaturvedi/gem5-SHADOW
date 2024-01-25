@@ -1310,6 +1310,9 @@ IEW::executeInsts()
                     inst->forwardOldRegs();
             }
 
+            DPRINTF(IEW, "Execute: Set executed PC %s, [tid:%i] [sn:%llu].\n",
+                inst->pcState(), inst->threadNumber,inst->seqNum);
+
             inst->setExecuted();
 
             instToCommit(inst);
@@ -1446,6 +1449,8 @@ IEW::writebackInsts()
         // when it's ready to execute the strictly ordered load.
         if (!inst->isSquashed() && inst->isExecuted() &&
                 inst->getFault() == NoFault) {
+                
+            inst->setWokeDependents();
             int dependents = instQueue.wakeDependents(inst);
 
             for (int i = 0; i < inst->numDestRegs(); i++) {
