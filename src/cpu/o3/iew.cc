@@ -716,7 +716,7 @@ IEW::updateStatus()
         _status = Active;
     }
 }
-
+// Checks for inst Queue stall here (Daneil):
 bool
 IEW::checkStall(ThreadID tid)
 {
@@ -934,6 +934,11 @@ IEW::dispatchInsts(ThreadID tid)
     {
         inst = insts_to_dispatch.front();
 
+        //Daniel: all weak thread instructions are non speculative
+        if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak){
+            inst->setNonSpeculative();
+        }
+        
         if (dispatchStatus[tid] == Unblocking) {
             DPRINTF(IEW, "[tid:%i] Issue: Examining instruction from skid "
                     "buffer\n", tid);
@@ -1101,9 +1106,12 @@ IEW::dispatchInsts(ThreadID tid)
             assert(!inst->isExecuted());
             add_to_iq = true;
         }
+        // Daniel look at speculative
         if (add_to_iq && inst->isNonSpeculative()) {
             DPRINTF(IEW, "[tid:%i] Issue: Nonspeculative instruction "
                     "encountered, skipping.\n", tid);
+
+            
 
             // Same as non-speculative stores.
             inst->setCanCommit();
@@ -1115,7 +1123,6 @@ IEW::dispatchInsts(ThreadID tid)
 
             add_to_iq = false;
         }
-
         // If the instruction queue is not full, then add the
         // instruction.
         if (add_to_iq) { 
