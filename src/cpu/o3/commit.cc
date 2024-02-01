@@ -702,9 +702,14 @@ Commit::tick()
         }
     }
 
+    //Daniel change: markCompleted before commit if weak, after if strong:
+
+    markCompletedInsts(Weak);
+
     commit();
 
-    markCompletedInsts();
+    markCompletedInsts(Strong);
+
 
     threads = activeThreads->begin();
 
@@ -1420,8 +1425,9 @@ Commit::getInsts()
     }
 }
 
+//Daniel Change to consider threadtype
 void
-Commit::markCompletedInsts()
+Commit::markCompletedInsts(ThreadType type)
 {
     // Grab completed insts out of the IEW instruction queue, and mark
     // instructions completed within the ROB.
@@ -1435,7 +1441,10 @@ Commit::markCompletedInsts()
                     fromIEW->insts[inst_num]->seqNum);
 
             // Mark the instruction as ready to commit.
-            fromIEW->insts[inst_num]->setCanCommit();
+            ThreadID tid = fromIEW->insts[inst_num]->threadNumber;
+            if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == type){
+                fromIEW->insts[inst_num]->setCanCommit();
+            }
         }
     }
 }

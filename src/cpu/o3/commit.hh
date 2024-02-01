@@ -314,7 +314,7 @@ class Commit
     void getInsts();
 
     /** Marks completed instructions using information sent from IEW. */
-    void markCompletedInsts();
+    void markCompletedInsts(ThreadType type);
 
     /** Gets the thread to commit, based on the SMT policy. */
     ThreadID getCommittingThread();
