@@ -203,9 +203,6 @@ class DynInst : public ExecContext, public RefCounted
      */
     std::queue<InstResult> instResult;
 
-    /** PC state for this instruction. */
-    std::unique_ptr<PCStateBase> pc;
-
     /** Values to be written to the destination misc. registers. */
     std::vector<RegVal> _destMiscRegVal;
 
@@ -243,6 +240,10 @@ class DynInst : public ExecContext, public RefCounted
     std::vector<int> numWrites;
 
   public:
+
+    /** PC state for this instruction. */
+    std::unique_ptr<PCStateBase> pc;
+
     size_t numSrcs() const { return _numSrcs; }
     size_t numDests() const { return _numDests; }
 
@@ -358,10 +359,6 @@ class DynInst : public ExecContext, public RefCounted
     /** Iterator pointing to this BaseDynInst in the list of all insts. */
     ListIt instListIt;
 
-    ////////////////////// Branch Data ///////////////
-    /** Predicted PC state after this instruction. */
-    std::unique_ptr<PCStateBase> predPC;
-
     /** The Macroop if one exists */
     const StaticInstPtr macroop;
 
@@ -372,6 +369,10 @@ class DynInst : public ExecContext, public RefCounted
     /////////////////////// Load Store Data //////////////////////
     /** The effective virtual address (lds & stores only). */
     Addr effAddr = 0;
+
+    ////////////////////// Branch Data ///////////////
+    /** Predicted PC state after this instruction. */
+    std::unique_ptr<PCStateBase> predPC;
 
     /** The effective physical address. */
     Addr physEffAddr = 0;
@@ -411,6 +412,11 @@ class DynInst : public ExecContext, public RefCounted
     RequestPtr reqToVerify;
 
   public:
+
+    /** Number of instructions on which it has a WAR dependence. When this number is 0, this
+     * instruction can be issued. There is 1 entry for each reg. */
+    std::vector<int> numWARPending;
+
     /** Records changes to result? */
     void recordResult(bool f) { instFlags[RecordResult] = f; }
 
@@ -1016,6 +1022,8 @@ class DynInst : public ExecContext, public RefCounted
     {
         thread->storeCondFailures = sc_failures;
     }
+
+    bool squashedInQueue;
 
   public:
     // monitor/mwait funtions

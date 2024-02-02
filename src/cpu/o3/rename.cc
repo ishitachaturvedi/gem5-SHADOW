@@ -1144,7 +1144,7 @@ Rename::renameDestRegs(const DynInstPtr &inst, ThreadID tid)
 
         // For weak threads, we store the pinned values here. Since we can have WAW hazards, we dont want 
         // to overwrite pinned values.
-        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) { // Ishita 
 
             inst->setNumPinnedWrites(flat_dest_regid.getNumPinnedWrites(),dest_idx);
             inst->setNumPinnedWritesToComplete(flat_dest_regid.getNumPinnedWrites() + 1,dest_idx);

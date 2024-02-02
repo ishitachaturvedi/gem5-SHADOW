@@ -46,7 +46,7 @@ ThreadState::ThreadState(BaseCPU *cpu, ThreadID _tid, Process *_process)
       numLoad(0), startNumLoad(0),
       _status(ThreadContext::Halted), baseCpu(cpu),
       _contextId(0), _threadId(_tid), lastActivate(0), lastSuspend(0),
-      process(_process), storeCondFailures(0)
+      process(_process), storeCondFailures(0), ControlInstIssued(false), ControlInstSeq(-1)
 {
 }
 

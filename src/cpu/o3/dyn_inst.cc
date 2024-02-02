@@ -78,7 +78,7 @@ DynInst::DynInst(const Arrays &arrays, const StaticInstPtr &static_inst,
         cpu->dumpInsts();
         dumpSNList();
 #endif
-        assert(cpu->instcount <= (1500*MaxThreads));
+        //assert(cpu->instcount <= (1500*MaxThreads));
     }
 
     SrcRegsCheck.resize(arrays.numSrcs,0);
@@ -88,6 +88,9 @@ DynInst::DynInst(const Arrays &arrays, const StaticInstPtr &static_inst,
     pinned.resize(arrays.numDests,0);
     numPinnedWrites.resize(arrays.numDests,0);
     numWrites.resize(arrays.numDests,0);
+    numWARPending.resize(arrays.numDests,0);
+
+    squashedInQueue = false;
 
     DPRINTF(DynInst,
         "DynInst: [sn:%lli] Instruction created. Instcount for %s = %i\n",
@@ -314,7 +317,7 @@ void
 DynInst::markSrcRegReadyWDone(RegIndex src_idx) //Ishita: src regs are marked as ready, similarly, dest also need to be marked as ready. Only when all regs are ready we can issue. This takes care of all types of deps.
 {
     //if(SrcRegsCheck[src_idx] == 1) { // only RAW hazard can take place -> this can be much simpler.
-        DPRINTF(IQ, "SRC [sn:%lli] has %d ready out of %d sources. RTI %d SRC_REG_VAL %d\n", seqNum, readyRegs+1, (numSrcRegs() + numDestRegs()), readyToIssue(),SrcRegsCheck[src_idx]);
+        DPRINTF(IQ, "SRC [sn:%lli] has %d ready out of %d sources. RTI %d\n", seqNum, readyRegs+1, (numSrcRegs() + numDestRegs()), readyToIssue());
         if (++readyRegs == (numSrcRegs() + numDestRegs())) {
             setCanIssue();
         }

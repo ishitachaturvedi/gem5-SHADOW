@@ -1352,10 +1352,10 @@ LSQUnit::read(LSQRequest *request, ssize_t load_idx)
     }
 
     DPRINTF(LSQUnit, "Read called, load idx: %i, store idx: %i, "
-            "storeHead: %i addr: %#x%s\n",
+            "storeHead: %i addr: %#x%s [sn:%llx]\n",
             load_idx - 1, load_inst->sqIt._idx, storeQueue.head() - 1,
             request->mainReq()->getPaddr(), request->isSplit() ? " split" :
-            "");
+            "",load_inst->seqNum);
 
     if (request->mainReq()->isLLSC()) {
         // Disable recording the result temporarily.  Writing to misc

@@ -66,6 +66,7 @@
 #include "params/BaseO3CPU.hh"
 #include "sim/faults.hh"
 #include "sim/full_system.hh"
+#include "debug/IQ.hh"
 
 namespace gem5
 {
@@ -877,6 +878,22 @@ Commit::commit()
             squashFromSquashAfter(tid);
         }
 
+        if(fromIEW->mispredictInst[tid]) {
+            DPRINTF(IQ, "Thread %i: MISPREDICT_CHECK "
+                    "Control1InstIssued %d squash %d commitStatus %d squashedSeqNum %d youngestSeqNum %d\n",
+                    tid, cpu->thread[tid]->ControlInstIssued,fromIEW->squash[tid],commitStatus[tid],fromIEW->squashedSeqNum[tid],youngestSeqNum[tid]);
+        }
+
+        if(fromIEW->mispredictInst[tid] && cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+            assert(cpu->thread[tid]->ControlInstIssued);
+            assert(cpu->thread[tid]->ControlInstSeq == fromIEW->squashedSeqNum[tid]);
+            cpu->thread[tid]->ControlInstIssued = false;
+            cpu->thread[tid]->ControlInstSeq = -1;
+            DPRINTF(IQ, "Thread %i: RELIEVING4_ControlInstIssued "
+                    "ControlInstIssued %d\n",
+                    tid, cpu->thread[tid]->ControlInstIssued);
+        }
+
         // Squashed sequence number must be older than youngest valid
         // instruction in the ROB. This prevents squashes from younger
         // instructions overriding squashes from older instructions.
@@ -1063,6 +1080,10 @@ Commit::commitInsts()
             {
                 DPRINTF(Commit, "[tid:%d] Retiring squashed instruction from "
                         "ROB.\n",tid);
+
+                DPRINTF(Commit, "[tid:%d] instruction_squashed "
+                        "ROB [sn:%llu].\n",tid,rob->readHeadInst(commit_thread)->seqNum);
+                    
 
                 rob->retireHead(commit_thread);
 

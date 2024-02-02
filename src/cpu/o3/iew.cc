@@ -58,6 +58,7 @@
 #include "debug/Rename.hh"
 #include "debug/O3PipeView.hh"
 #include "params/BaseO3CPU.hh"
+#include "debug/IQ.hh"
 
 namespace gem5
 {
@@ -484,11 +485,12 @@ void
 IEW::squashDueToBranch(const DynInstPtr& inst, ThreadID tid)
 {
     DPRINTF(IEW, "[tid:%i] [sn:%llu] Squashing from a specific instruction,"
-            " PC: %s "
-            "\n", tid, inst->seqNum, inst->pcState() );
+            " PC: %s squshSN:%llu"
+            "\n", tid, inst->seqNum, inst->pcState(),toCommit->squashedSeqNum[tid] );
 
     if (!toCommit->squash[tid] ||
             inst->seqNum < toCommit->squashedSeqNum[tid]) {
+
         toCommit->squash[tid] = true;
         toCommit->squashedSeqNum[tid] = inst->seqNum;
         toCommit->branchTaken[tid] = inst->pcState().branching();
@@ -500,6 +502,10 @@ IEW::squashDueToBranch(const DynInstPtr& inst, ThreadID tid)
         toCommit->includeSquashInst[tid] = false;
 
         wroteToTimeBuffer = true;
+
+        DPRINTF(IEW, "[tid:%i] [sn:%llu] SETTING_VALS,"
+            " PC: %s squshSN:%llu"
+            "\n", tid, inst->seqNum, inst->pcState(),toCommit->squashedSeqNum[tid] );
     }
 
 }
@@ -1203,6 +1209,30 @@ IEW::executeInsts()
         DPRINTF(IEW, "Execute: Processing PC %s, [tid:%i] [sn:%llu].\n",
                 inst->pcState(), inst->threadNumber,inst->seqNum);
 
+        int8_t total_src_regs1 = inst->numSrcRegs();
+        for (int src_reg_idx = 0;
+                        src_reg_idx < total_src_regs1;
+                        src_reg_idx++) {
+            const PhysRegIdPtr reg = inst->renamedSrcIdx(src_reg_idx);
+            RegVal regval = 0;
+            DPRINTF(IQ,"REG_ISSUE2_OUTVALS for SRC PC %s [sn:%llu] total_src_regs %d reg %d : ",inst->pcState(), inst->seqNum,total_src_regs1,reg->flatIndex());
+            if (!reg->is(InvalidRegClass) && !reg->is(MiscRegClass) && !reg->is(VecRegClass) && !reg->is(VecPredRegClass))
+                regval = cpu->getReg(reg);
+            DPRINTF(IQ,"\n");
+        }
+        int8_t total_dest_regs1 = inst->numDestRegs();
+        for (int dest_reg_idx = 0;
+            dest_reg_idx < total_dest_regs1;
+            dest_reg_idx++)
+        {
+            const PhysRegIdPtr reg = inst->renamedDestIdx(dest_reg_idx);
+            RegVal regval = 0;
+            DPRINTF(IQ,"REG_ISSUE2_OUTVALS for DEST PC %s [sn:%llu] total_dest_regs %d reg %d : ",inst->pcState(),inst->seqNum,total_dest_regs1,reg->flatIndex());
+            if (!reg->is(InvalidRegClass) && !reg->is(MiscRegClass) && !reg->is(VecRegClass) && !reg->is(VecPredRegClass))
+                regval = cpu->getReg(reg);
+            DPRINTF(IQ,"\n");
+        }
+
         // Notify potential listeners that this instruction has started
         // executing
         ppExecute->notify(inst);
@@ -1338,6 +1368,17 @@ IEW::executeInsts()
             // that have not been executed.
             bool loadNotExecuted = !inst->isExecuted() && inst->isLoad();
 
+            if(!loadNotExecuted && inst->isControl() && inst->isExecuted() && !inst->mispredicted() && cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak && !inst->squashedInQueue) {
+                DPRINTF(IQ, "[tid:%i] RELIEVING1_ControlInstIssued %s "
+                    "[sn:%llu] ControlInstIssued %d\n",
+                    tid, inst->pcState(),
+                    inst->seqNum,cpu->thread[tid]->ControlInstIssued);
+                assert(cpu->thread[tid]->ControlInstIssued);
+                assert(cpu->thread[tid]->ControlInstSeq == inst->seqNum);
+                cpu->thread[tid]->ControlInstIssued = false;
+                cpu->thread[tid]->ControlInstSeq = -1;
+            }
+
             if (inst->mispredicted() && !loadNotExecuted) {
                 fetchRedirect[tid] = true;
 
@@ -1450,8 +1491,9 @@ IEW::writebackInsts()
         if (!inst->isSquashed() && inst->isExecuted() &&
                 inst->getFault() == NoFault) {
                 
-            inst->setWokeDependents();
             int dependents = instQueue.wakeDependents(inst);
+
+            inst->setWokeDependents();
 
             for (int i = 0; i < inst->numDestRegs(); i++) {
                 // Mark register as ready if not pinned
@@ -1498,7 +1540,7 @@ IEW::tick()
     while (threads != end) {
         ThreadID tid = *threads++;
 
-        DPRINTF(IEW,"Issue: Processing [tid:%i]\n",tid);
+        DPRINTF(IEW,"Issue: Processing [tid:%i] queue size %d\n",tid, instQueue.getCount(tid));
 
         checkSignalsAndUpdate(tid);
         dispatch(tid);
@@ -1646,6 +1688,17 @@ IEW::checkMisprediction(const DynInstPtr& inst)
     if (!fetchRedirect[tid] ||
         !toCommit->squash[tid] ||
         toCommit->squashedSeqNum[tid] > inst->seqNum) {
+
+        if(inst->isControl() && !inst->mispredicted() && cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+            assert(cpu->thread[tid]->ControlInstIssued);
+            assert(cpu->thread[tid]->ControlInstSeq == inst->seqNum);
+            cpu->thread[tid]->ControlInstIssued = false;
+            cpu->thread[tid]->ControlInstSeq = -1;
+            DPRINTF(IQ, "[tid:%i]: RELIEVING2_ControlInstIssued %s "
+                    "[sn:%llu] ControlInstIssued %d\n",
+                    tid, inst->pcState(),
+                    inst->seqNum,cpu->thread[tid]->ControlInstIssued);
+        }
 
         if (inst->mispredicted()) {
             fetchRedirect[tid] = true;

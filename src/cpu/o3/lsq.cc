@@ -805,6 +805,12 @@ LSQ::pushRequest(const DynInstPtr& inst, bool isLoad, uint8_t *data,
     const bool htm_cmd = isLoad && (flags & Request::HTM_CMD);
     const bool tlbi_cmd = isLoad && (flags & Request::TLBI_CMD);
 
+    if(!isLoad) {
+        DPRINTF(LSQUnit, "pushRequest write to store addr %#x "
+            "[sn:%llu] PC %d\n",
+            addr, inst->seqNum, inst->pcState());
+    }
+
     if (inst->translationStarted()) {
         request = inst->savedRequest;
         assert(request);

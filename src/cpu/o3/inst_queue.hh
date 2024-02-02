@@ -348,14 +348,6 @@ class InstructionQueue
         bool operator()(const DynInstPtr &lhs, const DynInstPtr &rhs) const;
     };
 
-    typedef std::priority_queue<
-        DynInstPtr, std::vector<DynInstPtr>, PqCompare> ReadyInstQueue;
-
-    /** List of ready instructions, per op class.  They are separated by op
-     *  class to allow for easy mapping to FUs.
-     */
-    ReadyInstQueue readyInsts[Num_OpClasses];
-
     /** List of non-speculative instructions that will be scheduled
      *  once the IQ gets a signal from commit.  While it's redundant to
      *  have the key be a part of the value (the sequence number is stored
@@ -544,6 +536,14 @@ class InstructionQueue
     } iqStats;
 
    public:
+
+    typedef std::priority_queue<
+        DynInstPtr, std::vector<DynInstPtr>, PqCompare> ReadyInstQueue;
+
+    /** List of ready instructions, per op class.  They are separated by op
+     *  class to allow for easy mapping to FUs.
+     */
+    ReadyInstQueue readyInsts[Num_OpClasses];
     struct IQIOStats : public statistics::Group
     {
         IQIOStats(statistics::Group *parent);

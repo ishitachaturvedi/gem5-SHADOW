@@ -591,8 +591,15 @@ Fetch::lookupAndUpdateNextPC(const DynInstPtr &inst, PCStateBase &next_pc)
     }
 
     ThreadID tid = inst->threadNumber;
-    predict_taken = branchPred->predict(inst->staticInst, inst->seqNum,
+
+    if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
+        predict_taken = branchPred->predict(inst->staticInst, inst->seqNum,
                                         next_pc, tid);
+    } else {
+        // stop branch prediction for W threads. Just predict as not taken right now.
+         predict_taken = branchPred->predict(inst->staticInst, inst->seqNum, //INORDER turn off branch prediction
+                                        next_pc, tid);
+    }
 
     if (predict_taken) {
         DPRINTF(Fetch, "[tid:%i] [sn:%llu] Branch at PC %#x "
