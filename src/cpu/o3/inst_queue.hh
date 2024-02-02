@@ -235,6 +235,13 @@ class InstructionQueue
      */
     void commit(const InstSeqNum &inst, ThreadID tid = 0);
 
+    /**
+     * Check if there is an older instruction in the instList which has not committed,
+     * if this is true, then dont issue this instruction till older instructio issues.
+     * This is important for in order issue of W threads.
+     */
+    bool olderIssuePending(const InstSeqNum &inst, ThreadID tid);
+
     /** Wakes all dependents of a completed instruction. */
     int wakeDependents(const DynInstPtr &completed_inst);
 

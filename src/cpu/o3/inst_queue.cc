@@ -872,8 +872,8 @@ InstructionQueue::scheduleReadyInsts()
         // valid FU, then schedule for execution.
         if (idx != FUPool::NoFreeFU
         // condition for in-order execution and dont issue instructions if you are waiting on a control instruction to finish
-        //&& ((cpu->rob.AreOlderInstIssued(issuing_inst->threadNumber,issuing_inst->seqNum) && !cpu->thread[tid]->ControlInstIssued ) || cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
-        && (cpu->rob.AreOlderInstIssued(issuing_inst->threadNumber,issuing_inst->seqNum) && !cpu->thread[tid]->ControlInstIssued) // Ishita BIG CHANGE WRONG COMPLETELY IN ORDER IN-ORDER INORDER
+        && ((cpu->rob.AreOlderInstIssued(issuing_inst->threadNumber,issuing_inst->seqNum) && !cpu->thread[tid]->ControlInstIssued  && !olderIssuePending(issuing_inst->seqNum, issuing_inst->threadNumber)) || cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
+            //&& (cpu->rob.AreOlderInstIssued(issuing_inst->threadNumber,issuing_inst->seqNum) && !cpu->thread[tid]->ControlInstIssued && !olderIssuePending(issuing_inst->seqNum, issuing_inst->threadNumber) 
         ) {
 
             int8_t total_src_regs1 = issuing_inst->numSrcRegs();
@@ -1060,6 +1060,24 @@ InstructionQueue::commit(const InstSeqNum &inst, ThreadID tid)
     assert(freeEntries == (numEntries - countInsts()));
 }
 
+bool InstructionQueue::olderIssuePending(const InstSeqNum &inst, ThreadID tid) {
+    ListIt iq_it = instList[tid].begin();
+
+    bool olderIssuePending = false;
+
+    while (iq_it != instList[tid].end() && 
+           (*iq_it)->seqNum < inst) {
+        if(!(*iq_it)->isIssued()) {
+            olderIssuePending = true;
+            break;
+        }
+        ++iq_it;
+    }
+
+    return olderIssuePending;
+}
+
+
 int
 InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
 {
@@ -1069,7 +1087,6 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
 
     // wake dependents if they have not been woken already during squash
     if(!(completed_inst->HasWokenDependents() && cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak)) {
-        // look at val of o/p regs INORDER
         int8_t total_src_regs1 = completed_inst->numSrcRegs();
         for (int src_reg_idx = 0;
                         src_reg_idx < total_src_regs1;
@@ -1836,7 +1853,7 @@ InstructionQueue::addToDependents(const DynInstPtr &new_inst)
                 src_reg->className(),new_inst->seqNum,src_reg->isPinned(),src_reg->getNumPinnedWritesToComplete(),src_reg->isFixedMapping());
 
         // Only add it to the dependency graph if it's not ready. If the thread is a weak thread we dont use SB. We use our dependence graph to check deopendencies.
-        if (!new_inst->readySrcIdx(src_reg_idx) || cpu->thread[new_inst->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Weak) { //INORDER
+        if (!new_inst->readySrcIdx(src_reg_idx) || cpu->thread[new_inst->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Weak) { 
 
             // Check the IQ's scoreboard to make sure the register
             // hasn't become ready while the instruction was in flight
