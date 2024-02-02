@@ -597,8 +597,9 @@ Fetch::lookupAndUpdateNextPC(const DynInstPtr &inst, PCStateBase &next_pc)
                                         next_pc, tid);
     } else {
         // stop branch prediction for W threads. Just predict as not taken right now.
-         predict_taken = branchPred->predict(inst->staticInst, inst->seqNum, //INORDER turn off branch prediction
-                                        next_pc, tid);
+        //predict_taken = branchPred->predict(inst->staticInst, inst->seqNum, //INORDER turn off branch prediction
+        //                                next_pc, tid);
+        predict_taken = true;
     }
 
     if (predict_taken) {
