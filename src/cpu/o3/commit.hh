@@ -314,7 +314,7 @@ class Commit
     void getInsts();
 
     /** Marks completed instructions using information sent from IEW. */
-    void markCompletedInsts(ThreadType type);
+    void markCompletedInsts();
 
     /** Gets the thread to commit, based on the SMT policy. */
     ThreadID getCommittingThread();
@@ -349,8 +349,12 @@ class Commit
     /** IEW instruction queue interface. */
     TimeBuffer<IEWStruct> *iewQueue;
 
+    //Daniel Change:
     /** Wire to read information from IEW queue. */
+    TimeBuffer<IEWStruct>::wire fromIEW_W;
+    TimeBuffer<IEWStruct>::wire fromIEW_S;
     TimeBuffer<IEWStruct>::wire fromIEW;
+
 
     /** Rename instruction queue interface, for ROB. */
     TimeBuffer<RenameStruct> *renameQueue;

@@ -307,6 +307,8 @@ IEW::setTimeBuffer(TimeBuffer<TimeStruct> *tb_ptr)
     timeBuffer = tb_ptr;
 
     // Setup wire to read information from time buffer, from commit.
+    //Daniel change to no delay:
+    //fromCommit = timeBuffer->getWire(0);
     fromCommit = timeBuffer->getWire(-commitToIEWDelay);
 
     // Setup wire to write information back to previous stages.
