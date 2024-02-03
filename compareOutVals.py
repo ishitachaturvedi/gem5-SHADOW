@@ -9,7 +9,7 @@ def extract_sn(line):
     """Extract the sn value from a given line."""
     sn_start = line.find('[sn:') + 4
     sn_end = line.find(']', sn_start)
-    return line[sn_start:sn_end]
+    return int(line[sn_start:sn_end])
 
 def parse_line_REGOUTVALS(line):
     """Parse the line to extract the PC value and the 'has data' value."""
@@ -28,7 +28,7 @@ def parse_line_REGOUTVALS(line):
 
     sn_start = line.find('[sn:') + 4
     sn_end = line.find(']', sn_start)
-    sn = line[sn_start:sn_end]
+    sn = int(line[sn_start:sn_end])
     
     return pc, data, sn
 
@@ -45,32 +45,71 @@ def compare_files_REGOUTVALS(file1, file2):
         sn_values_file1 = []
         sn_values_file2 = []
 
+        pc_matching_file1 = []
+        sn_matching_file1 = []
+        pc_matching_file2 = []
+        sn_matching_file2 = []
+
         for line in f4:
             if "instruction_squashed" in line:
                 sn_start = line.find('[sn:') + 4
                 sn_end = line.find(']', sn_start)
-                sn = line[sn_start:sn_end]
+                sn = int(line[sn_start:sn_end])
                 squashed_inst1.append(sn)
+            if "Instruction was squashed" in line:
+                sn_start = line.find('[sn:') + 4
+                sn_end = line.find(']', sn_start)
+                sn = int(line[sn_start:sn_end])
+                if sn not in squashed_inst2:
+                    squashed_inst1.append(sn)
+            if("Squashing due to" in line):
+                sn_start = line.find('[sn:') + 4
+                sn_end = line.find(']', sn_start)
+                sn = int(line[sn_start:sn_end])
+                if sn not in squashed_inst2:
+                    squashed_inst1.append(sn)
+            if("Branch at PC" in line): # dont compare branch inst PC
+                sn_start = line.find('[sn:') + 4
+                sn_end = line.find(']', sn_start)
+                sn = int(line[sn_start:sn_end])
+                if sn not in squashed_inst2:
+                    squashed_inst1.append(sn)
         for line in f1:
             if "REGOUTVALS for DEST" in line:
                 pc, data_values, sn = parse_line_REGOUTVALS(line)
                 file1_data.setdefault(pc, []).append((data_values,sn))
+                if(int(sn) == 24354):
+                    print("OUTS LINE ",line," ",(sn == 24354))
             if("Retiring head instruction" in line):
                 sn = extract_sn(line)
                 if sn not in squashed_inst1:
                     pc = extract_pc(line)
                     pc_values_file1.append(pc)
                     sn_values_file1.append(sn)
+                    pc_matching_file1.append(pc)
+                    sn_matching_file1.append(sn)
         for line in f3:
             if "instruction_squashed" in line:
                 sn_start = line.find('[sn:') + 4
                 sn_end = line.find(']', sn_start)
-                sn = line[sn_start:sn_end]
+                sn = int(line[sn_start:sn_end])
                 squashed_inst2.append(sn)
             if "Instruction was squashed" in line:
                 sn_start = line.find('[sn:') + 4
                 sn_end = line.find(']', sn_start)
-                sn = line[sn_start:sn_end]
+                sn = int(line[sn_start:sn_end])
+                if sn not in squashed_inst2:
+                    squashed_inst2.append(sn)
+            if("Squashing due to" in line):
+                sn_start = line.find('[sn:') + 4
+                sn_end = line.find(']', sn_start)
+                sn = int(line[sn_start:sn_end])
+                if sn not in squashed_inst2:
+                    squashed_inst2.append(sn)
+            if("Branch at PC" in line): # dont compare branch inst PC
+                sn_start = line.find('[sn:') + 4
+                sn_end = line.find(']', sn_start)
+                sn = int(line[sn_start:sn_end])
                 if sn not in squashed_inst2:
                     squashed_inst2.append(sn)
         for line in f2:
@@ -78,34 +117,178 @@ def compare_files_REGOUTVALS(file1, file2):
                 pc, data_values, sn = parse_line_REGOUTVALS(line)
                 if sn not in squashed_inst2:
                     file2_data.setdefault(pc, []).append((data_values,sn))
+                if(int(sn) == 20515):
+                    print("OUTS LINE ",line," ",(sn == 20515))
             if("Retiring head instruction" in line):
                 sn = extract_sn(line)
                 if sn not in squashed_inst2:
                     pc = extract_pc(line)
                     pc_values_file2.append(pc)
                     sn_values_file2.append(sn)
+                    pc_matching_file2.append(pc)
+                    sn_matching_file2.append(sn)
+                    
     print("************")
+
+    # Get the correct order of retirement 
+    combined_lists = list(zip(
+        pc_matching_file1,
+        sn_matching_file1,
+    ))
+
+    sorted_combined_lists = sorted(combined_lists, key=lambda x: x[1])
+
+    (
+        pc_matching_file1,
+        sn_matching_file1,
+    ) = zip(*sorted_combined_lists)
+
+    combined_lists = list(zip(
+        pc_matching_file2,
+        sn_matching_file2
+    ))
+
+    sorted_combined_lists = sorted(combined_lists, key=lambda x: x[1])
+
+    (
+        pc_matching_file2,
+        sn_matching_file2
+    ) = zip(*sorted_combined_lists)
+
+    print("*********SN pairs to check")
+
+    min_length = min(len(sn_matching_file1), len(sn_matching_file2))
+    for i in range(min_length):
+        if(pc_matching_file1[i] == pc_matching_file2[i]):
+            print("good-pair file1 PC:",pc_matching_file1[i],"sn",sn_matching_file1[i],"file2 PC:",pc_matching_file2[i],"sn",sn_matching_file2[i])
+        else:
+            print("bad-pair file1 PC:",pc_matching_file1[i],"sn",sn_matching_file1[i],"file2 PC:",pc_matching_file2[i],"sn",sn_matching_file2[i])
+        if (pc_matching_file1[i] not in pc_matching_file2):
+            print("ERROR11! ",pc_matching_file1[i],"not in file2 sn",sn_matching_file1[i])
+        elif (pc_matching_file2[i] not in pc_matching_file1):
+            print("ERROR22! ",pc_matching_file2[i],"not in file1 sn",sn_matching_file2[i])
+
+    Mismatch_pc_REGOUTVALS = []
+    Notfound_pc_REGOUTVALS = []
+    mismatchSN_file1_REGOUTVALS = []
+    mismatchSN_file2_REGOUTVALS = []
+    mismatchData_file1_REGOUTVALS = []
+    mismatchData_file2_REGOUTVALS = []
+
+    match_pc_REGOUTVALS = []
+    matchSN_file1_REGOUTVALS = []
+    matchSN_file2_REGOUTVALS = []
+    matchData_file1_REGOUTVALS = []
+    matchData_file2_REGOUTVALS = []
 
     # Compare the data values
     for pc in file1_data:
-        #print("LOOKING AT PC ",pc,end=" ")
         if pc in file2_data:
             min_length = min(len(file1_data[pc]), len(file2_data[pc]))
             for i in range(min_length):
-                #print("length",min_length,"idx",i,"Considering SN",file1_data[pc][i][1],": File1 has data",file1_data[pc][i][0],"SN",file2_data[pc][i][1],": File2 has data",file2_data[pc][i][0])
                 if file1_data[pc][i][0] != file2_data[pc][i][0]:  # Compare data values
-                    print(f"Mismatch for PC {pc} at SN {file1_data[pc][i][1]}: File1 has data {file1_data[pc][i][0]}, SN {file2_data[pc][i][1]}: File2 has data {file2_data[pc][i][0]}")
-                    #break
+                    Mismatch_pc_REGOUTVALS.append(pc)
+                    mismatchSN_file1_REGOUTVALS.append(file1_data[pc][i][1])
+                    mismatchSN_file2_REGOUTVALS.append(file2_data[pc][i][1])
+                    mismatchData_file1_REGOUTVALS.append(file1_data[pc][i][0])
+                    mismatchData_file2_REGOUTVALS.append(file2_data[pc][i][0])
+                else:
+                    match_pc_REGOUTVALS.append(pc)
+                    matchSN_file1_REGOUTVALS.append(file1_data[pc][i][1])
+                    matchSN_file2_REGOUTVALS.append(file2_data[pc][i][1])
+                    matchData_file1_REGOUTVALS.append(file1_data[pc][i][0])
+                    matchData_file2_REGOUTVALS.append(file2_data[pc][i][0])
         else:
-            print(f"PC {pc} found in File1 but not in File2")
+            Notfound_pc_REGOUTVALS.append(pc)
+
+
+    # Combine the lists into a list of tuples
+    combined_lists = list(zip(
+        Mismatch_pc_REGOUTVALS,
+        mismatchSN_file1_REGOUTVALS,
+        mismatchSN_file2_REGOUTVALS,
+        mismatchData_file1_REGOUTVALS,
+        mismatchData_file2_REGOUTVALS
+    ))
+
+    sorted_combined_lists = sorted(combined_lists, key=lambda x: x[1])
+
+    (
+        Mismatch_pc_REGOUTVALS,
+        mismatchSN_file1_REGOUTVALS,
+        mismatchSN_file2_REGOUTVALS,
+        mismatchData_file1_REGOUTVALS,
+        mismatchData_file2_REGOUTVALS
+    ) = zip(*sorted_combined_lists)
+
+    print("*********REGOUTVALS DEST INCORRECT")
+    for i in range(len(Mismatch_pc_REGOUTVALS)):
+        print(f"Mismatch for PC {Mismatch_pc_REGOUTVALS[i]} at SN {mismatchSN_file1_REGOUTVALS[i]}: File1 has data {mismatchData_file1_REGOUTVALS[i]}, SN {mismatchSN_file2_REGOUTVALS[i]}: File2 has data {mismatchData_file2_REGOUTVALS[i]}")
+
+    print("*********REGOUTVALS PC NOT FOUND")
+    for i in range(len(Notfound_pc_REGOUTVALS)):
+        print(f"PC {Notfound_pc_REGOUTVALS[i]} fount in file1 but not in file2")
+
+    # Combine the lists into a list of tuples
+    combined_lists = list(zip(
+        match_pc_REGOUTVALS,
+        matchSN_file1_REGOUTVALS,
+        matchSN_file2_REGOUTVALS,
+        matchData_file1_REGOUTVALS,
+        matchData_file2_REGOUTVALS
+    ))
+
+    sorted_combined_lists = sorted(combined_lists, key=lambda x: x[1])
+
+    (
+        match_pc_REGOUTVALS,
+        matchSN_file1_REGOUTVALS,
+        matchSN_file2_REGOUTVALS,
+        matchData_file1_REGOUTVALS,
+        matchData_file2_REGOUTVALS
+    ) = zip(*sorted_combined_lists)
+
+
+    print("*********REGOUTVALS DEST Match")
+    for i in range(len(match_pc_REGOUTVALS)):
+        print(f"Allmatch for PC {match_pc_REGOUTVALS[i]} at SN {matchSN_file1_REGOUTVALS[i]}: File1 has data {matchData_file1_REGOUTVALS[i]}, SN {matchSN_file2_REGOUTVALS[i]}: File2 has data {matchData_file2_REGOUTVALS[i]}")
+
+
+    Mismatch_pc_file1_Retiring = []
+    Mismatch_pc_file2_Retiring = []
+    mismatchSN_file1_Retiring = []
+    mismatchSN_file2_Retiring = []
 
     # Compare the commited instructions
     min_length = min(len(pc_values_file1), len(pc_values_file2))
-    print("************Looking at len ",min_length)
     for i in range(min_length):
-        print(f"idx {i} Looking at file1 PC {pc_values_file1[i]} at SN {sn_values_file1[i]}: file2 PC {pc_values_file2[i]} at SN {sn_values_file2[i]}")
         if(pc_values_file1[i] != pc_values_file2[i]):
-            print(f"idx {i} Mismatch for file1 PC {pc_values_file1[i]} at SN {sn_values_file1[i]}: file2 PC {pc_values_file2[i]} at SN {sn_values_file2[i]}")
+            Mismatch_pc_file1_Retiring.append(pc_values_file1[i])
+            Mismatch_pc_file2_Retiring.append(pc_values_file2[i])
+            mismatchSN_file1_Retiring.append(sn_values_file1[i])
+            mismatchSN_file2_Retiring.append(sn_values_file2[i])
+
+    # Combine the lists into a list of tuples
+    combined_lists = list(zip(
+        Mismatch_pc_file1_Retiring,
+        Mismatch_pc_file2_Retiring,
+        mismatchSN_file1_Retiring,
+        mismatchSN_file2_Retiring
+    ))
+
+    sorted_combined_lists = sorted(combined_lists, key=lambda x: x[2])
+
+    (
+        Mismatch_pc_file1_Retiring,
+        Mismatch_pc_file2_Retiring,
+        mismatchSN_file1_Retiring,
+        mismatchSN_file2_Retiring
+    ) = zip(*sorted_combined_lists)
+
+    print("*********REGOUTVALS PC mismatch")
+    for i in range(len(Mismatch_pc_file1_Retiring)):
+        print(f"Mismatch for file1 PC {Mismatch_pc_file1_Retiring[i]} at SN {mismatchSN_file1_Retiring[i]}: file2 PC {Mismatch_pc_file2_Retiring[i]} at SN {mismatchSN_file2_Retiring[i]}")
+
 
 # dest output check
 def compare_files_REG_ISSUE1_OUTVALS(file1, file2):
@@ -120,7 +303,7 @@ def compare_files_REG_ISSUE1_OUTVALS(file1, file2):
             if "instruction_squashed" in line:
                 sn_start = line.find('[sn:') + 4
                 sn_end = line.find(']', sn_start)
-                sn = line[sn_start:sn_end]
+                sn = int(line[sn_start:sn_end])
                 squashed_inst1.append(sn)
         for line in f1:
             if "REG_ISSUE1_OUTVALS for SRC" in line:
@@ -131,34 +314,105 @@ def compare_files_REG_ISSUE1_OUTVALS(file1, file2):
             if "instruction_squashed" in line:
                 sn_start = line.find('[sn:') + 4
                 sn_end = line.find(']', sn_start)
-                sn = line[sn_start:sn_end]
+                sn = int(line[sn_start:sn_end])
                 squashed_inst2.append(sn)
             if "Instruction was squashed" in line:
                 sn_start = line.find('[sn:') + 4
                 sn_end = line.find(']', sn_start)
-                sn = line[sn_start:sn_end]
+                sn = int(line[sn_start:sn_end])
                 if sn not in squashed_inst2:
                     squashed_inst2.append(sn)
         for line in f2:
             if "REG_ISSUE1_OUTVALS for SRC" in line:
                 pc, data_values, sn = parse_line_REGOUTVALS(line)
                 if sn not in squashed_inst2:
-                    #print("LINE IN ",line)
                     file2_data.setdefault(pc, []).append((data_values,sn))
+                
+
+    Mismatch_pc_REGOUTVALS = []
+    Notfound_pc_REGOUTVALS = []
+    mismatchSN_file1_REGOUTVALS = []
+    mismatchSN_file2_REGOUTVALS = []
+    mismatchData_file1_REGOUTVALS = []
+    mismatchData_file2_REGOUTVALS = []
+
+    match_pc_REGOUTVALS = []
+    matchSN_file1_REGOUTVALS = []
+    matchSN_file2_REGOUTVALS = []
+    matchData_file1_REGOUTVALS = []
+    matchData_file2_REGOUTVALS = []
 
     print("************")
-    # Compare the data values
     for pc in file1_data:
-        #print("LOOKING AT PC ",pc,end=" ")
         if pc in file2_data:
             min_length = min(len(file1_data[pc]), len(file2_data[pc]))
             for i in range(min_length):
-                #print("length",min_length," idx ",i,"Considering SN ",file1_data[pc][i][1],": File1 has data ",file1_data[pc][i][0]," SN ",file2_data[pc][i][1],": File2 has data ",file2_data[pc][i][0])
                 if file1_data[pc][i][0] != file2_data[pc][i][0]:  # Compare data values
-                    print(f"Mismatch for PC {pc} at SN {file1_data[pc][i][1]}: File1 has data {file1_data[pc][i][0]}, SN {file2_data[pc][i][1]}: File2 has data {file2_data[pc][i][0]}")
-                    #break
+                    Mismatch_pc_REGOUTVALS.append(pc)
+                    mismatchSN_file1_REGOUTVALS.append(file1_data[pc][i][1])
+                    mismatchSN_file2_REGOUTVALS.append(file2_data[pc][i][1])
+                    mismatchData_file1_REGOUTVALS.append(file1_data[pc][i][0])
+                    mismatchData_file2_REGOUTVALS.append(file2_data[pc][i][0])
+                else:
+                    match_pc_REGOUTVALS.append(pc)
+                    matchSN_file1_REGOUTVALS.append(file1_data[pc][i][1])
+                    matchSN_file2_REGOUTVALS.append(file2_data[pc][i][1])
+                    matchData_file1_REGOUTVALS.append(file1_data[pc][i][0])
+                    matchData_file2_REGOUTVALS.append(file2_data[pc][i][0])
         else:
-            print(f"PC {pc} found in File1 but not in File2")
+            #print(f"PC {pc} found in File1 but not in File2")
+            Notfound_pc_REGOUTVALS.append(pc)
+
+    # Combine the lists into a list of tuples
+    combined_lists = list(zip(
+        Mismatch_pc_REGOUTVALS,
+        mismatchSN_file1_REGOUTVALS,
+        mismatchSN_file2_REGOUTVALS,
+        mismatchData_file1_REGOUTVALS,
+        mismatchData_file2_REGOUTVALS
+    ))
+
+    sorted_combined_lists = sorted(combined_lists, key=lambda x: x[1])
+
+    (
+        Mismatch_pc_REGOUTVALS,
+        mismatchSN_file1_REGOUTVALS,
+        mismatchSN_file2_REGOUTVALS,
+        mismatchData_file1_REGOUTVALS,
+        mismatchData_file2_REGOUTVALS
+    ) = zip(*sorted_combined_lists)
+
+    print("*********REG_ISSUE1_OUTVALS DEST INCORRECT")
+    for i in range(len(Mismatch_pc_REGOUTVALS)):
+        print(f"Mismatch for PC {Mismatch_pc_REGOUTVALS[i]} at SN {mismatchSN_file1_REGOUTVALS[i]}: File1 has data {mismatchData_file1_REGOUTVALS[i]}, SN {mismatchSN_file2_REGOUTVALS[i]}: File2 has data {mismatchData_file2_REGOUTVALS[i]}")
+
+    print("*********REG_ISSUE1_OUTVALS PC NOT FOUND")
+    for i in range(len(Notfound_pc_REGOUTVALS)):
+        print(f"PC {Notfound_pc_REGOUTVALS[i]} fount in file1 but not in file2")
+
+    # Combine the lists into a list of tuples
+    combined_lists = list(zip(
+        match_pc_REGOUTVALS,
+        matchSN_file1_REGOUTVALS,
+        matchSN_file2_REGOUTVALS,
+        matchData_file1_REGOUTVALS,
+        matchData_file2_REGOUTVALS
+    ))
+
+    sorted_combined_lists = sorted(combined_lists, key=lambda x: x[1])
+
+    (
+        match_pc_REGOUTVALS,
+        matchSN_file1_REGOUTVALS,
+        matchSN_file2_REGOUTVALS,
+        matchData_file1_REGOUTVALS,
+        matchData_file2_REGOUTVALS
+    ) = zip(*sorted_combined_lists)
+
+
+    print("*********REG_ISSUE1_OUTVALS DEST Match")
+    for i in range(len(match_pc_REGOUTVALS)):
+        print(f"Allmatch for PC {match_pc_REGOUTVALS[i]} at SN {matchSN_file1_REGOUTVALS[i]}: File1 has data {matchData_file1_REGOUTVALS[i]}, SN {matchSN_file2_REGOUTVALS[i]}: File2 has data {matchData_file2_REGOUTVALS[i]}")
 
 # dest output check
 def compare_files_REG_ISSUE2_OUTVALS(file1, file2):
@@ -173,7 +427,7 @@ def compare_files_REG_ISSUE2_OUTVALS(file1, file2):
             if "instruction_squashed" in line:
                 sn_start = line.find('[sn:') + 4
                 sn_end = line.find(']', sn_start)
-                sn = line[sn_start:sn_end]
+                sn = int(line[sn_start:sn_end])
                 squashed_inst1.append(sn)
         for line in f1:
             if "REG_ISSUE2_OUTVALS for SRC" in line:
@@ -184,12 +438,12 @@ def compare_files_REG_ISSUE2_OUTVALS(file1, file2):
             if "instruction_squashed" in line:
                 sn_start = line.find('[sn:') + 4
                 sn_end = line.find(']', sn_start)
-                sn = line[sn_start:sn_end]
+                sn = int(line[sn_start:sn_end])
                 squashed_inst2.append(sn)
             if "Instruction was squashed" in line:
                 sn_start = line.find('[sn:') + 4
                 sn_end = line.find(']', sn_start)
-                sn = line[sn_start:sn_end]
+                sn = int(line[sn_start:sn_end])
                 if sn not in squashed_inst2:
                     squashed_inst2.append(sn)
         for line in f2:
@@ -199,19 +453,91 @@ def compare_files_REG_ISSUE2_OUTVALS(file1, file2):
                     #print("LINE IN ",line)
                     file2_data.setdefault(pc, []).append((data_values,sn))
 
+    Mismatch_pc_REGOUTVALS = []
+    Notfound_pc_REGOUTVALS = []
+    mismatchSN_file1_REGOUTVALS = []
+    mismatchSN_file2_REGOUTVALS = []
+    mismatchData_file1_REGOUTVALS = []
+    mismatchData_file2_REGOUTVALS = []
+
+    match_pc_REGOUTVALS = []
+    matchSN_file1_REGOUTVALS = []
+    matchSN_file2_REGOUTVALS = []
+    matchData_file1_REGOUTVALS = []
+    matchData_file2_REGOUTVALS = []
+
+
     print("************")
-    # Compare the data values
     for pc in file1_data:
-        #print("LOOKING AT PC ",pc,end=" ")
         if pc in file2_data:
             min_length = min(len(file1_data[pc]), len(file2_data[pc]))
             for i in range(min_length):
-                #print("length",min_length," idx ",i,"Considering SN ",file1_data[pc][i][1],": File1 has data ",file1_data[pc][i][0]," SN ",file2_data[pc][i][1],": File2 has data ",file2_data[pc][i][0])
                 if file1_data[pc][i][0] != file2_data[pc][i][0]:  # Compare data values
-                    print(f"Mismatch for PC {pc} at SN {file1_data[pc][i][1]}: File1 has data {file1_data[pc][i][0]}, SN {file2_data[pc][i][1]}: File2 has data {file2_data[pc][i][0]}")
-                    #break
+                    Mismatch_pc_REGOUTVALS.append(pc)
+                    mismatchSN_file1_REGOUTVALS.append(file1_data[pc][i][1])
+                    mismatchSN_file2_REGOUTVALS.append(file2_data[pc][i][1])
+                    mismatchData_file1_REGOUTVALS.append(file1_data[pc][i][0])
+                    mismatchData_file2_REGOUTVALS.append(file2_data[pc][i][0])
+                else:
+                    match_pc_REGOUTVALS.append(pc)
+                    matchSN_file1_REGOUTVALS.append(file1_data[pc][i][1])
+                    matchSN_file2_REGOUTVALS.append(file2_data[pc][i][1])
+                    matchData_file1_REGOUTVALS.append(file1_data[pc][i][0])
+                    matchData_file2_REGOUTVALS.append(file2_data[pc][i][0])
         else:
-            print(f"PC {pc} found in File1 but not in File2")
+            Notfound_pc_REGOUTVALS.append(pc)
+
+    # Combine the lists into a list of tuples
+    combined_lists = list(zip(
+        Mismatch_pc_REGOUTVALS,
+        mismatchSN_file1_REGOUTVALS,
+        mismatchSN_file2_REGOUTVALS,
+        mismatchData_file1_REGOUTVALS,
+        mismatchData_file2_REGOUTVALS
+    ))
+
+    sorted_combined_lists = sorted(combined_lists, key=lambda x: x[1])
+
+    (
+        Mismatch_pc_REGOUTVALS,
+        mismatchSN_file1_REGOUTVALS,
+        mismatchSN_file2_REGOUTVALS,
+        mismatchData_file1_REGOUTVALS,
+        mismatchData_file2_REGOUTVALS
+    ) = zip(*sorted_combined_lists)
+
+
+    print("*********REG_ISSUE2_OUTVALS DEST INCORRECT")
+    for i in range(len(Mismatch_pc_REGOUTVALS)):
+        print(f"Mismatch for PC {Mismatch_pc_REGOUTVALS[i]} at SN {mismatchSN_file1_REGOUTVALS[i]}: File1 has data {mismatchData_file1_REGOUTVALS[i]}, SN {mismatchSN_file2_REGOUTVALS[i]}: File2 has data {mismatchData_file2_REGOUTVALS[i]}")
+
+    print("*********REG_ISSUE2_OUTVALS PC NOT FOUND")
+    for i in range(len(Notfound_pc_REGOUTVALS)):
+        print(f"PC {Notfound_pc_REGOUTVALS[i]} fount in file1 but not in file2")
+
+    # Combine the lists into a list of tuples
+    combined_lists = list(zip(
+        match_pc_REGOUTVALS,
+        matchSN_file1_REGOUTVALS,
+        matchSN_file2_REGOUTVALS,
+        matchData_file1_REGOUTVALS,
+        matchData_file2_REGOUTVALS
+    ))
+
+    sorted_combined_lists = sorted(combined_lists, key=lambda x: x[1])
+
+    (
+        match_pc_REGOUTVALS,
+        matchSN_file1_REGOUTVALS,
+        matchSN_file2_REGOUTVALS,
+        matchData_file1_REGOUTVALS,
+        matchData_file2_REGOUTVALS
+    ) = zip(*sorted_combined_lists)
+
+
+    print("*********REG_ISSUE1_OUTVALS DEST Match")
+    for i in range(len(match_pc_REGOUTVALS)):
+        print(f"Allmatch for PC {match_pc_REGOUTVALS[i]} at SN {matchSN_file1_REGOUTVALS[i]}: File1 has data {matchData_file1_REGOUTVALS[i]}, SN {matchSN_file2_REGOUTVALS[i]}: File2 has data {matchData_file2_REGOUTVALS[i]}")
 
 def parse_pc_full_pc(line):
     """Parse the line to extract the full PC value."""
@@ -311,13 +637,13 @@ def compareCreatedAndDestroyedInst(file1):
                 # Extract the serial number from the line and add it to the destroyed list
                 sn_start = line.find('[sn:') + 4
                 sn_end = line.find(']', sn_start)
-                sn = line[sn_start:sn_end]
+                sn = int(line[sn_start:sn_end])
                 destroyed_sn_list.append(sn)
             elif "Instruction created" in line:
                 # Extract the serial number from the line and add it to the created list
                 sn_start = line.find('[sn:') + 4
                 sn_end = line.find(']', sn_start)
-                sn = line[sn_start:sn_end]
+                sn = int(line[sn_start:sn_end])
                 created_sn_list.append(sn)
 
     not_destroyed_sn_list = []
@@ -339,10 +665,10 @@ def compareCreatedAndDestroyedInst(file1):
 # compare_files_part_PC('out', 'outS')
 
 print("REGOUTVALS DEST")
-compare_files_REGOUTVALS('out_err', 'outS')
-print("REG_ISSUE1_OUTVALS SRC")
-compare_files_REG_ISSUE1_OUTVALS('out_err', 'outS')
-print("REG_ISSUE2_OUTVALS SRC")
-compare_files_REG_ISSUE2_OUTVALS('out_err', 'outS')
+compare_files_REGOUTVALS('out', 'outS')
+#print("REG_ISSUE1_OUTVALS SRC")
+#compare_files_REG_ISSUE1_OUTVALS('out', 'outS')
+# print("REG_ISSUE2_OUTVALS SRC")
+# compare_files_REG_ISSUE2_OUTVALS('out', 'outS')
 
 #compareCreatedAndDestroyedInst('out')
