@@ -1049,18 +1049,21 @@ Fetch::checkSignalsAndUpdate(ThreadID tid)
         // If it was a branch mispredict on a control instruction, update the
         // branch predictor with that instruction, otherwise just kill the
         // invalid state we generated in after sequence number
-        if (fromCommit->commitInfo[tid].mispredictInst &&
-            fromCommit->commitInfo[tid].mispredictInst->isControl()) {
-            branchPred->squash(fromCommit->commitInfo[tid].doneSeqNum,
-                    *fromCommit->commitInfo[tid].pc,
-                    fromCommit->commitInfo[tid].branchTaken, tid);
-        } else {
-            branchPred->squash(fromCommit->commitInfo[tid].doneSeqNum,
-                              tid);
+        // update BP only for S threads
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+            if (fromCommit->commitInfo[tid].mispredictInst &&
+                fromCommit->commitInfo[tid].mispredictInst->isControl()) {
+                branchPred->squash(fromCommit->commitInfo[tid].doneSeqNum,
+                        *fromCommit->commitInfo[tid].pc,
+                        fromCommit->commitInfo[tid].branchTaken, tid);
+            } else {
+                branchPred->squash(fromCommit->commitInfo[tid].doneSeqNum,
+                                tid);
+            }
         }
 
         return true;
-    } else if (fromCommit->commitInfo[tid].doneSeqNum) {
+    } else if (fromCommit->commitInfo[tid].doneSeqNum && cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
         // Update the branch predictor if it wasn't a squashed instruction
         // that was broadcasted.
         branchPred->update(fromCommit->commitInfo[tid].doneSeqNum, tid);
@@ -1072,13 +1075,15 @@ Fetch::checkSignalsAndUpdate(ThreadID tid)
                 "from decode.\n",tid);
 
         // Update the branch predictor.
-        if (fromDecode->decodeInfo[tid].branchMispredict) {
-            branchPred->squash(fromDecode->decodeInfo[tid].doneSeqNum,
-                    *fromDecode->decodeInfo[tid].nextPC,
-                    fromDecode->decodeInfo[tid].branchTaken, tid);
-        } else {
-            branchPred->squash(fromDecode->decodeInfo[tid].doneSeqNum,
-                              tid);
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+            if (fromDecode->decodeInfo[tid].branchMispredict) {
+                branchPred->squash(fromDecode->decodeInfo[tid].doneSeqNum,
+                        *fromDecode->decodeInfo[tid].nextPC,
+                        fromDecode->decodeInfo[tid].branchTaken, tid);
+            } else {
+                branchPred->squash(fromDecode->decodeInfo[tid].doneSeqNum,
+                                tid);
+            }
         }
 
         if (fetchStatus[tid] != Squashing) {
