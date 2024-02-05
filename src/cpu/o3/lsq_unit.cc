@@ -539,7 +539,7 @@ LSQUnit::checkViolations(typename LoadQueue::iterator& loadIt,
                     if (!memDepViolator ||
                             ld_inst->seqNum < memDepViolator->seqNum) {
                         DPRINTF(LSQUnit, "Detected fault with inst [sn:%lli] "
-                                "and [sn:%lli] at address %#x\n",
+                                "and [sn:%lli] at address %#x Incorrectly hitExternalSnoop\n",
                                 inst->seqNum, ld_inst->seqNum, ld_eff_addr1);
                         memDepViolator = ld_inst;
 
@@ -562,11 +562,15 @@ LSQUnit::checkViolations(typename LoadQueue::iterator& loadIt,
                 // A load/store incorrectly passed this store.
                 // Check if we already have a violator, or if it's newer
                 // squash and refetch.
-                if (memDepViolator && ld_inst->seqNum > memDepViolator->seqNum)
+                if (memDepViolator && ld_inst->seqNum > memDepViolator->seqNum) {
+                    DPRINTF(LSQUnit, "OlderDetected fault with inst [sn:%lli] and "
+                        "[sn:%lli] at address %#x incorrectly passed store violator [sn:%lli]\n",
+                        inst->seqNum, ld_inst->seqNum, ld_eff_addr1, memDepViolator->seqNum);
                     break;
+                }
 
-                DPRINTF(LSQUnit, "Detected fault with inst [sn:%lli] and "
-                        "[sn:%lli] at address %#x\n",
+                DPRINTF(LSQUnit, "NewDetected fault with inst [sn:%lli] and "
+                        "[sn:%lli] at address %#x incorrectly passed\n",
                         inst->seqNum, ld_inst->seqNum, ld_eff_addr1);
                 memDepViolator = ld_inst;
 
