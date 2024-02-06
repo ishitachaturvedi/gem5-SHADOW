@@ -679,6 +679,11 @@ DynInstPtr
 InstructionQueue::getInstToExecute()
 {
     assert(!instsToExecute.empty());
+
+    // sort list based on seq numbers
+    instsToExecute.sort([this](const DynInstPtr& inst1, const DynInstPtr& inst2) {
+    return compareBySeqNum(inst1, inst2);});
+
     DynInstPtr inst = std::move(instsToExecute.front());
     instsToExecute.pop_front();
     if (inst->isFloating()) {
@@ -1429,8 +1434,8 @@ InstructionQueue::addReadyMemInst(const DynInstPtr &ready_inst)
         int8_t total_dest_regs = ready_inst->numDestRegs();
 
         DPRINTF(IQ, "STEP1, MEMORY putting it onto "
-            "the ready list, PC %s  [sn:%llu] total_dest_regs %d.\n",
-            ready_inst->pcState(), ready_inst->seqNum,total_dest_regs);
+            "the ready list, PC %s  [sn:%llu] total_dest_regs %d DataPrefetch %d InstPrefetch %d.\n",
+            ready_inst->pcState(), ready_inst->seqNum,total_dest_regs, ready_inst->isDataPrefetch(), ready_inst->isInstPrefetch());
 
         for (int dest_reg_idx = 0;
             dest_reg_idx < total_dest_regs;
@@ -1532,6 +1537,10 @@ InstructionQueue::violation(const DynInstPtr &store,
     memDepUnit[store->threadNumber].violation(store, faulting_load);
 }
 
+bool 
+InstructionQueue::compareBySeqNum(const DynInstPtr& inst1, const DynInstPtr& inst2) {
+    return inst1->seqNum < inst2->seqNum;
+}
 void
 InstructionQueue::squash(ThreadID tid)
 {

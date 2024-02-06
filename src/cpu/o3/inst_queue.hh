@@ -272,6 +272,9 @@ class InstructionQueue
     /** Indicates an ordering violation between a store and a load. */
     void violation(const DynInstPtr &store, const DynInstPtr &faulting_load);
 
+    /** Reorder list based on seqNum */
+    bool compareBySeqNum(const DynInstPtr& inst1, const DynInstPtr& inst2);
+
     /**
      * Squashes instructions for a thread. Squashing information is obtained
      * from the time buffer.
@@ -543,7 +546,6 @@ class InstructionQueue
     } iqStats;
 
    public:
-
     typedef std::priority_queue<
         DynInstPtr, std::vector<DynInstPtr>, PqCompare> ReadyInstQueue;
 

@@ -484,7 +484,7 @@ IEW::squash(ThreadID tid)
 void
 IEW::squashDueToBranch(const DynInstPtr& inst, ThreadID tid)
 {
-    DPRINTF(IEW, "[tid:%i] [sn:%llu] Squashing from a specific instruction,"
+    DPRINTF(IEW, "[tid:%i] [sn:%llu] SquashReason squashing from a specific instruction,"
             " PC: %s squshSN:%llu"
             "\n", tid, inst->seqNum, inst->pcState(),toCommit->squashedSeqNum[tid] );
 
@@ -513,7 +513,7 @@ IEW::squashDueToBranch(const DynInstPtr& inst, ThreadID tid)
 void
 IEW::squashDueToMemOrder(const DynInstPtr& inst, ThreadID tid)
 {
-    DPRINTF(IEW, "[tid:%i] Memory violation, squashing violator and younger "
+    DPRINTF(IEW, "[tid:%i] SquashReason Memory violation, squashing violator and younger "
             "insts, PC: %s [sn:%llu].\n", tid, inst->pcState(), inst->seqNum);
     // Need to include inst->seqNum in the following comparison to cover the
     // corner case when a branch misprediction and a memory violation for the
@@ -521,6 +521,13 @@ IEW::squashDueToMemOrder(const DynInstPtr& inst, ThreadID tid)
     // case the memory violator should take precedence over the branch
     // misprediction because it requires the violator itself to be included in
     // the squash.
+
+    // W threads should never show this violation
+    if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+        panic("There should not be any data speculation for W threads\n");
+    }
+
+
     if (!toCommit->squash[tid] ||
             inst->seqNum <= toCommit->squashedSeqNum[tid]) {
         toCommit->squash[tid] = true;

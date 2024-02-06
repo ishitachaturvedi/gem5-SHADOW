@@ -562,7 +562,7 @@ void
 Commit::generateTCEvent(ThreadID tid)
 {
     assert(!trapInFlight[tid]);
-    DPRINTF(Commit, "Generating TC squash event for [tid:%i]\n", tid);
+    DPRINTF(Commit, "SquashReason Generating TC squash event for [tid:%i]\n", tid);
 
     tcSquash[tid] = true;
 }
@@ -851,7 +851,7 @@ Commit::commit()
             assert(!tcSquash[tid]);
             squashFromTrap(tid);
 
-            DPRINTF(Commit," [tid:%d] SQUASH FROM TRAP rob->isEmpty(tid) %d\n",tid,rob->isEmpty(tid));
+            DPRINTF(Commit," [tid:%d] SquashReason SQUASH FROM TRAP rob->isEmpty(tid) %d\n",tid,rob->isEmpty(tid));
 
             // If the thread is trying to exit (i.e., an exit syscall was
             // executed), this trapSquash was originated by the exit
