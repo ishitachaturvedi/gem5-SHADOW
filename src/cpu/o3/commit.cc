@@ -287,6 +287,8 @@ Commit::setIEWQueue(TimeBuffer<IEWStruct> *iq_ptr)
 
     // Setup wire to get instructions from IEW.
     fromIEW = iewQueue->getWire(-iewToCommitDelay);
+    fromIEW_W = iewQueue->getWire(0);
+    fromIEW_S = iewQueue->getWire(-iewToCommitDelay);
 }
 
 void
@@ -842,6 +844,12 @@ Commit::commit()
 
     while (threads != end) {
         ThreadID tid = *threads++;
+
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
+            fromIEW = fromIEW_S;
+        }else{
+            fromIEW = fromIEW_W;
+        }
 
         DPRINTF(Commit," [tid:%d] ENTERING COMMIT HERE commit status %d trapSquash %d\n",tid,commitStatus[tid],trapSquash[tid]);
 
@@ -1446,17 +1454,36 @@ Commit::markCompletedInsts()
 {
     // Grab completed insts out of the IEW instruction queue, and mark
     // instructions completed within the ROB.
-    for (int inst_num = 0; inst_num < fromIEW->size; ++inst_num) {
-        assert(fromIEW->insts[inst_num]);
-        if (!fromIEW->insts[inst_num]->isSquashed()) {
-            DPRINTF(Commit, "[tid:%i] Marking PC %s, [sn:%llu] ready "
-                    "within ROB.\n",
-                    fromIEW->insts[inst_num]->threadNumber,
-                    fromIEW->insts[inst_num]->pcState(),
-                    fromIEW->insts[inst_num]->seqNum);
-
+    //Iterate for weak
+    for (int inst_num = 0; inst_num < fromIEW_W->size; ++inst_num) {
+        assert(fromIEW_W->insts[inst_num]);
+        if (!fromIEW_W->insts[inst_num]->isSquashed()) {
             // Mark the instruction as ready to commit.
-            fromIEW->insts[inst_num]->setCanCommit();
+            ThreadID tid = fromIEW_W->insts[inst_num]->threadNumber;
+            if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak){
+                DPRINTF(Commit, "[tid:%i] Marking PC %s, [sn:%llu] ready "
+                    "within ROB.\n",
+                    fromIEW_W->insts[inst_num]->threadNumber,
+                    fromIEW_W->insts[inst_num]->pcState(),
+                    fromIEW_W->insts[inst_num]->seqNum);
+                fromIEW_W->insts[inst_num]->setCanCommit();
+            }
+        }
+    }
+    //Iterate for strong
+    for (int inst_num = 0; inst_num < fromIEW_S->size; ++inst_num) {
+        assert(fromIEW_S->insts[inst_num]);
+        if (!fromIEW_S->insts[inst_num]->isSquashed()) {
+            // Mark the instruction as ready to commit.
+            ThreadID tid = fromIEW_S->insts[inst_num]->threadNumber;
+            if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
+                DPRINTF(Commit, "[tid:%i] Marking PC %s, [sn:%llu] ready "
+                    "within ROB.\n",
+                    fromIEW_S->insts[inst_num]->threadNumber,
+                    fromIEW_S->insts[inst_num]->pcState(),
+                    fromIEW_S->insts[inst_num]->seqNum);
+                fromIEW_S->insts[inst_num]->setCanCommit();
+            }
         }
     }
 }

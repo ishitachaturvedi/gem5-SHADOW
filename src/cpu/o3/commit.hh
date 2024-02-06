@@ -351,6 +351,8 @@ class Commit
 
     /** Wire to read information from IEW queue. */
     TimeBuffer<IEWStruct>::wire fromIEW;
+    TimeBuffer<IEWStruct>::wire fromIEW_W;
+    TimeBuffer<IEWStruct>::wire fromIEW_S;
 
     /** Rename instruction queue interface, for ROB. */
     TimeBuffer<RenameStruct> *renameQueue;
