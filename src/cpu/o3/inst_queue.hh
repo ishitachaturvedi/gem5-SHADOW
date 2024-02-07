@@ -60,6 +60,7 @@
 #include "cpu/timebuf.hh"
 #include "enums/SMTQueuePolicy.hh"
 #include "sim/eventq.hh"
+#include "cpu/o3/lsq.hh"
 
 namespace gem5
 {
@@ -241,6 +242,14 @@ class InstructionQueue
      * This is important for in order issue of W threads.
      */
     bool olderIssuePending(const InstSeqNum &inst, ThreadID tid);
+
+    /**
+     * Check if a younger instruction has been issued OoO for W threads.
+     * This can happen if a memory instruction has been marked for re-issue
+     * and the pipeline moves forward because this instruction was marked as issued
+     * the firs time it was encountered.
+     */
+    bool youngerInstIssued(const InstSeqNum &inst, ThreadID tid);
 
     /** Wakes all dependents of a completed instruction. */
     int wakeDependents(const DynInstPtr &completed_inst);

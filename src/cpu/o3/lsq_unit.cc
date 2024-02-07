@@ -720,6 +720,42 @@ LSQUnit::executeStore(const DynInstPtr &store_inst)
 
 }
 
+int
+LSQUnit::getIncompleteStores() {
+
+    if(storeQueue.size() == 0) {
+        return 0;
+    }
+
+    /* Forward iterate the store queue (age order). */
+    for (auto& x : storeQueue) {
+        if(!x.instruction()->isNoFault()) {
+            DPRINTF(LSQUnit, "getIncompleteStores, store PC [sn:%llu]\n",
+            x.instruction()->seqNum);
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int
+LSQUnit::getIncompleteLoads() {
+
+    if(loadQueue.size() == 0) {
+        return 0;
+    }
+
+    /* Forward iterate the store queue (age order). */
+    for (auto& x : loadQueue) {
+        if(!x.instruction()->isNoFault()) {
+            DPRINTF(LSQUnit, "getIncompleteLoads, load PC [sn:%llu]%s\n",
+            x.instruction()->seqNum);
+            return 1;
+        }
+    }
+    return 0;
+}
+
 void
 LSQUnit::commitLoad()
 {

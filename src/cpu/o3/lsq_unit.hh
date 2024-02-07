@@ -266,6 +266,12 @@ class LSQUnit
     /** Executes a store instruction. */
     Fault executeStore(const DynInstPtr &inst);
 
+    /** Get if any incomplete stores for this tid */
+    int getIncompleteStores();
+
+    /** Get if any incomplete loads for this tid */
+    int getIncompleteLoads();
+
     /** Commits the head load. */
     void commitLoad();
     /** Commits loads older than a specific sequence number. */

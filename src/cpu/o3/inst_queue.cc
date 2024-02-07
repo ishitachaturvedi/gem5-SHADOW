@@ -802,6 +802,13 @@ InstructionQueue::scheduleReadyInsts()
     int listSize = listOrder.size();
     int counter = 0;
 
+    // Ishita: No instruction from a thread should issue after the memory instrution is issued
+    // because memory instructions are re-issued some times.
+    // if a memory instruction is re-issued we need to set a flag to stop issue for the thread. Flag is set after memory instruction
+    // is marked to execute.
+    // Need to really think about this for in-order.
+    // Merge issue and execute?
+    // Need to think hard. Do tomorrow.
 
     while (total_issued < totalWidth && order_it != order_end_it && (counter < listSize)) {
         OpClass op_class = (*order_it).queueType;
@@ -877,9 +884,15 @@ InstructionQueue::scheduleReadyInsts()
         // valid FU, then schedule for execution.
         if (idx != FUPool::NoFreeFU
         // condition for in-order execution and dont issue instructions if you are waiting on a control instruction to finish
-        && ((cpu->rob.AreOlderInstIssued(issuing_inst->threadNumber,issuing_inst->seqNum) && !cpu->thread[tid]->ControlInstIssued  && !olderIssuePending(issuing_inst->seqNum, issuing_inst->threadNumber)) || cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
-            //&& (cpu->rob.AreOlderInstIssued(issuing_inst->threadNumber,issuing_inst->seqNum) && !cpu->thread[tid]->ControlInstIssued && !olderIssuePending(issuing_inst->seqNum, issuing_inst->threadNumber) 
-        ) {
+        // W threads: for memory instructions we need to stop the issue of instructions for a thread for which a memory instruction has not been marked as not faulting. If a memory instruction is marked as "needs to be reissued" in execute, we cannot move the pipeline forward. We use a flag like we do in control instructions for this. At a given time only 1 memory instruction can be serviced. We dont want any 
+        && ((cpu->rob.AreOlderInstIssued(issuing_inst->threadNumber,issuing_inst->seqNum) && !cpu->thread[tid]->ControlInstIssued && !(cpu->thread[tid]->MemInstIssued && cpu->thread[tid]->MemInstIssued!= issuing_inst->seqNum) &&  !olderIssuePending(issuing_inst->seqNum, issuing_inst->threadNumber)) || cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
+        ) 
+        
+        {
+            // ensure that there is no OoO issue going on. No older seq number should have been marked as issued for this tid.
+            if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak && youngerInstIssued(issuing_inst->seqNum, issuing_inst->threadNumber)) {
+                panic("[tid:%d] Instruction [sn:%llu] is being issued OoO for W thread!\n",tid,issuing_inst->seqNum);
+            }
 
             int8_t total_src_regs1 = issuing_inst->numSrcRegs();
             for (int src_reg_idx = 0;
@@ -917,7 +930,19 @@ InstructionQueue::scheduleReadyInsts()
                     issuing_inst->seqNum,cpu->thread[tid]->ControlInstIssued);
             }
 
+            if((issuing_inst->isLoad() || issuing_inst->isStore() || issuing_inst->isAtomic()) && cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak && (cpu->thread[tid]->MemInstSeq != issuing_inst->seqNum)) {
+                assert(!cpu->thread[tid]->MemInstIssued);
+                assert(cpu->thread[tid]->MemInstSeq == -1);
+                cpu->thread[tid]->MemInstIssued = true;
+                cpu->thread[tid]->MemInstSeq = issuing_inst->seqNum;
+                DPRINTF(IQ, "[tid:%i]: SETTING_MemInstIssued %s "
+                    "[sn:%llu] MemInstIssued %d\n",
+                    tid, issuing_inst->pcState(),
+                    issuing_inst->seqNum,cpu->thread[tid]->MemInstIssued);
+            }
+
             fuPool->markUnitBusy(idx,op_class);
+
 
             if (op_latency == Cycles(1)) {
                 i2e_info->size++;
@@ -999,9 +1024,9 @@ InstructionQueue::scheduleReadyInsts()
             ++order_it;
 
             DPRINTF(IQ, "Thread %i: could not instruction PC %s "
-                    "[sn:%llu] isControl() %d isDirectCtrl() %d isIndirectCtrl() %d isCondCtrl() %d isUncondCtrl() %d AreOlderInstIssued %d ControlInstIssued %d\n",
+                    "[sn:%llu] isControl() %d isDirectCtrl() %d isIndirectCtrl() %d isCondCtrl() %d isUncondCtrl() %d AreOlderInstIssued %d ControlInstIssued %d MemInstIssued %d\n",
                     tid, issuing_inst->pcState(),
-                    issuing_inst->seqNum,issuing_inst->isControl(),issuing_inst->isDirectCtrl(),issuing_inst->isIndirectCtrl(),issuing_inst->isCondCtrl(),issuing_inst->isUncondCtrl(),cpu->rob.AreOlderInstIssued(issuing_inst->threadNumber,issuing_inst->seqNum),!cpu->thread[tid]->ControlInstIssued);
+                    issuing_inst->seqNum,issuing_inst->isControl(),issuing_inst->isDirectCtrl(),issuing_inst->isIndirectCtrl(),issuing_inst->isCondCtrl(),issuing_inst->isUncondCtrl(),cpu->rob.AreOlderInstIssued(issuing_inst->threadNumber,issuing_inst->seqNum),!cpu->thread[tid]->ControlInstIssued,!cpu->thread[tid]->MemInstIssued);
         }
     }
 
@@ -1080,6 +1105,23 @@ bool InstructionQueue::olderIssuePending(const InstSeqNum &inst, ThreadID tid) {
     }
 
     return olderIssuePending;
+}
+
+bool InstructionQueue::youngerInstIssued(const InstSeqNum &inst, ThreadID tid) {
+    ListIt iq_it = instList[tid].begin();
+
+    bool youngerInstIssued = false;
+
+    while (iq_it != instList[tid].end() && 
+           (*iq_it)->seqNum > inst) {
+        if((*iq_it)->isIssued()) {
+            youngerInstIssued = true;
+            break;
+        }
+        ++iq_it;
+    }
+
+    return youngerInstIssued;
 }
 
 
@@ -1599,6 +1641,16 @@ InstructionQueue::doSquash(ThreadID tid)
                 "[sn:%llu] ControlInstIssued %d\n",
                 tid, squashed_inst->pcState(),
                 squashed_inst->seqNum,cpu->thread[tid]->ControlInstIssued);
+        }
+
+        if((squashed_inst->isLoad() || squashed_inst->isStore() || squashed_inst->isAtomic()) && cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak && cpu->thread[tid]->MemInstSeq == squashed_inst->seqNum) {
+            assert(cpu->thread[tid]->MemInstIssued);
+            cpu->thread[tid]->MemInstIssued = false;
+            cpu->thread[tid]->MemInstSeq = -1;
+            DPRINTF(IQ, "[tid:%i]: SETTING4_MemInstIssued %s "
+                "[sn:%llu] MemInstIssued %d\n",
+                tid, squashed_inst->pcState(),
+                squashed_inst->seqNum,cpu->thread[tid]->MemInstIssued);
         }
 
         DPRINTF(IQ, "[tid:%i] STEP_INSIDE_Instruction2 [sn:%llu] PC %s squashed isIssued() %d isMemRef() %d memOpDone() %d HasWokenDependents() %d isNonSpeculative() %d isSquashed %d.\n",
@@ -2132,7 +2184,7 @@ InstructionQueue::addToProducers(const DynInstPtr &new_inst)
     if(cpu->thread[new_inst->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
 
         DPRINTF(IQ, "IMPORTANT_PLACE_INST_IN_WAR11, [sn:%llu] "
-                        "PC %s total_regs %d.\n", new_inst->seqNum, new_inst->pcState(),new_inst->numSrcRegs());
+                        "PC %s total_regs %d isExecuted %d.\n", new_inst->seqNum, new_inst->pcState(),new_inst->numSrcRegs(),new_inst->isExecuted());
 
         int8_t total_src_regs = new_inst->numSrcRegs();
 

@@ -956,8 +956,8 @@ IEW::dispatchInsts(ThreadID tid)
         assert(inst);
 
         DPRINTF(IEW, "[tid:%i] Issue: Adding PC %s [sn:%lli] [tid:%i] to "
-                "IQ.\n",
-                tid, inst->pcState(), inst->seqNum, inst->threadNumber);
+                "IQ isExecuted %d.\n",
+                tid, inst->pcState(), inst->seqNum, inst->threadNumber, inst->isExecuted());
 
         // Be sure to mark these instructions as ready so that the
         // commit stage can go ahead and execute them, and mark
@@ -1213,8 +1213,14 @@ IEW::executeInsts()
 
         DynInstPtr inst = instQueue.getInstToExecute();
 
+        // check that there is no pending store that has not completed.
+        // a pending store an lead to a fault and this instruction will be 
+        // re-executed. So dont execute anything till we establish no fault.
+
         DPRINTF(IEW, "Execute: Processing PC %s, [tid:%i] [sn:%llu].\n",
                 inst->pcState(), inst->threadNumber,inst->seqNum);
+
+        int tid = inst->threadNumber;
 
         int8_t total_src_regs1 = inst->numSrcRegs();
         for (int src_reg_idx = 0;
@@ -1286,6 +1292,18 @@ IEW::executeInsts()
                     instQueue.deferMemInst(inst);
                     continue;
                 }
+
+                if(inst->fault == NoFault) {
+                    inst->setNoFault();
+                    assert(cpu->thread[tid]->MemInstIssued);
+                    cpu->thread[tid]->MemInstIssued = false;
+                    cpu->thread[tid]->MemInstSeq = -1;
+                    DPRINTF(IEW, "[tid:%i]: SETTING3_MemInstIssued %s "
+                    "[sn:%llu] MemInstIssued %d\n",
+                    tid, inst->pcState(),
+                    inst->seqNum,cpu->thread[tid]->MemInstIssued);
+                }
+
             } else if (inst->isLoad()) {
                 // Loads will mark themselves as executed, and their writeback
                 // event adds the instruction to the queue to commit
@@ -1298,12 +1316,27 @@ IEW::executeInsts()
                     DPRINTF(IEW, "Execute: Delayed translation, deferring "
                             "load.\n");
                     instQueue.deferMemInst(inst);
+                    // mark this instruction as need to be reissued
+                    // so we dont move forward with next instructions
+                    // and accidentally go OoO
                     continue;
                 }
 
                 if (inst->isDataPrefetch() || inst->isInstPrefetch()) {
                     inst->fault = NoFault;
                 }
+
+                if(inst->fault == NoFault) {
+                    inst->setNoFault();
+                    assert(cpu->thread[tid]->MemInstIssued);
+                    cpu->thread[tid]->MemInstIssued = false;
+                    cpu->thread[tid]->MemInstSeq = -1;
+                    DPRINTF(IEW, "[tid:%i]: SETTING1_MemInstIssued %s "
+                    "[sn:%llu] MemInstIssued %d\n",
+                    tid, inst->pcState(),
+                    inst->seqNum,cpu->thread[tid]->MemInstIssued);
+                }
+
             } else if (inst->isStore()) {
                 fault = ldstQueue.executeStore(inst);
 
@@ -1327,6 +1360,17 @@ IEW::executeInsts()
                     inst->setExecuted();
                     instToCommit(inst);
                     activityThisCycle();
+                }
+
+                if(inst->fault == NoFault) {
+                    inst->setNoFault();
+                    assert(cpu->thread[tid]->MemInstIssued);
+                    cpu->thread[tid]->MemInstIssued = false;
+                    cpu->thread[tid]->MemInstSeq = -1;
+                    DPRINTF(IEW, "[tid:%i]: SETTING2_MemInstIssued %s "
+                    "[sn:%llu] MemInstIssued %d\n",
+                    tid, inst->pcState(),
+                    inst->seqNum,cpu->thread[tid]->MemInstIssued);
                 }
 
                 // Store conditionals will mark themselves as
@@ -1365,8 +1409,6 @@ IEW::executeInsts()
         // This probably needs to prioritize the redirects if a different
         // scheduler is used.  Currently the scheduler schedules the oldest
         // instruction first, so the branch resolution order will be correct.
-        ThreadID tid = inst->threadNumber;
-
         if (!fetchRedirect[tid] ||
             !toCommit->squash[tid] ||
             toCommit->squashedSeqNum[tid] > inst->seqNum) {
@@ -1561,6 +1603,7 @@ IEW::tick()
         // Have the instruction queue try to schedule any ready instructions.
         // (In actuality, this scheduling is for instructions that will
         // be executed next cycle.)
+
         instQueue.scheduleReadyInsts();
 
         // Also should advance its own time buffers if the stage ran.

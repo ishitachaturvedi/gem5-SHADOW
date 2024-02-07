@@ -249,6 +249,29 @@ LSQ::executeStore(const DynInstPtr &inst)
     return thread[tid].executeStore(inst);
 }
 
+std::vector<int>
+LSQ::getIncompleteStores()
+{
+    std::vector<int> incomplete_stores;
+
+    for (ThreadID tid = 0; tid < numThreads; tid++) {
+        incomplete_stores.push_back(thread[tid].getIncompleteStores());
+    }
+
+    return incomplete_stores;
+}
+
+std::vector<int>
+LSQ::getIncompleteLoads()
+{
+    std::vector<int> incomplete_stores;
+    for (ThreadID tid = 0; tid < numThreads; tid++) {
+        incomplete_stores.push_back(thread[tid].getIncompleteLoads());
+    }
+
+    return incomplete_stores;
+}
+
 void
 LSQ::commitLoads(InstSeqNum &youngest_inst, ThreadID tid)
 {

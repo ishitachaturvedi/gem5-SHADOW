@@ -154,6 +154,7 @@ class DynInst : public ExecContext, public RefCounted
         CanCommit,               /// Instruction can commit
         AtCommit,                /// Instruction has reached commit
         Committed,               /// Instruction has committed
+        isFaulting,                 /// Memory instruction has executed without any faults
         Squashed,                /// Instruction is squashed
         SquashedInIQ,            /// Instruction is squashed in the IQ
         SquashedInLSQ,           /// Instruction is squashed in the LSQ
@@ -801,6 +802,12 @@ class DynInst : public ExecContext, public RefCounted
 
     /** Returns whether or not the result is ready. */
     bool isResultReady() const { return status[ResultReady]; }
+
+    /** Marks the memory instruction issued without any faults. */
+    void setNoFault() { status.set(isFaulting); }
+
+    /** Returns whether or not the memory instruction issued without any faults. */
+    bool isNoFault() const { return status[isFaulting]; }
 
     /** Sets this instruction as ready to issue. */
     void setCanIssue() { status.set(CanIssue); }
