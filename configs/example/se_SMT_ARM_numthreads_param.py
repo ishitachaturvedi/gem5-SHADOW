@@ -85,10 +85,7 @@ import sys
 pathadd = os.getcwd()+'/configs/example/arm/'
 sys.path.append(pathadd)
 import devices
-<<<<<<< HEAD
-=======
 numThreads = 1
->>>>>>> ccafcefb18a6f904b4afcb0662a7083cc1e95d02
 
 
 # Pre-defined CPU configurations. Each tuple must be ordered as : (cpu_class,
