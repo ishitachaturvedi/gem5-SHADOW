@@ -102,6 +102,8 @@ IEW::IEW(CPU *_cpu, const BaseO3CPUParams &params)
 
     // Setup wire to read instructions coming from issue.
     fromIssue = issueToExecQueue.getWire(-issueToExecuteDelay);
+    fromIssue_S = issueToExecQueue.getWire(-issueToExecuteDelay);
+    fromIssue_W = issueToExecQueue.getWire(-issueToExecuteDelay); // Ishita
 
     // Instruction queue needs the queue between issue and execute.
     instQueue.setIssueToExecuteQueue(&issueToExecQueue);
@@ -327,7 +329,7 @@ IEW::setRenameQueue(TimeBuffer<RenameStruct> *rq_ptr)
     // Setup wire to read information from rename queue.
     fromRename = renameQueue->getWire(-renameToIEWDelay); 
     fromRename_S = renameQueue->getWire(-renameToIEWDelay);
-    fromRename_W = renameQueue->getWire(0);
+    fromRename_W = renameQueue->getWire(-renameToIEWDelay); // Ishita
 }
 
 void
@@ -1204,13 +1206,39 @@ IEW::printAvailableInsts()
 
     std::cout << "Available Instructions: ";
 
-    while (fromIssue->insts[inst]) {
+    // while (fromIssue->insts[inst]) {
+
+    //     if (inst%3==0) std::cout << "\n\t";
+
+    //     std::cout << "PC: " << fromIssue->insts[inst]->pcState()
+    //          << " TN: " << fromIssue->insts[inst]->threadNumber
+    //          << " SN: " << fromIssue->insts[inst]->seqNum << " | ";
+
+    //     inst++;
+
+    // }
+
+    while (fromIssue_S->insts[inst]) {
 
         if (inst%3==0) std::cout << "\n\t";
 
-        std::cout << "PC: " << fromIssue->insts[inst]->pcState()
-             << " TN: " << fromIssue->insts[inst]->threadNumber
-             << " SN: " << fromIssue->insts[inst]->seqNum << " | ";
+        std::cout << "PC: " << fromIssue_S->insts[inst]->pcState()
+             << " TN: " << fromIssue_S->insts[inst]->threadNumber
+             << " SN: " << fromIssue_S->insts[inst]->seqNum << " | ";
+
+        inst++;
+
+    }
+
+    inst = 0;
+
+    while (fromIssue_W->insts[inst]) {
+
+        if (inst%3==0) std::cout << "\n\t";
+
+        std::cout << "PC: " << fromIssue_W->insts[inst]->pcState()
+             << " TN: " << fromIssue_W->insts[inst]->threadNumber
+             << " SN: " << fromIssue_W->insts[inst]->seqNum << " | ";
 
         inst++;
 

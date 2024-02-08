@@ -280,7 +280,7 @@ Commit::setRenameQueue(TimeBuffer<RenameStruct> *rq_ptr)
     // Setup wire to get instructions from rename (for the ROB).
     fromRename = renameQueue->getWire(-renameToROBDelay); // Ishita
     fromRename_S = renameQueue->getWire(-renameToROBDelay); // Ishita
-    fromRename_W = renameQueue->getWire(0);
+    fromRename_W = renameQueue->getWire(-renameToROBDelay);
 }
 
 void
@@ -290,7 +290,7 @@ Commit::setIEWQueue(TimeBuffer<IEWStruct> *iq_ptr)
 
     // Setup wire to get instructions from IEW.
     fromIEW = iewQueue->getWire(-iewToCommitDelay);
-    fromIEW_W = iewQueue->getWire(0);
+    fromIEW_W = iewQueue->getWire(-iewToCommitDelay); // Ishita
     fromIEW_S = iewQueue->getWire(-iewToCommitDelay);
 }
 
@@ -570,6 +570,8 @@ Commit::generateTCEvent(ThreadID tid)
     assert(!trapInFlight[tid]);
     DPRINTF(Commit, "SquashReason Generating TC squash event for [tid:%i]\n", tid);
 
+
+
     tcSquash[tid] = true;
 }
 
@@ -586,7 +588,13 @@ Commit::squashAll(ThreadID tid)
     InstSeqNum squashed_inst = rob->isEmpty(tid) ?
         lastCommitedSeqNum[tid] : rob->readHeadInst(tid)->seqNum - 1;
 
-    lastCommitedCycle[tid] = cpu->curCycle();
+    lastCommitedCycle[tid] = curTick();
+
+    if(!rob->isEmpty(tid)) {
+        DPRINTF(Commit,"[tid:%d] committing instruction2 [sn:%llu] lastCommitedCycle %llu\n",tid,rob->readHeadInst(tid)->seqNum,lastCommitedCycle[tid]);
+    } else {
+        DPRINTF(Commit,"[tid:%d] committing instruction3 [sn:EMPTY] lastCommitedCycle %llu\n",tid,lastCommitedCycle[tid]);
+    }
 
     // All younger instructions will be squashed. Set the sequence
     // number as the youngest instruction in the ROB (0 in this case.
@@ -688,13 +696,23 @@ Commit::tick()
 
     // Check if any of the threads are done squashing.  Change the
     // status if they are done.
+
+    int maxNonCommitCycle = -1;
+    int maxNonCommitTid = -1;
+
     while (threads != end) {
 
         ThreadID tid = *threads++;
-        DPRINTF(Commit,"[tid:%d] Commit status: %d\n",tid,commitStatus[tid]);
+        DPRINTF(Commit,"[tid:%d] Commit status: %d lastCommitedCycle %d\n",tid,commitStatus[tid],lastCommitedCycle[tid]);
 
-        if(lastCommitedCycle[tid]!=-1 && (cpu->curCycle() - lastCommitedCycle[tid]) > 10000000) {
-            panic("This program has deadlocked! Not making forward progress. Last commit at cycle %d for thread %d\n",lastCommitedCycle[tid],tid);
+
+        if(maxNonCommitCycle < lastCommitedCycle[tid]) {
+            maxNonCommitCycle = lastCommitedCycle[tid];
+            maxNonCommitTid = tid;
+        }
+
+        if(lastCommitedCycle[tid]!=-1 && (curTick() - lastCommitedCycle[tid]) > 10000000) {
+            panic("This program has deadlocked!!!! Not making forward progress. Last commit at lastCommitedCycle %d for thread %d\n",lastCommitedCycle[tid],tid);
         }
 
         // Clear the bit saying if the thread has committed stores
@@ -713,6 +731,10 @@ Commit::tick()
                 wroteToTimeBuffer = true;
             }
         }
+    }
+
+    if(maxNonCommitTid!=-1 && ((curTick() - maxNonCommitCycle) > 10000000)) {
+        panic("This program has deadlocked! Not making forward progress. Last commit at lastCommitedCycle %llu for thread %d curentTick %d\n",lastCommitedCycle[maxNonCommitTid],maxNonCommitTid,curTick());
     }
 
     commit();
@@ -1181,7 +1203,10 @@ Commit::commitInsts()
                 // Keep track of the last sequence number commited
                 lastCommitedSeqNum[tid] = head_inst->seqNum;
 
-                lastCommitedCycle[tid] = cpu->curCycle();
+
+                lastCommitedCycle[tid] = curTick();
+
+                DPRINTF(Commit,"[tid:%d] committing instruction1 [sn:%llu] lastCommitedCycle %llu\n",tid,head_inst->seqNum,lastCommitedCycle[tid]);
 
                 // If this is an instruction that doesn't play nicely with
                 // others squash everything and restart fetch

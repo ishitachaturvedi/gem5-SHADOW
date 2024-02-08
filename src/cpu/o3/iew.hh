@@ -341,6 +341,8 @@ class IEW
 
     /** Wire to read information from the issue stage time queue. */
     TimeBuffer<IssueStruct>::wire fromIssue;
+    TimeBuffer<IssueStruct>::wire fromIssue_S;
+    TimeBuffer<IssueStruct>::wire fromIssue_W;
 
     /**
      * IEW stage time buffer.  Holds ROB indices of instructions that

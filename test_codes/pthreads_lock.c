@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-#define NUM_THREADS 1
+#define NUM_THREADS 4
 #define NUM_INCREMENTS 2
 
 int sharedVariable = 0;
@@ -34,6 +34,7 @@ int main() {
             printf("Error: Unable to create thread %ld\n", t);
             exit(-1);
         }
+        printf("Increment done %ld\n", t);
     }
 
     // Wait for all threads to complete
