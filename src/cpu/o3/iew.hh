@@ -333,6 +333,8 @@ class IEW
 
     /** Wire to get rename's output from rename queue. */
     TimeBuffer<RenameStruct>::wire fromRename;
+    TimeBuffer<RenameStruct>::wire fromRename_S;
+    TimeBuffer<RenameStruct>::wire fromRename_W;
 
     /** Issue stage queue. */
     TimeBuffer<IssueStruct> issueToExecQueue;

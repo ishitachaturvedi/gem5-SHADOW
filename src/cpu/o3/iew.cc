@@ -325,7 +325,9 @@ IEW::setRenameQueue(TimeBuffer<RenameStruct> *rq_ptr)
     renameQueue = rq_ptr;
 
     // Setup wire to read information from rename queue.
-    fromRename = renameQueue->getWire(-renameToIEWDelay);
+    fromRename = renameQueue->getWire(-renameToIEWDelay); 
+    fromRename_S = renameQueue->getWire(-renameToIEWDelay);
+    fromRename_W = renameQueue->getWire(0);
 }
 
 void
@@ -812,19 +814,37 @@ IEW::checkSignalsAndUpdate(ThreadID tid)
 void
 IEW::sortInsts()
 {
-    int insts_from_rename = fromRename->size;
-// #ifdef DEBUG
-//     for (ThreadID tid = 0; tid < numThreads; tid++)
-//         assert(insts[tid].empty());
-// #endif
-    for (int i = 0; i < insts_from_rename; ++i) {
-        insts[fromRename->insts[i]->threadNumber].push(fromRename->insts[i]);
-        //if(fromRename->insts[i]->threadNumber == 4)
-        {
-            int tid = fromRename->insts[i]->threadNumber;
+    // int insts_from_rename = fromRename->size;
+
+    // for (int i = 0; i < insts_from_rename; ++i) {
+    //     insts[fromRename->insts[i]->threadNumber].push(fromRename->insts[i]);
+    //     {
+    //         int tid = fromRename->insts[i]->threadNumber;
+    //         DPRINTF(IEW, "[tid:%d] Inserting inst in instqueue\n",tid);
+    //     }
+    // }
+
+    int insts_from_rename_S = fromRename_S->size;
+
+    for (int i = 0; i < insts_from_rename_S; ++i) {
+        int tid = fromRename_S->insts[i]->threadNumber;
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+        insts[fromRename_S->insts[i]->threadNumber].push(fromRename_S->insts[i]);
             DPRINTF(IEW, "[tid:%d] Inserting inst in instqueue\n",tid);
         }
     }
+
+    int insts_from_rename_W = fromRename_W->size;
+
+    for (int i = 0; i < insts_from_rename_W; ++i) {
+        int tid = fromRename_W->insts[i]->threadNumber;
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+        insts[fromRename_W->insts[i]->threadNumber].push(fromRename_W->insts[i]);
+            DPRINTF(IEW, "[tid:%d] Inserting inst in instqueue\n",tid);
+        }
+    }
+
+
 }
 
 void
@@ -914,10 +934,24 @@ IEW::dispatch(ThreadID tid)
 
         ++iewStats.unblockCycles;
 
-        if (fromRename->size != 0) {
-            // Add the current inputs to the skid buffer so they can be
-            // reprocessed when this stage unblocks.
-            skidInsert(tid);
+        // if (fromRename->size != 0) {
+        //     // Add the current inputs to the skid buffer so they can be
+        //     // reprocessed when this stage unblocks.
+        //     skidInsert(tid);
+        // }
+
+            if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+                if (fromRename_S->size != 0) {
+                    // Add the current inputs to the skid buffer so they can be
+                    // reprocessed when this stage unblocks.
+                    skidInsert(tid);
+                }
+            } else {
+                if (fromRename_W->size != 0) {
+                // Add the current inputs to the skid buffer so they can be
+                // reprocessed when this stage unblocks.
+                skidInsert(tid);
+            }
         }
 
         unblock(tid);
@@ -1295,13 +1329,15 @@ IEW::executeInsts()
 
                 if(inst->fault == NoFault) {
                     inst->setNoFault();
-                    assert(cpu->thread[tid]->MemInstIssued);
-                    cpu->thread[tid]->MemInstIssued = false;
-                    cpu->thread[tid]->MemInstSeq = -1;
-                    DPRINTF(IEW, "[tid:%i]: SETTING3_MemInstIssued %s "
-                    "[sn:%llu] MemInstIssued %d\n",
-                    tid, inst->pcState(),
-                    inst->seqNum,cpu->thread[tid]->MemInstIssued);
+                    if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+                        assert(cpu->thread[tid]->MemInstIssued);
+                        cpu->thread[tid]->MemInstIssued = false;
+                        cpu->thread[tid]->MemInstSeq = -1;
+                        DPRINTF(IEW, "[tid:%i]: SETTING3_MemInstIssued %s "
+                        "[sn:%llu] MemInstIssued %d\n",
+                        tid, inst->pcState(),
+                        inst->seqNum,cpu->thread[tid]->MemInstIssued);
+                    }
                 }
 
             } else if (inst->isLoad()) {
@@ -1328,13 +1364,15 @@ IEW::executeInsts()
 
                 if(inst->fault == NoFault) {
                     inst->setNoFault();
-                    assert(cpu->thread[tid]->MemInstIssued);
-                    cpu->thread[tid]->MemInstIssued = false;
-                    cpu->thread[tid]->MemInstSeq = -1;
-                    DPRINTF(IEW, "[tid:%i]: SETTING1_MemInstIssued %s "
-                    "[sn:%llu] MemInstIssued %d\n",
-                    tid, inst->pcState(),
-                    inst->seqNum,cpu->thread[tid]->MemInstIssued);
+                    if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+                        assert(cpu->thread[tid]->MemInstIssued);
+                        cpu->thread[tid]->MemInstIssued = false;
+                        cpu->thread[tid]->MemInstSeq = -1;
+                        DPRINTF(IEW, "[tid:%i]: SETTING1_MemInstIssued %s "
+                        "[sn:%llu] MemInstIssued %d\n",
+                        tid, inst->pcState(),
+                        inst->seqNum,cpu->thread[tid]->MemInstIssued);
+                    }
                 }
 
             } else if (inst->isStore()) {
@@ -1364,13 +1402,15 @@ IEW::executeInsts()
 
                 if(inst->fault == NoFault) {
                     inst->setNoFault();
-                    assert(cpu->thread[tid]->MemInstIssued);
-                    cpu->thread[tid]->MemInstIssued = false;
-                    cpu->thread[tid]->MemInstSeq = -1;
-                    DPRINTF(IEW, "[tid:%i]: SETTING2_MemInstIssued %s "
-                    "[sn:%llu] MemInstIssued %d\n",
-                    tid, inst->pcState(),
-                    inst->seqNum,cpu->thread[tid]->MemInstIssued);
+                    if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+                        assert(cpu->thread[tid]->MemInstIssued);
+                        cpu->thread[tid]->MemInstIssued = false;
+                        cpu->thread[tid]->MemInstSeq = -1;
+                        DPRINTF(IEW, "[tid:%i]: SETTING2_MemInstIssued %s "
+                        "[sn:%llu] MemInstIssued %d\n",
+                        tid, inst->pcState(),
+                        inst->seqNum,cpu->thread[tid]->MemInstIssued);
+                    }
                 }
 
                 // Store conditionals will mark themselves as

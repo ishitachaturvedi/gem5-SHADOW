@@ -191,9 +191,10 @@ Rename::setTimeBuffer(TimeBuffer<TimeStruct> *tb_ptr)
     timeBuffer = tb_ptr;
 
     // Setup wire to read information from time buffer, from IEW stage.
-    fromIEW = timeBuffer->getWire(-iewToRenameDelay);
+    fromIEW = timeBuffer->getWire(-iewToRenameDelay); // ishita
+    //fromIEW = timeBuffer->getWire(-iewToRenameDelay); // ishita
 
-    // Setup wire to read infromation from time buffer, from commit stage.
+    // Setup wire to read information from time buffer, from commit stage.
     fromCommit = timeBuffer->getWire(-commitToRenameDelay);
 
     // Setup wire to write information to previous stages.

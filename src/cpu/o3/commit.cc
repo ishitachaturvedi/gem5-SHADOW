@@ -277,7 +277,9 @@ Commit::setRenameQueue(TimeBuffer<RenameStruct> *rq_ptr)
     renameQueue = rq_ptr;
 
     // Setup wire to get instructions from rename (for the ROB).
-    fromRename = renameQueue->getWire(-renameToROBDelay);
+    fromRename = renameQueue->getWire(-renameToROBDelay); // Ishita
+    fromRename_S = renameQueue->getWire(-renameToROBDelay); // Ishita
+    fromRename_W = renameQueue->getWire(0);
 }
 
 void
@@ -1432,29 +1434,63 @@ Commit::getInsts()
     DPRINTF(Commit, "Getting instructions from Rename stage.\n");
 
     // Read any renamed instructions and place them into the ROB.
-    int insts_to_process = std::min((int)renameWidth, fromRename->size);
+    int insts_to_process_S = std::min((int)renameWidth, fromRename_S->size);
 
-    for (int inst_num = 0; inst_num < insts_to_process; ++inst_num) {
-        const DynInstPtr &inst = fromRename->insts[inst_num];
+    int issued_inst_num = 0;
+
+    for (int inst_num = 0; inst_num < insts_to_process_S; ++inst_num) {
+        const DynInstPtr &inst = fromRename_S->insts[inst_num];
         ThreadID tid = inst->threadNumber;
 
-        if (!inst->isSquashed() &&
-            commitStatus[tid] != ROBSquashing &&
-            commitStatus[tid] != TrapPending) {
-            changedROBNumEntries[tid] = true;
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+            issued_inst_num++;
+            if (!inst->isSquashed() &&
+                commitStatus[tid] != ROBSquashing &&
+                commitStatus[tid] != TrapPending) {
+                changedROBNumEntries[tid] = true;
 
-            DPRINTF(Commit, "[tid:%i] [sn:%llu] Inserting PC %s into ROB isExecuted %d.\n",
-                    tid, inst->seqNum, inst->pcState(), inst->isExecuted());
+                DPRINTF(Commit, "[tid:%i] [sn:%llu] Inserting PC %s into ROB isExecuted %d.\n",
+                        tid, inst->seqNum, inst->pcState(), inst->isExecuted());
 
-            rob->insertInst(inst);
+                rob->insertInst(inst);
 
-            assert(rob->getThreadEntries(tid) <= rob->getMaxEntries(tid));
+                assert(rob->getThreadEntries(tid) <= rob->getMaxEntries(tid));
 
-            youngestSeqNum[tid] = inst->seqNum;
-        } else {
-            DPRINTF(Commit, "[tid:%i] [sn:%llu] "
-                    "Instruction PC %s was squashed, skipping.\n",
-                    tid, inst->seqNum, inst->pcState());
+                youngestSeqNum[tid] = inst->seqNum;
+            } else {
+                DPRINTF(Commit, "[tid:%i] [sn:%llu] "
+                        "Instruction PC %s was squashed, skipping.\n",
+                        tid, inst->seqNum, inst->pcState());
+            }
+        }
+    }
+
+    // Read any renamed instructions and place them into the ROB.
+    int insts_to_process_W = std::min((int)(renameWidth)-issued_inst_num, fromRename_W->size);
+
+    for (int inst_num = 0; inst_num < insts_to_process_W; ++inst_num) {
+        const DynInstPtr &inst = fromRename_W->insts[inst_num];
+        ThreadID tid = inst->threadNumber;
+
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+            if (!inst->isSquashed() &&
+                commitStatus[tid] != ROBSquashing &&
+                commitStatus[tid] != TrapPending) {
+                changedROBNumEntries[tid] = true;
+
+                DPRINTF(Commit, "[tid:%i] [sn:%llu] Inserting PC %s into ROB isExecuted %d.\n",
+                        tid, inst->seqNum, inst->pcState(), inst->isExecuted());
+
+                rob->insertInst(inst);
+
+                assert(rob->getThreadEntries(tid) <= rob->getMaxEntries(tid));
+
+                youngestSeqNum[tid] = inst->seqNum;
+            } else {
+                DPRINTF(Commit, "[tid:%i] [sn:%llu] "
+                        "Instruction PC %s was squashed, skipping.\n",
+                        tid, inst->seqNum, inst->pcState());
+            }
         }
     }
 }
