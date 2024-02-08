@@ -454,6 +454,9 @@ class Commit
     /** The sequence number of the last commited instruction. */
     InstSeqNum lastCommitedSeqNum[MaxThreads];
 
+    /** To check if a deadlock has occured */
+    InstSeqNum lastCommitedCycle[MaxThreads];
+
     /** Records if there is a trap currently in flight. */
     bool trapInFlight[MaxThreads];
 

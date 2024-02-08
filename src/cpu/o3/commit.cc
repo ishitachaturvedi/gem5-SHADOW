@@ -123,6 +123,7 @@ Commit::Commit(CPU *_cpu, const BaseO3CPUParams &params)
         pc[tid].reset(params.isa[0]->newPCState());
         youngestSeqNum[tid] = 0;
         lastCommitedSeqNum[tid] = 0;
+        lastCommitedCycle[tid] = -1;
         trapInFlight[tid] = false;
         committedStores[tid] = false;
         checkEmptyROB[tid] = false;
@@ -370,6 +371,7 @@ Commit::clearStates(ThreadID tid)
     tcSquash[tid] = false;
     pc[tid].reset(cpu->tcBase(tid)->getIsaPtr()->newPCState());
     lastCommitedSeqNum[tid] = 0;
+    lastCommitedCycle[tid] = -1;
     squashAfterInst[tid] = NULL;
 }
 
@@ -584,6 +586,8 @@ Commit::squashAll(ThreadID tid)
     InstSeqNum squashed_inst = rob->isEmpty(tid) ?
         lastCommitedSeqNum[tid] : rob->readHeadInst(tid)->seqNum - 1;
 
+    lastCommitedCycle[tid] = cpu->curCycle();
+
     // All younger instructions will be squashed. Set the sequence
     // number as the youngest instruction in the ROB (0 in this case.
     // Hopefully nothing breaks.)
@@ -688,6 +692,10 @@ Commit::tick()
 
         ThreadID tid = *threads++;
         DPRINTF(Commit,"[tid:%d] Commit status: %d\n",tid,commitStatus[tid]);
+
+        if(lastCommitedCycle[tid]!=-1 && (cpu->curCycle() - lastCommitedCycle[tid]) > 10000000) {
+            panic("This program has deadlocked! Not making forward progress. Last commit at cycle %d for thread %d\n",lastCommitedCycle[tid],tid);
+        }
 
         // Clear the bit saying if the thread has committed stores
         // this cycle.
@@ -1173,6 +1181,8 @@ Commit::commitInsts()
                 // Keep track of the last sequence number commited
                 lastCommitedSeqNum[tid] = head_inst->seqNum;
 
+                lastCommitedCycle[tid] = cpu->curCycle();
+
                 // If this is an instruction that doesn't play nicely with
                 // others squash everything and restart fetch
                 if (head_inst->isSquashAfter())
@@ -1498,23 +1508,6 @@ Commit::getInsts()
 void
 Commit::markCompletedInsts()
 {
-    // Grab completed insts out of the IEW instruction queue, and mark
-    // instructions completed within the ROB.
-    // for (int inst_num = 0; inst_num < fromIEW->size; ++inst_num) {
-    //     assert(fromIEW->insts[inst_num]);
-    //     if (!fromIEW->insts[inst_num]->isSquashed()) {
-    //         DPRINTF(Commit, "[tid:%i] Marking PC %s, [sn:%llu] ready "
-    //                 "within ROB.\n",
-    //                 fromIEW->insts[inst_num]->threadNumber,
-    //                 fromIEW->insts[inst_num]->pcState(),
-    //                 fromIEW->insts[inst_num]->seqNum);
-
-    //         // Mark the instruction as ready to commit.
-    //         fromIEW->insts[inst_num]->setCanCommit();
-    //     }
-    // }
-
-
     //Iterate for weak
     for (int inst_num = 0; inst_num < fromIEW_W->size; ++inst_num) {
         assert(fromIEW_W->insts[inst_num]);
