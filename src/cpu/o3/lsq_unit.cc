@@ -1323,25 +1323,25 @@ LSQUnit::recvRetry()
 void
 LSQUnit::dumpInsts() const
 {
-    cprintf("Load store queue: Dumping instructions.\n");
-    cprintf("Load queue size: %i\n", loadQueue.size());
-    cprintf("Load queue: ");
+    DPRINTF(LSQUnit, "Load store queue: Dumping instructions.\n");
+    DPRINTF(LSQUnit, "Load queue size: %i\n", loadQueue.size());
+    DPRINTF(LSQUnit, "Load queue: ");
 
     for (const auto& e: loadQueue) {
         const DynInstPtr &inst(e.instruction());
-        cprintf("%s.[sn:%llu] ", inst->pcState(), inst->seqNum);
+        DPRINTF(LSQUnit, "%s.[sn:%llu] ", inst->pcState(), inst->seqNum);
     }
-    cprintf("\n");
+    DPRINTF(LSQUnit, "\n");
 
-    cprintf("Store queue size: %i\n", storeQueue.size());
-    cprintf("Store queue: ");
+    DPRINTF(LSQUnit, "Store queue size: %i\n", storeQueue.size());
+    DPRINTF(LSQUnit, "Store queue: ");
 
     for (const auto& e: storeQueue) {
         const DynInstPtr &inst(e.instruction());
-        cprintf("%s.[sn:%llu] ", inst->pcState(), inst->seqNum);
+        DPRINTF(LSQUnit, "%s.[sn:%llu] ", inst->pcState(), inst->seqNum);
     }
 
-    cprintf("\n");
+    DPRINTF(LSQUnit, "\n");
 }
 
 void LSQUnit::schedule(Event& ev, Tick when) { cpu->schedule(ev, when); }
