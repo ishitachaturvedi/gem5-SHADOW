@@ -607,8 +607,8 @@ InstructionQueue::insert(const DynInstPtr &new_inst)
     if (new_inst->isMemRef()) {
         memDepUnit[new_inst->threadNumber].insert(new_inst);
     } else {
-        DPRINTF(IQ, "addIfReady1 Adding instruction [sn:%llu] PC %s to the IQ.\n",
-            new_inst->seqNum, new_inst->pcState());
+        DPRINTF(IQ, "[tid:%d] addIfReady1 Adding instruction [sn:%llu] PC %s to the IQ.\n",
+            new_inst->threadNumber, new_inst->seqNum, new_inst->pcState());
         addIfReady(new_inst);
     }
 
@@ -750,7 +750,7 @@ InstructionQueue::moveToYoungerInst(ListOrderIt list_order_it)
 void
 InstructionQueue::processFUCompletion(const DynInstPtr &inst, int fu_idx)
 {
-    DPRINTF(IQ, "Processing FU completion [sn:%llu]\n", inst->seqNum);
+    DPRINTF(IQ, "[tid:%d] Processing FU completion [sn:%llu]\n", inst->threadNumber, inst->seqNum);
     assert(!cpu->switchedOut());
     // The CPU could have been sleeping until this op completed (*extremely*
     // long latency op).  Wake it if it was.  This may be overkill.
@@ -774,7 +774,7 @@ void
 InstructionQueue::scheduleReadyInsts()
 {
     DPRINTF(IQ, "Attempting to schedule ready instructions from "
-            "the IQ.\n");
+            "the IQ, IQ size %d.\n",listOrder.size());
 
     IssueStruct *i2e_info = issueToExecuteQueue->access(0);
 
@@ -832,12 +832,12 @@ InstructionQueue::scheduleReadyInsts()
         
         if(!issuing_inst->isInROB())
         {
-            DPRINTF(IQ, "Thread %i: instruction is not in ROB PC %s prior issued %d "
+            DPRINTF(IQ, "[tid:%d] : instruction is not in ROB PC %s prior issued %d "
                     "[sn:%llu]\n",
                     issuing_inst->threadNumber, issuing_inst->pcState(),cpu->rob.AreOlderInstIssued(issuing_inst->threadNumber,issuing_inst->seqNum),
                     issuing_inst->seqNum);
         } else {
-            DPRINTF(IQ, "Thread %i:  instruction is in ROB PC %s prior issued %d "
+            DPRINTF(IQ, "[tid:%d] :  instruction is in ROB PC %s prior issued %d "
                     "[sn:%llu]\n",
                     issuing_inst->threadNumber, issuing_inst->pcState(),cpu->rob.AreOlderInstIssued(issuing_inst->threadNumber,issuing_inst->seqNum),
                     issuing_inst->seqNum);
@@ -900,7 +900,7 @@ InstructionQueue::scheduleReadyInsts()
                             src_reg_idx++) {
                 const PhysRegIdPtr reg = issuing_inst->renamedSrcIdx(src_reg_idx);
                 RegVal regval = 0;
-                DPRINTF(IQ,"REG_ISSUE1_OUTVALS for SRC PC %s [sn:%llu] total_src_regs %d reg %d : ",issuing_inst->pcState(), issuing_inst->seqNum,total_src_regs1,reg->flatIndex());
+                DPRINTF(IQ,"[tid:%d] REG_ISSUE1_OUTVALS for SRC PC %s [sn:%llu] total_src_regs %d reg %d : ",issuing_inst->threadNumber, issuing_inst->pcState(), issuing_inst->seqNum,total_src_regs1,reg->flatIndex());
                 if (!reg->is(InvalidRegClass) && !reg->is(MiscRegClass) && !reg->is(VecRegClass) && !reg->is(VecPredRegClass))
                     regval = cpu->getReg(reg);
                 DPRINTF(IQ,"\n");
@@ -912,7 +912,7 @@ InstructionQueue::scheduleReadyInsts()
             {
                 const PhysRegIdPtr reg = issuing_inst->renamedDestIdx(dest_reg_idx);
                 RegVal regval = 0;
-                DPRINTF(IQ,"REG_ISSUE1_OUTVALS for DEST PC %s [sn:%llu] total_dest_regs %d reg %d : ",issuing_inst->pcState(),issuing_inst->seqNum,total_dest_regs1,reg->flatIndex());
+                DPRINTF(IQ,"[tid:%d] REG_ISSUE1_OUTVALS for DEST PC %s [sn:%llu] total_dest_regs %d reg %d : ",issuing_inst->threadNumber,issuing_inst->pcState(),issuing_inst->seqNum,total_dest_regs1,reg->flatIndex());
                 if (!reg->is(InvalidRegClass) && !reg->is(MiscRegClass) && !reg->is(VecRegClass) && !reg->is(VecPredRegClass))
                     regval = cpu->getReg(reg);
                 DPRINTF(IQ,"\n");
@@ -969,7 +969,7 @@ InstructionQueue::scheduleReadyInsts()
                 } else {
                     // Add the FU onto the list of FU's to be freed next cycle.
 
-                    DPRINTF(IQ, "Thread %i: Free in pipelined 1 cycle %s "
+                    DPRINTF(IQ, "[tid:%i] : Free in pipelined 1 cycle %s "
                     "[sn:%llu] opclass %d\n",
                     tid, issuing_inst->pcState(),
                     issuing_inst->seqNum,op_class);
@@ -977,7 +977,7 @@ InstructionQueue::scheduleReadyInsts()
                 }
             }
 
-            DPRINTF(IQ, "Thread %i: Issuing instruction PC %s "
+            DPRINTF(IQ, "[tid:%i] : Issuing instruction PC %s "
                     "[sn:%llu] isControl() %d isDirectCtrl() %d isIndirectCtrl() %d isCondCtrl() %d isUncondCtrl() %d\n",
                     tid, issuing_inst->pcState(),
                     issuing_inst->seqNum,issuing_inst->isControl(),issuing_inst->isDirectCtrl(),issuing_inst->isIndirectCtrl(),issuing_inst->isCondCtrl(),issuing_inst->isUncondCtrl());
@@ -1023,10 +1023,10 @@ InstructionQueue::scheduleReadyInsts()
             iqStats.fuBusy[tid]++;
             ++order_it;
 
-            DPRINTF(IQ, "Thread %i: could not instruction PC %s "
-                    "[sn:%llu] isControl() %d isDirectCtrl() %d isIndirectCtrl() %d isCondCtrl() %d isUncondCtrl() %d AreOlderInstIssued %d ControlInstIssued %d MemInstIssued %d\n",
+            DPRINTF(IQ, "[tid:%d] : could not instruction PC %s "
+                    "[sn:%llu] isControl() %d isDirectCtrl() %d isIndirectCtrl() %d isCondCtrl() %d isUncondCtrl() %d AreOlderInstIssued %d ControlInstIssued %d MemInstIssued %d olderIssuePending %d pendingSn %d\n",
                     tid, issuing_inst->pcState(),
-                    issuing_inst->seqNum,issuing_inst->isControl(),issuing_inst->isDirectCtrl(),issuing_inst->isIndirectCtrl(),issuing_inst->isCondCtrl(),issuing_inst->isUncondCtrl(),cpu->rob.AreOlderInstIssued(issuing_inst->threadNumber,issuing_inst->seqNum),!cpu->thread[tid]->ControlInstIssued,!cpu->thread[tid]->MemInstIssued);
+                    issuing_inst->seqNum,issuing_inst->isControl(),issuing_inst->isDirectCtrl(),issuing_inst->isIndirectCtrl(),issuing_inst->isCondCtrl(),issuing_inst->isUncondCtrl(),cpu->rob.AreOlderInstIssued(issuing_inst->threadNumber,issuing_inst->seqNum),!cpu->thread[tid]->ControlInstIssued,!cpu->thread[tid]->MemInstIssued,!olderIssuePending(issuing_inst->seqNum, issuing_inst->threadNumber),SeqNumolderIssuePending(issuing_inst->seqNum, issuing_inst->threadNumber));
         }
     }
 
@@ -1061,8 +1061,8 @@ InstructionQueue::scheduleNonSpec(const InstSeqNum &inst)
     (*inst_it).second->setCanIssue();
 
     if (!(*inst_it).second->isMemRef()) {
-        DPRINTF(IQ, "addIfReady2 Adding instruction [sn:%llu] PC %s to the IQ.\n",
-            (*inst_it).second->seqNum, (*inst_it).second->pcState());
+        DPRINTF(IQ, "[tid:%d] addIfReady2 Adding instruction [sn:%llu] PC %s to the IQ.\n",
+            tid,(*inst_it).second->seqNum, (*inst_it).second->pcState());
         addIfReady((*inst_it).second);
     } else {
         memDepUnit[tid].nonSpecInstReady((*inst_it).second);
@@ -1107,6 +1107,23 @@ bool InstructionQueue::olderIssuePending(const InstSeqNum &inst, ThreadID tid) {
     return olderIssuePending;
 }
 
+int InstructionQueue::SeqNumolderIssuePending(const InstSeqNum &inst, ThreadID tid) {
+    ListIt iq_it = instList[tid].begin();
+
+    int olderIssuePending = -1;
+
+    while (iq_it != instList[tid].end() && 
+           (*iq_it)->seqNum < inst) {
+        if(!(*iq_it)->isIssued()) {
+            olderIssuePending = (*iq_it)->seqNum;
+            return olderIssuePending;
+        }
+        ++iq_it;
+    }
+
+    return olderIssuePending;
+}
+
 bool InstructionQueue::youngerInstIssued(const InstSeqNum &inst, ThreadID tid) {
     ListIt iq_it = instList[tid].begin();
 
@@ -1140,7 +1157,7 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
                         src_reg_idx++) {
             const PhysRegIdPtr reg = completed_inst->renamedSrcIdx(src_reg_idx);
             RegVal regval = 0;
-            DPRINTF(IQ,"REGOUTVALS for SRC PC %s [sn:%llu] total_src_regs %d reg %d : ",completed_inst->pcState(),completed_inst->seqNum,total_src_regs1,reg->flatIndex());
+            DPRINTF(IQ,"[tid:%d] REGOUTVALS for SRC PC %s [sn:%llu] total_src_regs %d reg %d : ",tid,completed_inst->pcState(),completed_inst->seqNum,total_src_regs1,reg->flatIndex());
             if (!reg->is(InvalidRegClass) && !reg->is(MiscRegClass) && !reg->is(VecRegClass) && !reg->is(VecPredRegClass))
                 regval = cpu->getReg(reg);
             DPRINTF(IQ,"\n");
@@ -1152,7 +1169,7 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
         {
             const PhysRegIdPtr reg = completed_inst->renamedDestIdx(dest_reg_idx);
             RegVal regval = 0;
-            DPRINTF(IQ,"REGOUTVALS for DEST PC %s [sn:%llu] total_dest_regs %d reg %d : ",completed_inst->pcState(),completed_inst->seqNum,total_dest_regs1,reg->flatIndex());
+            DPRINTF(IQ,"[tid:%d] REGOUTVALS for DEST PC %s [sn:%llu] total_dest_regs %d reg %d : ",tid,completed_inst->pcState(),completed_inst->seqNum,total_dest_regs1,reg->flatIndex());
             if (!reg->is(InvalidRegClass) && !reg->is(MiscRegClass) && !reg->is(VecRegClass) && !reg->is(VecPredRegClass))
                 regval = cpu->getReg(reg);
             DPRINTF(IQ,"\n");
@@ -1169,7 +1186,7 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
 
         completed_inst->lastWakeDependents = curTick();
 
-        DPRINTF(IQ, "Waking dependents of completed instruction numDests %d PC: %s [sn:%llu].\n",completed_inst->numDestRegs(),completed_inst->pcState(),completed_inst->seqNum);
+        DPRINTF(IQ, "[tid:%d] Waking dependents of completed instruction numDests %d PC: %s [sn:%llu].\n",tid,completed_inst->numDestRegs(),completed_inst->pcState(),completed_inst->seqNum);
 
         assert(!completed_inst->isSquashed());
 
@@ -1179,8 +1196,8 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
         if (completed_inst->isMemRef()) {
             memDepUnit[tid].completeInst(completed_inst);
 
-            DPRINTF(IQ, "Completing mem instruction PC: %s [sn:%llu]\n",
-                completed_inst->pcState(), completed_inst->seqNum);
+            DPRINTF(IQ, "[tid:%d] Completing mem instruction PC: %s [sn:%llu]\n",
+                tid,completed_inst->pcState(), completed_inst->seqNum);
 
             ++freeEntries;
             completed_inst->memOpDone(true);
@@ -1200,7 +1217,7 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
 
         int8_t total_dest_regs = completed_inst->numDestRegs();
 
-        DPRINTF(IQ, "INSIDE111 PLACE Waking dependents of completed instruction numDests %d.\n",total_dest_regs);
+        DPRINTF(IQ, "[tid:%d] INSIDE111 PLACE Waking dependents of completed instruction numDests %d.\n",tid,total_dest_regs);
 
         for (int dest_reg_idx = 0;
             dest_reg_idx < total_dest_regs;
@@ -1209,44 +1226,44 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
             PhysRegIdPtr dest_reg =
                 completed_inst->renamedDestIdx(dest_reg_idx);
 
-            DPRINTF(IQ, "PLACEA11 Waking any dependents on register %i (%s) tidType %d RAW_DEP_WAKE [sn:%llu] pinned %d numPinnedComplete %d.\n",
-                    dest_reg->index(),
+            DPRINTF(IQ, "[tid:%d] PLACEA11 Waking any dependents on register %i (%s) tidType %d RAW_DEP_WAKE [sn:%llu] pinned %d numPinnedComplete %d.\n",
+                    tid,dest_reg->index(),
                     dest_reg->className(),cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType(),completed_inst->seqNum,dest_reg->isPinned(),dest_reg->getNumPinnedWritesToComplete());
 
             // Special case of uniq or control registers.  They are not
             // handled by the IQ and thus have no dependency graph entry.
             if (dest_reg->isFixedMapping()) {
-                DPRINTF(IQ, "Reg %d [%s] is part of a fix mapping, skipping\n",
-                        dest_reg->index(), dest_reg->className());
+                DPRINTF(IQ, "[tid:%d] Reg %d [%s] is part of a fix mapping, skipping\n",
+                        tid,dest_reg->index(), dest_reg->className());
                 continue;
             }
 
             // Avoid waking up dependents if the register is pinned
             dest_reg->decrNumPinnedWritesToComplete();
-            DPRINTF(IQ, "PLACEA22 Waking any dependents on register %i (%s) tidType %d RAW_POST_DEP_WAKE [sn:%llu] pinned %d numPinnedComplete %d.\n",
-                    dest_reg->index(),
+            DPRINTF(IQ, "[tid:%d] PLACEA22 Waking any dependents on register %i (%s) tidType %d RAW_POST_DEP_WAKE [sn:%llu] pinned %d numPinnedComplete %d.\n",
+                    tid,dest_reg->index(),
                     dest_reg->className(),cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType(),completed_inst->seqNum,dest_reg->isPinned(),dest_reg->getNumPinnedWritesToComplete());
 
             if (dest_reg->isPinned())
                 completed_inst->setPinnedRegsWritten();
 
-            DPRINTF(IQ, "PLACEA22 Waking any dependents on register %i (%s) tidType %d RAW_POST1_DEP_WAKE [sn:%llu] pinned %d numPinnedComplete %d.\n",
-                    dest_reg->index(),
+            DPRINTF(IQ, "[tid:%d] PLACEA22 Waking any dependents on register %i (%s) tidType %d RAW_POST1_DEP_WAKE [sn:%llu] pinned %d numPinnedComplete %d.\n",
+                    tid,dest_reg->index(),
                     dest_reg->className(),cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType(),completed_inst->seqNum,dest_reg->isPinned(),dest_reg->getNumPinnedWritesToComplete());
 
 
             if(dest_reg->getNumPinnedWritesToComplete() < 0) {
-                panic("Number of pinned writes %d less than 0!!\n",dest_reg->getNumPinnedWritesToComplete());
+                panic("[tid:%d] Number of pinned writes %d less than 0!!\n",tid,dest_reg->getNumPinnedWritesToComplete());
             }
 
             if (dest_reg->getNumPinnedWritesToComplete() != 0) {
-                DPRINTF(IQ, "Reg %d [%s] is pinned, skipping pinned_val %d\n",
-                        dest_reg->index(), dest_reg->className(),dest_reg->getNumPinnedWritesToComplete());
+                DPRINTF(IQ, "[tid:%d] Reg %d [%s] is pinned, skipping pinned_val %d\n",
+                        tid,dest_reg->index(), dest_reg->className(),dest_reg->getNumPinnedWritesToComplete());
                 continue;
             }
 
-            DPRINTF(IQ, "Waking any dependents on register %i (%s).\n",
-                    dest_reg->index(),
+            DPRINTF(IQ, "[tid:%d] Waking any dependents on register %i (%s).\n",
+                    tid,dest_reg->index(),
                     dest_reg->className());
 
             // For S threads we keep the same flow as before. 
@@ -1258,8 +1275,8 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
                 DynInstPtr dep_inst = dependGraph.pop(dest_reg->flatIndex()); 
 
                 while (dep_inst) { 
-                    DPRINTF(IQ, "***Waking up a dependent instruction, [sn:%llu] "
-                            "PC %s.\n", dep_inst->seqNum, dep_inst->pcState());
+                    DPRINTF(IQ, "[tid:%d] ***Waking up a dependent instruction, [sn:%llu] "
+                            "PC %s.\n", tid,dep_inst->seqNum, dep_inst->pcState());
 
                     // Might want to give more information to the instruction
                     // so that it knows which of its source registers is
@@ -1268,7 +1285,7 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
 
                     dep_inst->markSrcRegReady();
 
-                    DPRINTF(IQ, "addIfReady3 Adding instruction [sn:%llu] PC %s to the IQ.\n", dep_inst->seqNum, dep_inst->pcState());
+                    DPRINTF(IQ, "[tid:%d] addIfReady3 Adding instruction [sn:%llu] PC %s to the IQ.\n",tid, dep_inst->seqNum, dep_inst->pcState());
                     addIfReady(dep_inst);
 
                     dep_inst = dependGraph.pop(dest_reg->flatIndex());
@@ -1284,7 +1301,7 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
                 // if it is not, we have done something wrong
                 if(!dependGraph.isInstOldestRAW(dest_reg->flatIndex(),completed_inst)) {
                     DynInstPtr inst_check =  dependGraph.getOldestInst(dest_reg->flatIndex());
-                    DPRINTF(IQ,"Got inst %d\n",inst_check);
+                    DPRINTF(IQ,"[tid:%d] Got inst %d\n",tid,inst_check);
                     panic("We issued an instruction which was not the oldest instruction to be issued for this dependence chain! Fix it!!\n Wanted sn:%llu got sn:%llu PC wanted %s PC got %s\n",completed_inst->seqNum,inst_check->seqNum,completed_inst->pcState(),inst_check->pcState());
                 }  
 
@@ -1293,8 +1310,8 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
                 DynInstPtr dep_inst = dependGraph.popRAW(dest_reg->flatIndex()); 
 
                 while (dep_inst) { 
-                    DPRINTF(IQ, "PLACE1 RAW Waking up a dependent instruction, [sn:%llu] "
-                            "PC %s RAW_WAKE %d.\n", dep_inst->seqNum, dep_inst->pcState(),dest_reg->flatIndex());
+                    DPRINTF(IQ, "[tid:%d] PLACE1 RAW Waking up a dependent instruction, [sn:%llu] "
+                            "PC %s RAW_WAKE %d.\n", tid, dep_inst->seqNum, dep_inst->pcState(),dest_reg->flatIndex());
 
                     // Might want to give more information to the instruction
                     // so that it knows which of its source registers is
@@ -1306,7 +1323,7 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
 
                     dep_inst->markSrcRegReadyWDone(dest_reg->flatIndex());
 
-                    DPRINTF(IQ, "addIfReady4 Adding instruction [sn:%llu] PC %s to the IQ.\n", dep_inst->seqNum, dep_inst->pcState());
+                    DPRINTF(IQ, "[tid:%d] addIfReady4 Adding instruction [sn:%llu] PC %s to the IQ.\n", tid, dep_inst->seqNum, dep_inst->pcState());
                     addIfReady(dep_inst);
 
                     dep_inst = dependGraph.popRAW(dest_reg->flatIndex());
@@ -1332,50 +1349,50 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
                 if (dest_regs_set.find(dest_reg_idx) == dest_regs_set.end())
                 {
 
-                    DPRINTF(IQ, "WAW_INSTS_HEREAA %d, [sn:%llu] "
-                                "PC %s.\n", dependGraph.countNodesWAW(dest_reg->flatIndex()), completed_inst->seqNum, completed_inst->pcState());
+                    DPRINTF(IQ, "[tid:%d] WAW_INSTS_HEREAA %d, [sn:%llu] "
+                                "PC %s.\n", tid,dependGraph.countNodesWAW(dest_reg->flatIndex()), completed_inst->seqNum, completed_inst->pcState());
 
                     // remove the instruction from the top
                     DynInstPtr popped_inst = dependGraph.popFront(dest_reg->flatIndex());
 
-                    DPRINTF(IQ, "WAW_INSTS_HERE1 %d, [sn:%llu] "
-                                "PC %s.\n", dependGraph.countNodesWAW(dest_reg->flatIndex()), popped_inst->seqNum, popped_inst->pcState());
+                    DPRINTF(IQ, "[tid:%d] WAW_INSTS_HERE1 %d, [sn:%llu] "
+                                "PC %s.\n", tid, dependGraph.countNodesWAW(dest_reg->flatIndex()), popped_inst->seqNum, popped_inst->pcState());
 
                     // mark the dest regs as ready for the next instruction present in the list
                     DynInstPtr dep_inst = dependGraph.getNextInst(dest_reg->flatIndex());
 
-                    DPRINTF(IQ, "WAW_INSTS_HERE2 %d, [sn:%llu] "
-                                "PC %s.\n", dependGraph.countNodesWAW(dest_reg->flatIndex()), popped_inst->seqNum, popped_inst->pcState());
+                    DPRINTF(IQ, "[tid:%d] WAW_INSTS_HERE2 %d, [sn:%llu] "
+                                "PC %s.\n", tid, dependGraph.countNodesWAW(dest_reg->flatIndex()), popped_inst->seqNum, popped_inst->pcState());
 
                     if(dep_inst) {
 
-                        DPRINTF(IQ, "WAW_INSTS_HERE3 %d, [sn:%llu] "
-                                "PC %s.\n", dependGraph.countNodesWAW(dest_reg->flatIndex()), popped_inst->seqNum, popped_inst->pcState());
+                        DPRINTF(IQ, "[tid:%d] WAW_INSTS_HERE3 %d, [sn:%llu] "
+                                "PC %s.\n", tid, dependGraph.countNodesWAW(dest_reg->flatIndex()), popped_inst->seqNum, popped_inst->pcState());
 
                         if(popped_inst == dep_inst) {
-                            DPRINTF(IQ, "PLACE3 SAME INST TWICE!!! %d %d, [sn:%llu] "
-                                "PC %s.\n", popped_inst,dep_inst,dep_inst->seqNum, dep_inst->pcState());
+                            DPRINTF(IQ, "[tid:%d] PLACE3 SAME INST TWICE!!! %d %d, [sn:%llu] "
+                                "PC %s.\n", tid, popped_inst,dep_inst,dep_inst->seqNum, dep_inst->pcState());
                         }
 
-                        DPRINTF(IQ, "PLACE3 WAW STARTING TO WAKE INSTS WRITE_INST, [sn:%llu] "
-                                "PC %s.\n", dep_inst->seqNum, dep_inst->pcState());
+                        DPRINTF(IQ, "[tid:%d] PLACE3 WAW STARTING TO WAKE INSTS WRITE_INST, [sn:%llu] "
+                                "PC %s.\n", tid, dep_inst->seqNum, dep_inst->pcState());
 
                         dep_inst->markDestDepRegReady(dest_reg->flatIndex(),dep_inst->numDestRegs());
 
                         // mark dest regs as ready for this instruction
                         dep_inst->markDestRegReady(dest_reg->flatIndex(),dep_inst->numDestRegs());
 
-                        DPRINTF(IQ, "addIfReady5 Adding instruction [sn:%llu] PC %s to the IQ.\n", dep_inst->seqNum, dep_inst->pcState());
+                        DPRINTF(IQ, "[tid:%d] addIfReady5 Adding instruction [sn:%llu] PC %s to the IQ.\n", tid, dep_inst->seqNum, dep_inst->pcState());
                         addIfReady(dep_inst);
                     }
 
-                    DPRINTF(IQ, "WAW_INSTS_HERE4 %d, [sn:%llu] "
-                                "PC %s.\n", dependGraph.countNodesWAW(dest_reg->flatIndex()), popped_inst->seqNum, popped_inst->pcState());
+                    DPRINTF(IQ, "[tid:%d] WAW_INSTS_HERE4 %d, [sn:%llu] "
+                                "PC %s.\n", tid, dependGraph.countNodesWAW(dest_reg->flatIndex()), popped_inst->seqNum, popped_inst->pcState());
                 }  
             }
         }
 
-        DPRINTF(IQ, "INSIDE222 PLACE Waking dependents of completed instruction numDests %d.\n",total_dest_regs);
+        DPRINTF(IQ, "[tid:%d] INSIDE222 PLACE Waking dependents of completed instruction numDests %d.\n",tid,total_dest_regs);
 
         /** for W threads, we need to wake up WAR dependents on the src registers. To
          * Do this we need to go through the vector entries and free up all dependencies.
@@ -1391,8 +1408,10 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
 
                 int locInVec = dependGraph.getInstLocInWAR(src_reg->flatIndex(), completed_inst);
 
-                DPRINTF(IQ, "PLACE4 STARTING TO WAKE INSTS, [sn:%llu] "
-                            "PC %s locInVec: %d reg_num %d insts_left %d.\n", completed_inst->seqNum, completed_inst->pcState(),locInVec,src_reg->flatIndex(),dependGraph.countNodes(src_reg->flatIndex(), locInVec));
+                if(!src_reg->isFixedMapping()) {
+                    DPRINTF(IQ, "[tid:%d] PLACE4 STARTING TO WAKE INSTS, [sn:%llu] "
+                            "PC %s locInVec: %d reg_num %d insts_left %d.\n", tid, completed_inst->seqNum, completed_inst->pcState(),locInVec,src_reg->flatIndex(),dependGraph.countNodes(src_reg->flatIndex(), locInVec));
+                }
 
                 /** There should be an entry for this */
                 bool locInVecFound = (locInVec != -1) ? 1 : 0;
@@ -1411,8 +1430,8 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
                         // ready.  However that would mean that the dependency
                         // graph entries would need to hold the src_reg_idx.
 
-                        DPRINTF(IQ, "PLACE3 WAR STARTING TO WAKE INSTS WRITE_INST, [sn:%llu] "
-                                "PC %s.\n", dep_inst->seqNum, dep_inst->pcState());
+                        DPRINTF(IQ, "[tid:%d] PLACE3 WAR STARTING TO WAKE INSTS WRITE_INST, [sn:%llu] "
+                                "PC %s.\n", tid, dep_inst->seqNum, dep_inst->pcState());
 
                         if(dep_inst->numWARPending[reg_index] == 0) 
                         {
@@ -1420,17 +1439,17 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
 
                             dep_inst->markDestRegReady(src_reg->flatIndex(),dep_inst->numDestRegs());
 
-                            DPRINTF(IQ, "addIfReady6 Adding instruction [sn:%llu] PC %s to the IQ.\n", dep_inst->seqNum, dep_inst->pcState());
+                            DPRINTF(IQ, "[tid:%d] addIfReady6 Adding instruction [sn:%llu] PC %s to the IQ.\n", tid, dep_inst->seqNum, dep_inst->pcState());
                             addIfReady(dep_inst);
 
-                            DPRINTF(IQ, "PLACE6 WAR STARTING TO WAKE INSTS, [sn:%llu] "
-                                    "PC %s insts_left %d.\n", dep_inst->seqNum, dep_inst->pcState(),dependGraph.countNodes(src_reg->flatIndex(), locInVec));
+                            DPRINTF(IQ, "[tid:%d] PLACE6 WAR STARTING TO WAKE INSTS, [sn:%llu] "
+                                    "PC %s insts_left %d.\n", tid, dep_inst->seqNum, dep_inst->pcState(),dependGraph.countNodes(src_reg->flatIndex(), locInVec));
                         } else {
-                            DPRINTF(IQ, "PLACE6 could not wake WAR, [sn:%llu] "
-                                    "PC %s insts_left %d numWARPending %d.\n", dep_inst->seqNum, dep_inst->pcState(),dependGraph.countNodes(src_reg->flatIndex(), locInVec),dep_inst->numWARPending[reg_index]);
+                            DPRINTF(IQ, "[tid:%d] PLACE6 could not wake WAR, [sn:%llu] "
+                                    "PC %s insts_left %d numWARPending %d.\n", tid, dep_inst->seqNum, dep_inst->pcState(),dependGraph.countNodes(src_reg->flatIndex(), locInVec),dep_inst->numWARPending[reg_index]);
 
                             if(dep_inst->numWARPending[reg_index] < 1) {
-                                panic("numWARPending less than 0! sn:%d val %d reg %d",dep_inst->seqNum, dep_inst->numWARPending[reg_index], src_reg->flatIndex());
+                                panic("[tid:%d] numWARPending less than 0! sn:%d val %d reg %d",tid,dep_inst->seqNum, dep_inst->numWARPending[reg_index], src_reg->flatIndex());
                             }
                         }
 
@@ -1445,8 +1464,8 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
             }
         }
     } else {
-        DPRINTF(IQ, "Already woke dependents, [sn:%llu] "
-                                    "PC %s.\n", completed_inst->seqNum, completed_inst->pcState());
+        DPRINTF(IQ, "[tid:%d] Already woke dependents, [sn:%llu] "
+                                    "PC %s.\n", tid, completed_inst->seqNum, completed_inst->pcState());
     }
     return dependents;
 }
@@ -1475,9 +1494,9 @@ InstructionQueue::addReadyMemInst(const DynInstPtr &ready_inst)
         
         int8_t total_dest_regs = ready_inst->numDestRegs();
 
-        DPRINTF(IQ, "STEP1, MEMORY putting it onto "
+        DPRINTF(IQ, "[tid:%d] STEP1, MEMORY putting it onto "
             "the ready list, PC %s  [sn:%llu] total_dest_regs %d DataPrefetch %d InstPrefetch %d.\n",
-            ready_inst->pcState(), ready_inst->seqNum,total_dest_regs, ready_inst->isDataPrefetch(), ready_inst->isInstPrefetch());
+            tid, ready_inst->pcState(), ready_inst->seqNum,total_dest_regs, ready_inst->isDataPrefetch(), ready_inst->isInstPrefetch());
 
         for (int dest_reg_idx = 0;
             dest_reg_idx < total_dest_regs;
@@ -1488,21 +1507,21 @@ InstructionQueue::addReadyMemInst(const DynInstPtr &ready_inst)
             dest_reg->setNumPinnedWrites(ready_inst->getnumWrites(dest_reg_idx));
             dest_reg->setNumPinnedWritesToComplete(
                 ready_inst->getNumPinnedWritesToComplete(dest_reg_idx));
-            DPRINTF(IQ, "LOOK_REGS_FINAL_WRITE [sn:%llu] RegNum %d %i (%s) pinned %d numPinnedComplete %d.\n",
-            ready_inst->seqNum,dest_reg->flatIndex(), dest_reg->index(),
+            DPRINTF(IQ, "[tid:%d] LOOK_REGS_FINAL_WRITE [sn:%llu] RegNum %d %i (%s) pinned %d numPinnedComplete %d.\n",
+            tid, ready_inst->seqNum,dest_reg->flatIndex(), dest_reg->index(),
             dest_reg->className(),dest_reg->isPinned(),dest_reg->getNumPinnedWritesToComplete());
         }
     }
 
-    DPRINTF(IQ, "In Memory Instruction is ready to issue, putting it onto "
+    DPRINTF(IQ, "[tid:%d] In Memory Instruction is ready to issue, putting it onto "
             "the ready list, PC %s opclass:%i [sn:%llu].\n",
-            ready_inst->pcState(), op_class, ready_inst->seqNum);
+            tid, ready_inst->pcState(), op_class, ready_inst->seqNum);
 }
 
 void
 InstructionQueue::rescheduleMemInst(const DynInstPtr &resched_inst)
 {
-    DPRINTF(IQ, "Rescheduling mem inst [sn:%llu]\n", resched_inst->seqNum);
+    DPRINTF(IQ, "[tid:%d] Rescheduling mem inst [sn:%llu]\n", resched_inst->threadNumber, resched_inst->seqNum);
 
     // Reset DTB translation state
     resched_inst->translationStarted(false);
@@ -1530,8 +1549,8 @@ InstructionQueue::blockMemInst(const DynInstPtr &blocked_inst)
     blocked_inst->clearIssued();
     blocked_inst->clearCanIssue();
     blockedMemInsts.push_back(blocked_inst);
-    DPRINTF(IQ, "Memory inst [sn:%llu] PC %s is blocked, will be "
-            "reissued later\n", blocked_inst->seqNum,
+    DPRINTF(IQ, "[tid:%d] Memory inst [sn:%llu] PC %s is blocked, will be "
+            "reissued later\n", blocked_inst->threadNumber,blocked_inst->seqNum,
             blocked_inst->pcState());
 }
 
@@ -1718,8 +1737,8 @@ InstructionQueue::doSquash(ThreadID tid)
                                             squashed_inst); // Ishita: clear the dependence graph on squash
                         }
                     } else {
-                        DPRINTF(IQ, "PLACE7 STARTING TO SQUASH, [sn:%llu] "
-                        "PC %s index %d HasWokenDependents %d.\n", squashed_inst->seqNum, squashed_inst->pcState(),src_reg->flatIndex(),squashed_inst->HasWokenDependents());
+                        DPRINTF(IQ, "[tid:%d] PLACE7 STARTING TO SQUASH, [sn:%llu] "
+                        "PC %s index %d HasWokenDependents %d isFixedMapping %d.\n", tid, squashed_inst->seqNum, squashed_inst->pcState(),src_reg->flatIndex(),squashed_inst->HasWokenDependents(),src_reg->isFixedMapping());
 
                         // if this instruction has not already removed all the dependencies
                         if (
@@ -1732,13 +1751,13 @@ InstructionQueue::doSquash(ThreadID tid)
                         if (!src_reg->isFixedMapping() && !squashed_inst->HasWokenDependents()) {
                             DynInstPtr last_instWAR = dependGraph.getWARLastInst(src_reg->flatIndex());
 
-                            DPRINTF(IQ, "CHECK_SQUASH_INST111, [sn:%llu] "
-                                    "PC %s current %d orig %d last_seq %d instList %d.\n", squashed_inst->seqNum, squashed_inst->pcState(),last_instWAR,squashed_inst, dependGraph.getWARSeqNum(src_reg->flatIndex()),dependGraph.instInListWAR(src_reg->flatIndex()));
+                            DPRINTF(IQ, "[tid:%d] CHECK_SQUASH_INST111, [sn:%llu] "
+                                    "PC %s current %d orig %d last_seq %d instList %d reg %d.\n", tid, squashed_inst->seqNum, squashed_inst->pcState(),last_instWAR,squashed_inst, dependGraph.getWARSeqNum(src_reg->flatIndex()),dependGraph.instInListWAR(src_reg->flatIndex()),src_reg->flatIndex());
                             
                             // a. This inst should be the last entry in the WAR dependence chain -> assert it 
                             // since squash is in reverse instruction order
                             assert(last_instWAR->seqNum == squashed_inst->seqNum);
-                            // b. Then check that the RAW chain has no entries for this
+                            // b. Then check that the WAR chain has no entries for this
                             assert(dependGraph.instInListWAR(src_reg->flatIndex()) == 0); 
                             // remove this instruction from the queue
                             dependGraph.clearlastInstWAR(src_reg->flatIndex());
@@ -1813,8 +1832,8 @@ InstructionQueue::doSquash(ThreadID tid)
                 assert(dependGraph.empty(dest_reg->flatIndex())); 
                 dependGraph.clearInst(dest_reg->flatIndex());
 
-                DPRINTF(IQ, "PLACE1 STARTING TO SQUASH, [sn:%llu] "
-                            "PC %s reg %d readyToCommit %d isExecuted %d isCompleted %d HasWokenDependents %d.\n", squashed_inst->seqNum, squashed_inst->pcState(),dest_reg->flatIndex(),squashed_inst->readyToCommit(),squashed_inst->isCompleted(),squashed_inst->isExecuted(),squashed_inst->HasWokenDependents());
+                DPRINTF(IQ, "[tid:%d] PLACE1 STARTING TO SQUASH, [sn:%llu] "
+                            "PC %s reg %d readyToCommit %d isExecuted %d isCompleted %d HasWokenDependents %d.\n", tid, squashed_inst->seqNum, squashed_inst->pcState(),dest_reg->flatIndex(),squashed_inst->readyToCommit(),squashed_inst->isCompleted(),squashed_inst->isExecuted(),squashed_inst->HasWokenDependents());
 
                 // only for W threads: 
                 // remove this instruction from the dependence graphs due to squash
@@ -1825,8 +1844,8 @@ InstructionQueue::doSquash(ThreadID tid)
                     // assert that it is, then remove the instruction from the graph
                     DynInstPtr last_instWAW = dependGraph.getLastWAWInst(dest_reg->flatIndex());
 
-                    DPRINTF(IQ, "PLACE8 INSIDE SQUASH, [sn:%llu] "
-                            "PC %s last_instWAW %d reg %d readyToCommit %d isExecuted %d isCompleted %d HasWokenDependents %d.\n", squashed_inst->seqNum, squashed_inst->pcState(),last_instWAW,dest_reg->flatIndex(),squashed_inst->readyToCommit(),squashed_inst->isCompleted(),squashed_inst->isExecuted(),squashed_inst->HasWokenDependents());
+                    DPRINTF(IQ, "[tid:%d] PLACE8 INSIDE SQUASH, [sn:%llu] "
+                            "PC %s last_instWAW %d reg %d readyToCommit %d isExecuted %d isCompleted %d HasWokenDependents %d.\n", tid, squashed_inst->seqNum, squashed_inst->pcState(),last_instWAW,dest_reg->flatIndex(),squashed_inst->readyToCommit(),squashed_inst->isCompleted(),squashed_inst->isExecuted(),squashed_inst->HasWokenDependents());
 
                     assert(last_instWAW->seqNum == squashed_inst->seqNum);
                     dependGraph.removeInst(dest_reg->flatIndex(),
@@ -1835,8 +1854,8 @@ InstructionQueue::doSquash(ThreadID tid)
                     // remove the instruction from the RAW dependence graph
                     DynInstPtr last_instRAW = dependGraph.getRAWLastInst(dest_reg->flatIndex());
 
-                    DPRINTF(IQ, "CHECK_SQUASH_INST, [sn:%llu] "
-                            "PC %s current %d orig %d last_seq %d instList %d.\n", squashed_inst->seqNum, squashed_inst->pcState(),last_instRAW,squashed_inst, dependGraph.getRAWSeqNum(dest_reg->flatIndex()),dependGraph.instInListRAW(dest_reg->flatIndex()));
+                    DPRINTF(IQ, "[tid:%d] CHECK_SQUASH_INST, [sn:%llu] "
+                            "PC %s current %d orig %d last_seq %d instList %d.\n", tid, squashed_inst->seqNum, squashed_inst->pcState(),last_instRAW,squashed_inst, dependGraph.getRAWSeqNum(dest_reg->flatIndex()),dependGraph.instInListRAW(dest_reg->flatIndex()));
 
                     // a. This inst should be the last entry in the RAW dependence chain -> assert it 
                     // since squash is in reverse instruction order
@@ -1900,17 +1919,17 @@ InstructionQueue::addToDependents(const DynInstPtr &new_inst)
     int8_t total_src_regs = new_inst->numSrcRegs();
     bool return_val = false;
 
-
+    int tid = new_inst->threadNumber;
     // print src and dest regs
-    DPRINTF(IQ,"CONSIDER inst [sn:%llu] PC %s RTI %d numSrc %d numDest %d.\n ", new_inst->seqNum, new_inst->pcState(), new_inst->readyToIssue(), new_inst->numSrcRegs(), new_inst->numDestRegs());
+    DPRINTF(IQ,"[tid:%d] CONSIDER inst [sn:%llu] PC %s RTI %d numSrc %d numDest %d.\n ", new_inst->threadNumber, new_inst->seqNum, new_inst->pcState(), new_inst->readyToIssue(), new_inst->numSrcRegs(), new_inst->numDestRegs());
     for (int src_reg_idx = 0;
          src_reg_idx < total_src_regs;
          src_reg_idx++)
     {
         PhysRegIdPtr src_reg = new_inst->renamedSrcIdx(src_reg_idx);
 
-         DPRINTF(IQ, "LOOK_REGS_READ RegNum %d %i (%s) [sn:%llu] pinned %d numPinnedComplete %d isFixedMapping %d.\n",
-                src_reg->flatIndex(), src_reg->index(),
+         DPRINTF(IQ, "[tid:%d] LOOK_REGS_READ RegNum %d %i (%s) [sn:%llu] pinned %d numPinnedComplete %d isFixedMapping %d.\n",
+                new_inst->threadNumber,src_reg->flatIndex(), src_reg->index(),
                 src_reg->className(),new_inst->seqNum,src_reg->isPinned(),src_reg->getNumPinnedWritesToComplete(),src_reg->isFixedMapping());
 
         // Only add it to the dependency graph if it's not ready. If the thread is a weak thread we dont use SB. We use our dependence graph to check deopendencies.
@@ -1926,18 +1945,18 @@ InstructionQueue::addToDependents(const DynInstPtr &new_inst)
             // Then there are no instructions holding the src register and we can mark the reg as
             // ready. Else we need to add this instruction as a dependent in the dependence graph.
 
-            DPRINTF(IQ, "INSIDE1 Instruction PC %s has src reg %i (%s) that "
+            DPRINTF(IQ, "[tid:%d] INSIDE1 Instruction PC %s has src reg %i (%s) that "
                             "is being added to the dependency chain.\n",
-                            new_inst->pcState(), src_reg->index(),
+                            new_inst->threadNumber, new_inst->pcState(), src_reg->index(),
                             src_reg->className());
 
             if(cpu->thread[new_inst->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
                 if (src_reg->isFixedMapping()) {
                     continue;
                 } else if (!regScoreboard[src_reg->flatIndex()]) {
-                    DPRINTF(IQ, "Instruction PC [sn:%llu] %s has src reg %i (%s) that "
+                    DPRINTF(IQ, "[tid:%d] Instruction PC [sn:%llu] %s has src reg %i (%s) that "
                             "is being added to the dependency chain.\n",
-                            new_inst->seqNum,new_inst->pcState(), src_reg->index(),
+                            tid, new_inst->seqNum,new_inst->pcState(), src_reg->index(),
                             src_reg->className());
 
                     dependGraph.insert(src_reg->flatIndex(), new_inst);
@@ -1946,9 +1965,9 @@ InstructionQueue::addToDependents(const DynInstPtr &new_inst)
                     // was added to the dependency graph.
                     return_val = true;
                 } else {
-                    DPRINTF(IQ, "Instruction PC [sn:%llu] %s has src reg %i (%s) that "
+                    DPRINTF(IQ, "[tid:%d] Instruction PC [sn:%llu] %s has src reg %i (%s) that "
                             "became ready before it reached the IQ.\n",
-                            new_inst->seqNum,new_inst->pcState(), src_reg->index(),
+                            tid,new_inst->seqNum,new_inst->pcState(), src_reg->index(),
                             src_reg->className());
                     // Mark a register ready within the instruction.
                     new_inst->markSrcRegReady(src_reg_idx); 
@@ -1958,39 +1977,39 @@ InstructionQueue::addToDependents(const DynInstPtr &new_inst)
                     continue;
                 } else if(!dependGraph.isRAWSrcReady(src_reg->flatIndex())) {
 
-                    DPRINTF(IQ, "Instruction PC %s has src reg %i (%s) that "
+                    DPRINTF(IQ, "[tid:%d] Instruction PC %s has src reg %i (%s) that "
                             "is being added to the dependency chain.\n",
-                            new_inst->pcState(), src_reg->index(),
+                            tid,new_inst->pcState(), src_reg->index(),
                             src_reg->className());
 
                     // add the inst as a dependence on the last entry of the dependence graph
                     int index = dependGraph.insertBehindRAW(src_reg->flatIndex(), new_inst);
                     
-                    DPRINTF(IQ,"SIZE_OF_ENTRIES1 %d ENTRY %d\n",dependGraph.sizeofRAWFull(src_reg->flatIndex()),dependGraph.sizeofRAWEntry(src_reg->flatIndex()));
+                    DPRINTF(IQ,"[tid:%d] SIZE_OF_ENTRIES1 %d ENTRY %d\n",tid,dependGraph.sizeofRAWFull(src_reg->flatIndex()),dependGraph.sizeofRAWEntry(src_reg->flatIndex()));
 
-                    DPRINTF(IQ, "PLACE8 RAW_NOT_READY, [sn:%llu] "
-                        "PC %s index_placed %d depends on seqNum:%llu reg %d.\n", new_inst->seqNum, new_inst->pcState(),index,dependGraph.getRAWSeqNum(src_reg->flatIndex()),src_reg->flatIndex()); 
+                    DPRINTF(IQ, "[tid:%d] PLACE8 RAW_NOT_READY, [sn:%llu] "
+                        "PC %s index_placed %d depends on seqNum:%llu reg %d.\n", tid,new_inst->seqNum, new_inst->pcState(),index,dependGraph.getRAWSeqNum(src_reg->flatIndex()),src_reg->flatIndex()); 
                     // Change the return value to indicate that something
                     // was added to the dependency graph.
                     return_val = true;
                 } else {  
-                    DPRINTF(IQ, "PLACE9 RAW_READY, [sn:%llu] "
-                        "PC %s reg %d.\n", new_inst->seqNum, new_inst->pcState(),src_reg->flatIndex());
+                    DPRINTF(IQ, "[tid:%d] PLACE9 RAW_READY, [sn:%llu] "
+                        "PC %s reg %d.\n", tid, new_inst->seqNum, new_inst->pcState(),src_reg->flatIndex());
 
-                    DPRINTF(IQ, "Instruction PC %s has src reg %i (%s) that "
+                    DPRINTF(IQ, "[tid:%d] Instruction PC %s has src reg %i (%s) that "
                             "became ready before it reached the IQ.\n",
-                            new_inst->pcState(), src_reg->index(),
+                            tid, new_inst->pcState(), src_reg->index(),
                             src_reg->className());
                     // Mark a register ready within the instruction.
                     new_inst->markSrcRegReadyW(src_reg_idx); 
 
-                    DPRINTF(IQ,"SIZE_OF_ENTRIES2 %d ENTRY %d\n",dependGraph.sizeofRAWFull(src_reg->flatIndex()),dependGraph.sizeofRAWEntry(src_reg->flatIndex()));
+                    DPRINTF(IQ,"[tid:%d] SIZE_OF_ENTRIES2 %d ENTRY %d\n",tid,dependGraph.sizeofRAWFull(src_reg->flatIndex()),dependGraph.sizeofRAWEntry(src_reg->flatIndex()));
                 }
             }
         } else {
-            DPRINTF(IQ, "RAW_ALREADY_READY Instruction PC %s has src reg %i (%s) that "
+            DPRINTF(IQ, "[tid:%d] RAW_ALREADY_READY Instruction PC %s has src reg %i (%s) that "
                             "became ready already!!.\n",
-                            new_inst->pcState(), src_reg->index(),
+                            tid,new_inst->pcState(), src_reg->index(),
                             src_reg->className());
             
         }
@@ -2000,8 +2019,8 @@ InstructionQueue::addToDependents(const DynInstPtr &new_inst)
     // register is ready. If not we add it to as a dependence
     if(cpu->thread[new_inst->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
 
-        DPRINTF(IQ, "PLACE10 DEST_REGS, [sn:%llu] "
-                        "PC %s.\n", new_inst->seqNum, new_inst->pcState());
+        DPRINTF(IQ, "[tid:%d] PLACE10 DEST_REGS, [sn:%llu] "
+                        "PC %s.\n", tid,new_inst->seqNum, new_inst->pcState());
         int8_t total_dest_regs = new_inst->numDestRegs();
          for (int dest_reg_idx = 0;
          dest_reg_idx < total_dest_regs;
@@ -2009,57 +2028,57 @@ InstructionQueue::addToDependents(const DynInstPtr &new_inst)
         {
             PhysRegIdPtr dest_reg = new_inst->renamedDestIdx(dest_reg_idx);
 
-            DPRINTF(IQ, "LOOK_REGS_WRITE RegNum %d %i (%s) [sn:%llu] pinned %d numPinnedComplete %d.\n",
-                dest_reg->flatIndex(), dest_reg->index(),
+            DPRINTF(IQ, "[tid:%d] LOOK_REGS_WRITE RegNum %d %i (%s) [sn:%llu] pinned %d numPinnedComplete %d.\n",
+                tid,dest_reg->flatIndex(), dest_reg->index(),
                 dest_reg->className(),new_inst->seqNum,dest_reg->isPinned(),dest_reg->getNumPinnedWritesToComplete());
 
-            DPRINTF(IQ, "PLACE11 DEST_REGS, [sn:%llu] "
-                        "PC %s.\n", new_inst->seqNum, new_inst->pcState());
+            DPRINTF(IQ, "[tid:%d] PLACE11 DEST_REGS, [sn:%llu] "
+                        "PC %s.\n", tid,new_inst->seqNum, new_inst->pcState());
 
-            DPRINTF(IQ, "INSIDE3 Instruction PC %s has src reg %i (%s) that "
+            DPRINTF(IQ, "[tid:%d] INSIDE3 Instruction PC %s has src reg %i (%s) that "
                             "is being added to the dependency chain.\n",
-                            new_inst->pcState(), dest_reg->index(),
+                            tid,new_inst->pcState(), dest_reg->index(),
                             dest_reg->className());
 
             // dont put fixed mapping registers here, they are dealt with separately
             if(!dependGraph.isWARSrcReady(dest_reg->flatIndex()) && !dest_reg->isFixedMapping() ) {
 
-                DPRINTF(IQ, "PLACE12 WAR_SRC_NOT_READY reg %d, [sn:%llu] "
-                        "PC %s depends on seqNum:%llu reg %d place idx %d insts_present %d insts_in_queue %d.\n", dest_reg->flatIndex(), new_inst->seqNum, new_inst->pcState(),dependGraph.getWARSeqNum(dest_reg->flatIndex()),dest_reg->flatIndex(),dependGraph.WARSrcLastIdx(dest_reg->flatIndex()),dependGraph.getWARlistSize(dest_reg->flatIndex()),dependGraph.instInListWAR(dest_reg->flatIndex()));
+                DPRINTF(IQ, "[tid:%d] PLACE12 WAR_SRC_NOT_READY reg %d, [sn:%llu] "
+                        "PC %s depends on seqNum:%llu reg %d place idx %d insts_present %d insts_in_queue %d.\n", tid,dest_reg->flatIndex(), new_inst->seqNum, new_inst->pcState(),dependGraph.getWARSeqNum(dest_reg->flatIndex()),dest_reg->flatIndex(),dependGraph.WARSrcLastIdx(dest_reg->flatIndex()),dependGraph.getWARlistSize(dest_reg->flatIndex()),dependGraph.instInListWAR(dest_reg->flatIndex()));
 
 
-                DPRINTF(IQ, "WAR Instruction PC %s has src reg %i (%s) that "
+                DPRINTF(IQ, "[tid:%d] WAR Instruction PC %s has src reg %i (%s) that "
                             "is being added to the dependency chain.\n",
-                            new_inst->pcState(), dest_reg->index(),
+                            tid,new_inst->pcState(), dest_reg->index(),
                             dest_reg->className());
                 // add the inst as a dependence on the last entry of the dependence graph
                 dependGraph.insertBehindWAR(dest_reg->flatIndex(), new_inst, dest_reg_idx);
 
-                DPRINTF(IQ,"SIZE_OF_ENTRIES4 %d ENTRY %d\n",dependGraph.sizeofWAWFull(dest_reg->flatIndex()),dependGraph.sizeofWAWEntry(dest_reg->flatIndex()));
+                DPRINTF(IQ,"[tid:%d] SIZE_OF_ENTRIES4 %d ENTRY %d\n",tid,dependGraph.sizeofWAWFull(dest_reg->flatIndex()),dependGraph.sizeofWAWEntry(dest_reg->flatIndex()));
 
-                DPRINTF(IQ, "PLACE12 WAR_SRC_NOT_READY_POST, [sn:%llu] "
-                        "PC %s depends on seqNum:%llu .\n", new_inst->seqNum, new_inst->pcState(),dependGraph.getWARSeqNum(dest_reg->flatIndex()));
+                DPRINTF(IQ, "[tid:%d] PLACE12 WAR_SRC_NOT_READY_POST, [sn:%llu] "
+                        "PC %s depends on seqNum:%llu .\n", tid,new_inst->seqNum, new_inst->pcState(),dependGraph.getWARSeqNum(dest_reg->flatIndex()));
 
 
-                DPRINTF(IQ, "PLACE112 WAR_SRC_NOT_READY_POST, [sn:%llu] "
-                        "PC %s depends on seqNum:%llu reg %d place idx %d insts_present %d insts_in_queue %d.\n", new_inst->seqNum, new_inst->pcState(),dependGraph.getWARSeqNum(dest_reg->flatIndex()),dest_reg->flatIndex(),dependGraph.WARSrcLastIdx(dest_reg->flatIndex()),dependGraph.getWARlistSize(dest_reg->flatIndex()),dependGraph.instInListWAR(dest_reg->flatIndex()));
+                DPRINTF(IQ, "[tid:%d] PLACE112 WAR_SRC_NOT_READY_POST, [sn:%llu] "
+                        "PC %s depends on seqNum:%llu reg %d place idx %d insts_present %d insts_in_queue %d.\n", tid,new_inst->seqNum, new_inst->pcState(),dependGraph.getWARSeqNum(dest_reg->flatIndex()),dest_reg->flatIndex(),dependGraph.WARSrcLastIdx(dest_reg->flatIndex()),dependGraph.getWARlistSize(dest_reg->flatIndex()),dependGraph.instInListWAR(dest_reg->flatIndex()));
 
                 // Change the return value to indicate that something
                 // was added to the dependency graph.
                 return_val = true;
             } else {
 
-                DPRINTF(IQ, "PLACE13 WAR_SRC_READY, [sn:%llu] "
-                        "PC %s reg %d.\n", new_inst->seqNum, new_inst->pcState(),dest_reg->flatIndex());
+                DPRINTF(IQ, "[tid:%d] PLACE13 WAR_SRC_READY, [sn:%llu] "
+                        "PC %s reg %d.\n", tid,new_inst->seqNum, new_inst->pcState(),dest_reg->flatIndex());
 
-                DPRINTF(IQ, "Instruction PC %s has src reg %i (%s) that "
+                DPRINTF(IQ, "[tid:%d] Instruction PC %s has src reg %i (%s) that "
                             "became ready before it reached the IQ.\n",
-                            new_inst->pcState(), dest_reg->index(),
+                            tid,new_inst->pcState(), dest_reg->index(),
                             dest_reg->className());
                     // Mark a register ready within the instruction.
 
-                DPRINTF(IQ, "PLACE3 WAR1 STARTING TO WAKE INSTS WRITE_INST, [sn:%llu] "
-                            "PC %s idx %d total_dest_regs %d dest_reg->isFixedMapping() %d.\n", new_inst->seqNum, new_inst->pcState(),dest_reg->flatIndex(),total_dest_regs,dest_reg->isFixedMapping());
+                DPRINTF(IQ, "[tid:%d] PLACE3 WAR1 STARTING TO WAKE INSTS WRITE_INST, [sn:%llu] "
+                            "PC %s idx %d total_dest_regs %d dest_reg->isFixedMapping() %d.\n", tid,new_inst->seqNum, new_inst->pcState(),dest_reg->flatIndex(),total_dest_regs,dest_reg->isFixedMapping());
 
                 new_inst->markDestDepRegReady(dest_reg_idx,total_dest_regs);
 
@@ -2082,10 +2101,12 @@ InstructionQueue::addToProducers(const DynInstPtr &new_inst)
     // the dependency links.
     int8_t total_dest_regs = new_inst->numDestRegs();
 
+    int tid = new_inst->threadNumber;
+
     DPRINTF(IQ,"[tid:%d] Adding inst to dependence graph total: %d\n",new_inst->threadNumber,total_dest_regs);
 
-    DPRINTF(IQ, "PLACE14 ADDING_TO_PRODUCERS, [sn:%llu] "
-                        "PC %s.\n", new_inst->seqNum, new_inst->pcState());
+    DPRINTF(IQ, "[tid:%d] PLACE14 ADDING_TO_PRODUCERS, [sn:%llu] "
+                        "PC %s.\n", tid,new_inst->seqNum, new_inst->pcState());
 
     std::unordered_set<int>dest_regs_set;
     for (int dest_reg_idx = 0;
@@ -2110,15 +2131,15 @@ InstructionQueue::addToProducers(const DynInstPtr &new_inst)
             dependGraph.setInst(dest_reg->flatIndex(), new_inst); // create new entry for the destination register 
         } else {
 
-            DPRINTF(IQ, "PLACE14 ADDING_TO_RAW_PRODUCERS, [sn:%llu] "
-                        "PC %s REG %i (%s) (flat: %i) idx_push %d.\n", new_inst->seqNum, new_inst->pcState(),dest_reg->index(), dest_reg->className(),
+            DPRINTF(IQ, "[tid:%d] PLACE14 ADDING_TO_RAW_PRODUCERS, [sn:%llu] "
+                        "PC %s REG %i (%s) (flat: %i) idx_push %d.\n", tid,new_inst->seqNum, new_inst->pcState(),dest_reg->index(), dest_reg->className(),
                     dest_reg->flatIndex(),dependGraph.countNodesRAW(dest_reg->flatIndex()));
 
             // add this instruction at the end of the dependence graph
             // dependence graph need not be empty as we dont rename registers.
             dependGraph.setInstPushBack(dest_reg->flatIndex(), new_inst);
 
-            DPRINTF(IQ,"SIZE_OF_ENTRIES3 %d ENTRY %d\n",dependGraph.sizeofRAWFull(dest_reg->flatIndex()),dependGraph.sizeofRAWEntry(dest_reg->flatIndex()));
+            DPRINTF(IQ,"[tid:%d] SIZE_OF_ENTRIES3 %d ENTRY %d\n",tid,dependGraph.sizeofRAWFull(dest_reg->flatIndex()),dependGraph.sizeofRAWEntry(dest_reg->flatIndex()));
         }
 
         // Mark the scoreboard to say it's not yet ready.
@@ -2139,8 +2160,8 @@ InstructionQueue::addToProducers(const DynInstPtr &new_inst)
         {
             dest_regs_set.insert(dest_reg_idx);
 
-            DPRINTF(IQ,"Putting inst in WAW queue [sn:%llu] "
-                    "PC %s reg %d fixed mapping %d.\n", new_inst->seqNum, new_inst->pcState(),dest_reg->flatIndex(),dest_reg->isFixedMapping());
+            DPRINTF(IQ,"[tid:%d] Putting inst in WAW queue [sn:%llu] "
+                    "PC %s reg %d fixed mapping %d.\n", tid,new_inst->seqNum, new_inst->pcState(),dest_reg->flatIndex(),dest_reg->isFixedMapping());
 
             bool isFirstEntry = true;
 
@@ -2149,7 +2170,7 @@ InstructionQueue::addToProducers(const DynInstPtr &new_inst)
             if(!dest_reg->isFixedMapping()) {
                 entry_num = dependGraph.insertBehindWAW(dest_reg->flatIndex(), new_inst);
 
-                DPRINTF(IQ,"SIZE_OF_ENTRIES6 %d ENTRY %d\n",dependGraph.sizeofWAWFull(dest_reg->flatIndex()),dependGraph.sizeofWAWEntry(dest_reg->flatIndex()));
+                DPRINTF(IQ,"[tid:%d] SIZE_OF_ENTRIES6 %d ENTRY %d\n",tid,dependGraph.sizeofWAWFull(dest_reg->flatIndex()),dependGraph.sizeofWAWEntry(dest_reg->flatIndex()));
 
                 if(entry_num != 0) {
                     isFirstEntry = false;
@@ -2159,17 +2180,17 @@ InstructionQueue::addToProducers(const DynInstPtr &new_inst)
             // mark dest regs as ready if the entry is the first entry of the linked list
             if(isFirstEntry)
             {
-                DPRINTF(IQ, "PLACE15 DEP_INST_READY, [sn:%llu] "
-                    "PC %s reg %d.\n", new_inst->seqNum, new_inst->pcState(),dest_reg->flatIndex());
+                DPRINTF(IQ, "[tid:%d] PLACE15 DEP_INST_READY, [sn:%llu] "
+                    "PC %s reg %d.\n", tid,new_inst->seqNum, new_inst->pcState(),dest_reg->flatIndex());
 
-                DPRINTF(IQ, "PLACE3 WAR2 STARTING TO WAKE INSTS WRITE_INST, [sn:%llu] "
-                        "PC %s idx %d total_dest_regs %d dest_reg->isFixedMapping() %d.\n", new_inst->seqNum, new_inst->pcState(),dest_reg->flatIndex(),total_dest_regs,dest_reg->isFixedMapping());
+                DPRINTF(IQ, "[tid:%d] PLACE3 WAR2 STARTING TO WAKE INSTS WRITE_INST, [sn:%llu] "
+                        "PC %s idx %d total_dest_regs %d dest_reg->isFixedMapping() %d.\n", tid,new_inst->seqNum, new_inst->pcState(),dest_reg->flatIndex(),total_dest_regs,dest_reg->isFixedMapping());
 
                 new_inst->markDestDepRegReady(dest_reg_idx,total_dest_regs);
                 new_inst->markDestRegReady(dest_reg_idx,total_dest_regs); 
             } else {
-                DPRINTF(IQ, "PLACE25 WAW_HAZARD, [sn:%llu] "
-                    "PC %s entry_num %d.\n", new_inst->seqNum, new_inst->pcState(),entry_num);
+                DPRINTF(IQ, "[tid:%d] PLACE25 WAW_HAZARD, [sn:%llu] "
+                    "PC %s entry_num %d.\n", tid,new_inst->seqNum, new_inst->pcState(),entry_num);
             }
         }    
         else {
@@ -2177,14 +2198,14 @@ InstructionQueue::addToProducers(const DynInstPtr &new_inst)
         }  
     }
 
-    DPRINTF(IQ, "IMPORTANT_PLACE_INST_IN_WAR, [sn:%llu] "
-                        "PC %s total_regs %d.\n", new_inst->seqNum, new_inst->pcState(),new_inst->numSrcRegs());
+    DPRINTF(IQ, "[tid:%d] IMPORTANT_PLACE_INST_IN_WAR, [sn:%llu] "
+                        "PC %s total_regs %d.\n", tid,new_inst->seqNum, new_inst->pcState(),new_inst->numSrcRegs());
 
     // add srcs to vector for WAR dependence list
     if(cpu->thread[new_inst->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
 
-        DPRINTF(IQ, "IMPORTANT_PLACE_INST_IN_WAR11, [sn:%llu] "
-                        "PC %s total_regs %d isExecuted %d.\n", new_inst->seqNum, new_inst->pcState(),new_inst->numSrcRegs(),new_inst->isExecuted());
+        DPRINTF(IQ, "[tid:%d] IMPORTANT_PLACE_INST_IN_WAR11, [sn:%llu] "
+                        "PC %s total_regs %d isExecuted %d.\n", tid,new_inst->seqNum, new_inst->pcState(),new_inst->numSrcRegs(),new_inst->isExecuted());
 
         int8_t total_src_regs = new_inst->numSrcRegs();
 
@@ -2194,16 +2215,20 @@ InstructionQueue::addToProducers(const DynInstPtr &new_inst)
 
             PhysRegIdPtr src_reg = new_inst->renamedSrcIdx(src_reg_idx);
 
-            DPRINTF(IQ, "PLACE16 DEP_PLACE_INST_IN_WAR, [sn:%llu] "
-                        "PC %s reg %d.\n", new_inst->seqNum, new_inst->pcState(),src_reg->flatIndex());
 
-            // add each src to a new vector entry for the WAR dependence graph
-            dependGraph.setInstPushBackWAR(src_reg->flatIndex(), new_inst);
+            // push if not fixedMapping ISHITA:TODO
+            if(!src_reg->isFixedMapping()) 
+            {
+                DPRINTF(IQ, "[tid:%d] PLACE16 DEP_PLACE_INST_IN_WAR, [sn:%llu] "
+                            "PC %s reg %d.\n", tid,new_inst->seqNum, new_inst->pcState(),src_reg->flatIndex());
 
-            DPRINTF(IQ,"SIZE_OF_ENTRIES5 %d ENTRY %d\n",dependGraph.sizeofWARFull(src_reg->flatIndex()),dependGraph.sizeofWAREntry(src_reg->flatIndex()));
+                // add each src to a new vector entry for the WAR dependence graph
+                dependGraph.setInstPushBackWAR(src_reg->flatIndex(), new_inst);
+
+                DPRINTF(IQ,"[tid:%d] SIZE_OF_ENTRIES5 %d ENTRY %d\n",tid,dependGraph.sizeofWARFull(src_reg->flatIndex()),dependGraph.sizeofWAREntry(src_reg->flatIndex()));
+            }
         }
     }
-    DPRINTF(IQ,"EXITING_HERE\n");
 }
 
 void
@@ -2220,9 +2245,9 @@ InstructionQueue::addIfReady(const DynInstPtr &inst)
             
             int8_t total_dest_regs = inst->numDestRegs();
 
-            DPRINTF(IQ, "STEP1, putting it onto "
+            DPRINTF(IQ, "[tid:%d] STEP1, putting it onto "
                 "the ready list, PC %s  [sn:%llu] total_dest_regs %d.\n",
-                inst->pcState(), inst->seqNum,total_dest_regs);
+                tid,inst->pcState(), inst->seqNum,total_dest_regs);
 
             for (int dest_reg_idx = 0;
                 dest_reg_idx < total_dest_regs;
@@ -2233,8 +2258,8 @@ InstructionQueue::addIfReady(const DynInstPtr &inst)
                 dest_reg->setNumPinnedWrites(inst->getnumWrites(dest_reg_idx));
                 dest_reg->setNumPinnedWritesToComplete(
                     inst->getNumPinnedWritesToComplete(dest_reg_idx));
-                DPRINTF(IQ, "LOOK_REGS_FINAL_WRITE [sn:%llu] RegNum %d %i (%s) pinned %d numPinnedComplete %d.\n",
-                inst->seqNum,dest_reg->flatIndex(), dest_reg->index(),
+                DPRINTF(IQ, "[tid:%d] LOOK_REGS_FINAL_WRITE [sn:%llu] RegNum %d %i (%s) pinned %d numPinnedComplete %d.\n",
+                tid,inst->seqNum,dest_reg->flatIndex(), dest_reg->index(),
                 dest_reg->className(),dest_reg->isPinned(),dest_reg->getNumPinnedWritesToComplete());
             }
         }
@@ -2242,7 +2267,7 @@ InstructionQueue::addIfReady(const DynInstPtr &inst)
         //Add the instruction to the proper ready list.
         if (inst->isMemRef()) {
 
-            DPRINTF(IQ, "Checking if memory instruction can issue.\n");
+            DPRINTF(IQ, "[tid:%d] Checking if memory instruction can issue.\n",tid);
 
             // Message to the mem dependence unit that this instruction has
             // its registers ready.
@@ -2253,9 +2278,9 @@ InstructionQueue::addIfReady(const DynInstPtr &inst)
 
         OpClass op_class = inst->opClass();
 
-        DPRINTF(IQ, "Instruction is ready to issue, putting it onto "
+        DPRINTF(IQ, "[tid:%d] Instruction is ready to issue, putting it onto "
                 "the ready list, PC %s opclass:%i [sn:%llu] type %d queueOnList[op_class] %d.\n",
-                inst->pcState(), op_class, inst->seqNum,cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType(),queueOnList[op_class]);
+                tid,inst->pcState(), op_class, inst->seqNum,cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType(),queueOnList[op_class]);
 
         readyInsts[op_class].push(inst);
 
@@ -2263,14 +2288,14 @@ InstructionQueue::addIfReady(const DynInstPtr &inst)
         // or it has an older instruction than last time.
         if (!queueOnList[op_class]) {
             addToOrderList(op_class);
-            DPRINTF(IQ, "ADD_TO_QUEU1 to issue, putting it onto "
+            DPRINTF(IQ, "[tid:%d] ADD_TO_QUEU1 to issue, putting it onto "
                 "the ready list, PC %s opclass:%i [sn:%llu] type %d.\n",
-                inst->pcState(), op_class, inst->seqNum,cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType());
+                tid,inst->pcState(), op_class, inst->seqNum,cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType());
         } else if (readyInsts[op_class].top()->seqNum  <
                    (*readyIt[op_class]).oldestInst) {
-            DPRINTF(IQ, "ADD_TO_QUEU2 to issue, putting it onto "
+            DPRINTF(IQ, "[tid:%d] ADD_TO_QUEU2 to issue, putting it onto "
                 "the ready list, PC %s opclass:%i [sn:%llu] type %d.\n",
-                inst->pcState(), op_class, inst->seqNum,cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType());
+                tid,inst->pcState(), op_class, inst->seqNum,cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType());
             listOrder.erase(readyIt[op_class]);
             addToOrderList(op_class);
         }

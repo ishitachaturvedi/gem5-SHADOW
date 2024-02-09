@@ -70,30 +70,39 @@ SimpleRenameMap::init(const RegClass &reg_class, SimpleFreeList *_freeList)
 }
 
 SimpleRenameMap::RenameInfo
-SimpleRenameMap::rename(const RegId& arch_reg, bool isWThread)
+SimpleRenameMap::rename(const RegId& arch_reg, bool isWThread, int tid, int sn)
 {
     PhysRegIdPtr renamed_reg;
     // Record the current physical register that is renamed to the
     // requested architected register.
     PhysRegIdPtr prev_reg = map[arch_reg.index()];
 
+    DPRINTF(Rename, "[tid:%d] [sn:%llu] Renamed base_newintreg1 %d physical reg %d (%d) old mapping was"
+            " %d (%d)\n", tid, sn, arch_reg.index(), arch_reg, prev_reg->flatIndex(), prev_reg->flatIndex());
+
     if (arch_reg.is(InvalidRegClass)) {
+        DPRINTF(Rename, "[tid:%d] [sn:%llu] Renamed base_newintreg2 %d physical reg %d (%d) old mapping was"
+            " %d (%d)\n", tid, sn, arch_reg.index(), arch_reg, prev_reg->flatIndex(), prev_reg->flatIndex());
         assert(prev_reg->is(InvalidRegClass));
         renamed_reg = prev_reg;
     } else if (prev_reg->getNumPinnedWrites() > 0) {
+
+        DPRINTF(Rename, "[tid:%d] [sn:%llu] Renamed base_newintreg3 %d physical reg %d (%d) old mapping was"
+            " %d (%d)\n", tid, sn, arch_reg.index(), arch_reg, prev_reg->flatIndex(), prev_reg->flatIndex());
         // Do not rename if the register is pinned
         assert(arch_reg.getNumPinnedWrites() == 0);  // Prevent pinning the
                                                      // same register twice
-        DPRINTF(Rename, "Renaming pinned reg, numPinnedWrites %d\n",
-                prev_reg->getNumPinnedWrites());
+        DPRINTF(Rename, "[tid:%d] Renaming pinned reg, numPinnedWrites %d\n",
+                tid,prev_reg->getNumPinnedWrites());
         renamed_reg = prev_reg;
         renamed_reg->decrNumPinnedWrites();
     } else {
-        if(isWThread && (prev_reg->gethasrenamed() == 1)) { 
+        if(isWThread) { 
         // do not rename WThread registers. Keep the old mapping
             renamed_reg = prev_reg;
-            DPRINTF(IQ, "REUSING_REG Renaming reg %d numPinnedWrites %d archwrite %d isPinned %d\n",
-                    renamed_reg->flatIndex(), renamed_reg->getNumPinnedWritesToComplete(),arch_reg.getNumPinnedWrites(),renamed_reg->isPinned());
+            DPRINTF(IQ, "[tid:%d] [sn:%llu] arch_reg %d REUSING_REG base_reg %d Renaming reg %d numPinnedWrites %d archwrite %d isPinned %d to physical reg %d (%d) old mapping was  %d (%d)\n",
+                    tid, sn, arch_reg, arch_reg.index(), renamed_reg->flatIndex(), renamed_reg->getNumPinnedWritesToComplete(),arch_reg.getNumPinnedWrites(),renamed_reg->isPinned(),renamed_reg->flatIndex(), renamed_reg->flatIndex(),
+            prev_reg->flatIndex(), prev_reg->flatIndex());
         } else {
             renamed_reg = freeList->getReg();
             renamed_reg->sethasrenamed();
@@ -101,14 +110,16 @@ SimpleRenameMap::rename(const RegId& arch_reg, bool isWThread)
             renamed_reg->setNumPinnedWrites(arch_reg.getNumPinnedWrites());
             renamed_reg->setNumPinnedWritesToComplete(
                 arch_reg.getNumPinnedWrites() + 1);
-            DPRINTF(IQ, "RENAME_CHECK Renaming reg %d numPinnedWrites %d archwrite %d isPinned %d\n",
-                    renamed_reg->flatIndex(), renamed_reg->getNumPinnedWritesToComplete(),arch_reg.getNumPinnedWrites(),renamed_reg->isPinned());
+            DPRINTF(IQ, "[tid:%d] [sn:%llu] arch_reg %d RENAME_CHECK base_reg %d Renaming reg %d numPinnedWrites %d archwrite %d isPinned %d to physical reg %d (%d) old mapping was  %d (%d)\n",
+                    tid,sn,arch_reg,arch_reg.index(), renamed_reg->flatIndex(), renamed_reg->getNumPinnedWritesToComplete(),arch_reg.getNumPinnedWrites(),renamed_reg->isPinned(),renamed_reg->flatIndex(), renamed_reg->flatIndex(),
+            prev_reg->flatIndex(), prev_reg->flatIndex());
+
         }
     }
 
-    DPRINTF(Rename, "Renamed reg %d to physical reg %d (%d) old mapping was"
+    DPRINTF(Rename, "[tid:%d] [sn:%llu] Renamed base_initreg %d reg regId %d %d to physical reg %d (%d) old mapping was"
             " %d (%d)\n",
-            arch_reg, renamed_reg->flatIndex(), renamed_reg->flatIndex(),
+            tid, sn, arch_reg.index(), arch_reg, renamed_reg->flatIndex(), renamed_reg->flatIndex(),
             prev_reg->flatIndex(), prev_reg->flatIndex());
 
     return RenameInfo(renamed_reg, prev_reg);

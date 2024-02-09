@@ -243,6 +243,9 @@ class InstructionQueue
      */
     bool olderIssuePending(const InstSeqNum &inst, ThreadID tid);
 
+    /** get which sn is still not issued which we are waiting on */
+    int SeqNumolderIssuePending(const InstSeqNum &inst, ThreadID tid);
+
     /**
      * Check if a younger instruction has been issued OoO for W threads.
      * This can happen if a memory instruction has been marked for re-issue

@@ -1469,7 +1469,7 @@ CPU::removeFrontInst(const DynInstPtr &inst)
 void
 CPU::removeInstsNotInROB(ThreadID tid)
 {
-    DPRINTF(O3CPU, "Thread %i: Deleting instructions from instruction"
+    DPRINTF(O3CPU, "[tid:%i] : Deleting instructions from instruction"
             " list.\n", tid);
 
     ListIt end_it;

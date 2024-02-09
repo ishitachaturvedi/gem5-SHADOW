@@ -102,8 +102,8 @@ IEW::IEW(CPU *_cpu, const BaseO3CPUParams &params)
 
     // Setup wire to read instructions coming from issue.
     fromIssue = issueToExecQueue.getWire(-issueToExecuteDelay);
-    fromIssue_S = issueToExecQueue.getWire(-issueToExecuteDelay);
-    fromIssue_W = issueToExecQueue.getWire(-issueToExecuteDelay); // Ishita
+    // fromIssue_S = issueToExecQueue.getWire(-issueToExecuteDelay);
+    // fromIssue_W = issueToExecQueue.getWire(-issueToExecuteDelay); // Ishita
 
     // Instruction queue needs the queue between issue and execute.
     instQueue.setIssueToExecuteQueue(&issueToExecQueue);
@@ -328,8 +328,8 @@ IEW::setRenameQueue(TimeBuffer<RenameStruct> *rq_ptr)
 
     // Setup wire to read information from rename queue.
     fromRename = renameQueue->getWire(-renameToIEWDelay); 
-    fromRename_S = renameQueue->getWire(-renameToIEWDelay);
-    fromRename_W = renameQueue->getWire(-renameToIEWDelay); // Ishita
+    // fromRename_S = renameQueue->getWire(-renameToIEWDelay);
+    // fromRename_W = renameQueue->getWire(-renameToIEWDelay); // Ishita
 }
 
 void
@@ -387,11 +387,11 @@ IEW::isDrained() const
 
     for (ThreadID tid = 0; tid < numThreads; tid++) {
         if (!insts[tid].empty()) {
-            DPRINTF(Drain, "%i: Insts not empty.\n", tid);
+            DPRINTF(Drain, "[tid:%i]: Insts not empty.\n", tid);
             drained = false;
         }
         if (!skidBuffer[tid].empty()) {
-            DPRINTF(Drain, "%i: Skid buffer not empty.\n", tid);
+            DPRINTF(Drain, "[tid:%i] : Skid buffer not empty.\n", tid);
             drained = false;
         }
         drained = drained && dispatchStatus[tid] == Running;
@@ -816,35 +816,35 @@ IEW::checkSignalsAndUpdate(ThreadID tid)
 void
 IEW::sortInsts()
 {
-    // int insts_from_rename = fromRename->size;
+    int insts_from_rename = fromRename->size;
 
-    // for (int i = 0; i < insts_from_rename; ++i) {
-    //     insts[fromRename->insts[i]->threadNumber].push(fromRename->insts[i]);
-    //     {
-    //         int tid = fromRename->insts[i]->threadNumber;
+    for (int i = 0; i < insts_from_rename; ++i) {
+        insts[fromRename->insts[i]->threadNumber].push(fromRename->insts[i]);
+        {
+            int tid = fromRename->insts[i]->threadNumber;
+            DPRINTF(IEW, "[tid:%d] Inserting inst in instqueue\n",tid);
+        }
+    }
+
+    // int insts_from_rename_S = fromRename_S->size;
+
+    // for (int i = 0; i < insts_from_rename_S; ++i) {
+    //     int tid = fromRename_S->insts[i]->threadNumber;
+    //     if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+    //     insts[fromRename_S->insts[i]->threadNumber].push(fromRename_S->insts[i]);
     //         DPRINTF(IEW, "[tid:%d] Inserting inst in instqueue\n",tid);
     //     }
     // }
 
-    int insts_from_rename_S = fromRename_S->size;
+    // int insts_from_rename_W = fromRename_W->size;
 
-    for (int i = 0; i < insts_from_rename_S; ++i) {
-        int tid = fromRename_S->insts[i]->threadNumber;
-        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
-        insts[fromRename_S->insts[i]->threadNumber].push(fromRename_S->insts[i]);
-            DPRINTF(IEW, "[tid:%d] Inserting inst in instqueue\n",tid);
-        }
-    }
-
-    int insts_from_rename_W = fromRename_W->size;
-
-    for (int i = 0; i < insts_from_rename_W; ++i) {
-        int tid = fromRename_W->insts[i]->threadNumber;
-        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
-        insts[fromRename_W->insts[i]->threadNumber].push(fromRename_W->insts[i]);
-            DPRINTF(IEW, "[tid:%d] Inserting inst in instqueue\n",tid);
-        }
-    }
+    // for (int i = 0; i < insts_from_rename_W; ++i) {
+    //     int tid = fromRename_W->insts[i]->threadNumber;
+    //     if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+    //     insts[fromRename_W->insts[i]->threadNumber].push(fromRename_W->insts[i]);
+    //         DPRINTF(IEW, "[tid:%d] Inserting inst in instqueue\n",tid);
+    //     }
+    // }
 
 
 }
@@ -901,12 +901,64 @@ IEW::deactivateStage()
 void
 IEW::dispatch(ThreadID tid)
 {
-    // If status is Running or idle,
-    //     call dispatchInsts()
-    // If status is Unblocking,
-    //     buffer any instructions coming from rename
-    //     continue trying to empty skid buffer
-    //     check if stall conditions have passed
+    // // If status is Running or idle,
+    // //     call dispatchInsts()
+    // // If status is Unblocking,
+    // //     buffer any instructions coming from rename
+    // //     continue trying to empty skid buffer
+    // //     check if stall conditions have passed
+
+    // if (dispatchStatus[tid] == Blocked) {
+    //     ++iewStats.blockCycles;
+
+    // } else if (dispatchStatus[tid] == Squashing) {
+    //     ++iewStats.squashCycles;
+    // }
+
+    // // Dispatch should try to dispatch as many instructions as its bandwidth
+    // // will allow, as long as it is not currently blocked.
+    // if (dispatchStatus[tid] == Running ||
+    //     dispatchStatus[tid] == Idle) {
+    //     DPRINTF(IEW, "[tid:%i] Not blocked, so attempting to run "
+    //             "dispatch.\n", tid);
+
+    //     dispatchInsts(tid);
+    //     ++iewStats.runningCycles;
+    // } else if (dispatchStatus[tid] == Unblocking) {
+    //     // Make sure that the skid buffer has something in it if the
+    //     // status is unblocking.
+    //     assert(!skidsEmpty());
+
+    //     // If the status was unblocking, then instructions from the skid
+    //     // buffer were used.  Remove those instructions and handle
+    //     // the rest of unblocking.
+    //     dispatchInsts(tid);
+
+    //     ++iewStats.unblockCycles;
+
+    //         if (fromRename->size != 0) {
+    //             // Add the current inputs to the skid buffer so they can be
+    //             // reprocessed when this stage unblocks.
+    //             skidInsert(tid);
+    //         }
+
+    //         // if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+    //         //     if (fromRename_S->size != 0) {
+    //         //         // Add the current inputs to the skid buffer so they can be
+    //         //         // reprocessed when this stage unblocks.
+    //         //         skidInsert(tid);
+    //         //     }
+    //         // } else {
+    //         //     if (fromRename_W->size != 0) {
+    //         //     // Add the current inputs to the skid buffer so they can be
+    //         //     // reprocessed when this stage unblocks.
+    //         //     skidInsert(tid);
+    //         // }
+    //     }
+
+    //     unblock(tid);
+    // }
+
 
     if (dispatchStatus[tid] == Blocked) {
         ++iewStats.blockCycles;
@@ -936,28 +988,15 @@ IEW::dispatch(ThreadID tid)
 
         ++iewStats.unblockCycles;
 
-        // if (fromRename->size != 0) {
-        //     // Add the current inputs to the skid buffer so they can be
-        //     // reprocessed when this stage unblocks.
-        //     skidInsert(tid);
-        // }
-
-            if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
-                if (fromRename_S->size != 0) {
-                    // Add the current inputs to the skid buffer so they can be
-                    // reprocessed when this stage unblocks.
-                    skidInsert(tid);
-                }
-            } else {
-                if (fromRename_W->size != 0) {
-                // Add the current inputs to the skid buffer so they can be
-                // reprocessed when this stage unblocks.
-                skidInsert(tid);
-            }
+        if (fromRename->size != 0) {
+            // Add the current inputs to the skid buffer so they can be
+            // reprocessed when this stage unblocks.
+            skidInsert(tid);
         }
 
         unblock(tid);
     }
+
 }
 
 void
@@ -1206,43 +1245,43 @@ IEW::printAvailableInsts()
 
     std::cout << "Available Instructions: ";
 
-    // while (fromIssue->insts[inst]) {
+    while (fromIssue->insts[inst]) {
+
+        if (inst%3==0) std::cout << "\n\t";
+
+        std::cout << "PC: " << fromIssue->insts[inst]->pcState()
+             << " TN: " << fromIssue->insts[inst]->threadNumber
+             << " SN: " << fromIssue->insts[inst]->seqNum << " | ";
+
+        inst++;
+
+    }
+
+    // while (fromIssue_S->insts[inst]) {
 
     //     if (inst%3==0) std::cout << "\n\t";
 
-    //     std::cout << "PC: " << fromIssue->insts[inst]->pcState()
-    //          << " TN: " << fromIssue->insts[inst]->threadNumber
-    //          << " SN: " << fromIssue->insts[inst]->seqNum << " | ";
+    //     std::cout << "PC: " << fromIssue_S->insts[inst]->pcState()
+    //          << " TN: " << fromIssue_S->insts[inst]->threadNumber
+    //          << " SN: " << fromIssue_S->insts[inst]->seqNum << " | ";
 
     //     inst++;
 
     // }
 
-    while (fromIssue_S->insts[inst]) {
+    // inst = 0;
 
-        if (inst%3==0) std::cout << "\n\t";
+    // while (fromIssue_W->insts[inst]) {
 
-        std::cout << "PC: " << fromIssue_S->insts[inst]->pcState()
-             << " TN: " << fromIssue_S->insts[inst]->threadNumber
-             << " SN: " << fromIssue_S->insts[inst]->seqNum << " | ";
+    //     if (inst%3==0) std::cout << "\n\t";
 
-        inst++;
+    //     std::cout << "PC: " << fromIssue_W->insts[inst]->pcState()
+    //          << " TN: " << fromIssue_W->insts[inst]->threadNumber
+    //          << " SN: " << fromIssue_W->insts[inst]->seqNum << " | ";
 
-    }
+    //     inst++;
 
-    inst = 0;
-
-    while (fromIssue_W->insts[inst]) {
-
-        if (inst%3==0) std::cout << "\n\t";
-
-        std::cout << "PC: " << fromIssue_W->insts[inst]->pcState()
-             << " TN: " << fromIssue_W->insts[inst]->threadNumber
-             << " SN: " << fromIssue_W->insts[inst]->seqNum << " | ";
-
-        inst++;
-
-    }
+    // }
 
     std::cout << "\n";
 }
@@ -1290,7 +1329,7 @@ IEW::executeInsts()
                         src_reg_idx++) {
             const PhysRegIdPtr reg = inst->renamedSrcIdx(src_reg_idx);
             RegVal regval = 0;
-            DPRINTF(IQ,"REG_ISSUE2_OUTVALS for SRC PC %s [sn:%llu] total_src_regs %d reg %d : ",inst->pcState(), inst->seqNum,total_src_regs1,reg->flatIndex());
+            DPRINTF(IQ,"[tid:%d] REG_ISSUE2_OUTVALS for SRC PC %s [sn:%llu] total_src_regs %d reg %d : ",tid, inst->pcState(), inst->seqNum,total_src_regs1,reg->flatIndex());
             if (!reg->is(InvalidRegClass) && !reg->is(MiscRegClass) && !reg->is(VecRegClass) && !reg->is(VecPredRegClass))
                 regval = cpu->getReg(reg);
             DPRINTF(IQ,"\n");
@@ -1302,7 +1341,7 @@ IEW::executeInsts()
         {
             const PhysRegIdPtr reg = inst->renamedDestIdx(dest_reg_idx);
             RegVal regval = 0;
-            DPRINTF(IQ,"REG_ISSUE2_OUTVALS for DEST PC %s [sn:%llu] total_dest_regs %d reg %d : ",inst->pcState(),inst->seqNum,total_dest_regs1,reg->flatIndex());
+            DPRINTF(IQ,"[tid:%d] REG_ISSUE2_OUTVALS for DEST PC %s [sn:%llu] total_dest_regs %d reg %d : ",tid, inst->pcState(),inst->seqNum,total_dest_regs1,reg->flatIndex());
             if (!reg->is(InvalidRegClass) && !reg->is(MiscRegClass) && !reg->is(VecRegClass) && !reg->is(VecPredRegClass))
                 regval = cpu->getReg(reg);
             DPRINTF(IQ,"\n");
@@ -1314,8 +1353,8 @@ IEW::executeInsts()
 
         // Check if the instruction is squashed; if so then skip it
         if (inst->isSquashed()) {
-            DPRINTF(IEW, "Execute: Instruction was squashed. PC: %s, [tid:%i]"
-                         " [sn:%llu]\n", inst->pcState(), inst->threadNumber,
+            DPRINTF(IEW, "[tid:%d] Execute: Instruction was squashed. PC: %s, [tid:%i]"
+                         " [sn:%llu]\n", tid, inst->pcState(), inst->threadNumber,
                          inst->seqNum);
 
             // Consider this instruction executed so that commit can go
@@ -1337,8 +1376,8 @@ IEW::executeInsts()
         // Note that if the instruction faults, it will be handled
         // at the commit stage.
         if (inst->isMemRef()) {
-            DPRINTF(IEW, "Execute: Calculating address for memory "
-                    "reference.\n");
+            DPRINTF(IEW, "[tid:%d] Execute: Calculating address for memory "
+                    "reference.\n",tid);
 
             // Tell the LDSTQ to execute this instruction (if it is a load).
             if (inst->isAtomic()) {
@@ -1349,8 +1388,8 @@ IEW::executeInsts()
                     fault == NoFault) {
                     // A hw page table walk is currently going on; the
                     // instruction must be deferred.
-                    DPRINTF(IEW, "Execute: Delayed translation, deferring "
-                            "store.\n");
+                    DPRINTF(IEW, "[tid:%d] Execute: Delayed translation, deferring "
+                            "store.\n",tid);
                     instQueue.deferMemInst(inst);
                     continue;
                 }
@@ -1410,8 +1449,8 @@ IEW::executeInsts()
                     fault == NoFault) {
                     // A hw page table walk is currently going on; the
                     // instruction must be deferred.
-                    DPRINTF(IEW, "Execute: Delayed translation, deferring "
-                            "store.\n");
+                    DPRINTF(IEW, "[tid:%d] Execute: Delayed translation, deferring "
+                            "store.\n",tid);
                     instQueue.deferMemInst(inst);
                     continue;
                 }
@@ -1459,8 +1498,8 @@ IEW::executeInsts()
                     inst->forwardOldRegs();
             }
 
-            DPRINTF(IEW, "Execute: Set executed PC %s, [tid:%i] [sn:%llu].\n",
-                inst->pcState(), inst->threadNumber,inst->seqNum);
+            DPRINTF(IEW, "[tid:%d] Execute: Set executed PC %s, [tid:%i] [sn:%llu].\n",
+                tid, inst->pcState(), inst->threadNumber,inst->seqNum);
 
             inst->setExecuted();
 
@@ -1526,9 +1565,9 @@ IEW::executeInsts()
                 DynInstPtr violator;
                 violator = ldstQueue.getMemDepViolator(tid);
 
-                DPRINTF(IEW, "LDSTQ detected a violation. Violator PC: %s "
+                DPRINTF(IEW, "[tid:%d] LDSTQ detected a violation. Violator PC: %s "
                         "[sn:%lli], inst PC: %s [sn:%lli]. Addr is: %#x.\n",
-                        violator->pcState(), violator->seqNum,
+                        tid, violator->pcState(), violator->seqNum,
                         inst->pcState(), inst->seqNum, inst->physEffAddr);
 
                 fetchRedirect[tid] = true;
@@ -1549,12 +1588,12 @@ IEW::executeInsts()
 
                 DynInstPtr violator = ldstQueue.getMemDepViolator(tid);
 
-                DPRINTF(IEW, "LDSTQ detected a violation.  Violator PC: "
+                DPRINTF(IEW, "[tid:%d] LDSTQ detected a violation.  Violator PC: "
                         "%s, inst PC: %s.  Addr is: %#x.\n",
-                        violator->pcState(), inst->pcState(),
+                        tid, violator->pcState(), inst->pcState(),
                         inst->physEffAddr);
-                DPRINTF(IEW, "Violation will not be handled because "
-                        "already squashing\n");
+                DPRINTF(IEW, "[tid:%d] Violation will not be handled because "
+                        "already squashing\n",tid);
 
                 ++iewStats.memOrderViolationEvents;
             }
@@ -1592,8 +1631,8 @@ IEW::writebackInsts()
         DynInstPtr inst = toCommit->insts[inst_num];
         ThreadID tid = inst->threadNumber;
 
-        DPRINTF(IEW, "Sending instructions to commit, [sn:%lli] PC %s.\n",
-                inst->seqNum, inst->pcState());
+        DPRINTF(IEW, "[tid:%d] Sending instructions to commit, [sn:%lli] PC %s.\n",
+                tid, inst->seqNum, inst->pcState());
 
         iewStats.instsToCommit[tid]++;
         // Notify potential listeners that execution is complete for this
@@ -1616,8 +1655,8 @@ IEW::writebackInsts()
                 // Mark register as ready if not pinned
                 if (inst->renamedDestIdx(i)->
                         getNumPinnedWritesToComplete() == 0) {
-                    DPRINTF(IEW,"Setting Destination Register %i (%s)\n",
-                            inst->renamedDestIdx(i)->index(),
+                    DPRINTF(IEW,"[tid:%d] Setting Destination Register %i (%s)\n",
+                            tid, inst->renamedDestIdx(i)->index(),
                             inst->renamedDestIdx(i)->className());
                     scoreboard->setReg(inst->renamedDestIdx(i));
                 }
@@ -1717,14 +1756,14 @@ IEW::tick()
 
         if (fromCommit->commitInfo[tid].nonSpecSeqNum != 0) {
 
-            DPRINTF(IEW,"NonspecInst from thread %i seqNum %llu\n",tid,fromCommit->commitInfo[tid].nonSpecSeqNum);
+            DPRINTF(IEW,"[tid:%d] NonspecInst from thread %i seqNum %llu\n",tid ,tid,fromCommit->commitInfo[tid].nonSpecSeqNum);
             if (fromCommit->commitInfo[tid].strictlyOrdered) {
                 DPRINTF(IEW,"NonspecInst from thread ReplayMemInst %i seqNum %llu\n",tid,fromCommit->commitInfo[tid].nonSpecSeqNum);
                 instQueue.replayMemInst(
                     fromCommit->commitInfo[tid].strictlyOrderedLoad);
                 fromCommit->commitInfo[tid].strictlyOrderedLoad->setAtCommit();
             } else {
-                DPRINTF(IEW,"NonspecInst from thread ALUInst %i seqNum %llu\n",tid,fromCommit->commitInfo[tid].nonSpecSeqNum);
+                DPRINTF(IEW,"[tid:%d] NonspecInst from thread ALUInst %i seqNum %llu\n",tid,tid,fromCommit->commitInfo[tid].nonSpecSeqNum);
                 instQueue.scheduleNonSpec(
                     fromCommit->commitInfo[tid].nonSpecSeqNum);
             }

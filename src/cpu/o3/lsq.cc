@@ -180,6 +180,11 @@ LSQ::tick()
 
     usedLoadPorts = 0;
     usedStorePorts = 0;
+
+    for (ThreadID tid = 0; tid < numThreads; tid++) {
+        DPRINTF(LSQ,"[tid:%d] Dumping memory queue%d\n",tid);
+        thread[tid].dumpInsts();
+    }
 }
 
 bool
