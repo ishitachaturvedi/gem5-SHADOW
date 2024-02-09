@@ -54,6 +54,10 @@
 
 # time build/ARM/gem5.opt -d WThreads configs/example/se_SMT_ARM.py "test_codes/pthreads_lock-arm" --threadTypes W --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3_grace" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=10 --smt -t 6 -WThreads 6 -SThreads 0
 
+# time build/ARM/gem5.opt configs/example/se_SMT_ARM.py "test_codes/pthreads_lock-arm" "test_codes/pthreads_lock-arm" --threadTypes S S --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=10 --smt -t 12 -WThreads 0 -SThreads 12
+
+# time build/ARM/gem5.opt configs/example/se_SMT_ARM.py "test_codes/pthreads_lock-arm" "test_codes/pthreads_lock-arm" --threadTypes W W --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=10 --smt -t 12 -WThreads 12 -SThreads 0
+
 # TEST
 # build/ARM/gem5.opt --debug-flags=O3CPU configs/example/se_SMT_ARM.py "test_codes/hello_pthreads-arm" --threadTypes S --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=10 --smt -t 6 -WThreads 0 -SThreads 6
 
