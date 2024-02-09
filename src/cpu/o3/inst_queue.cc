@@ -681,8 +681,13 @@ InstructionQueue::getInstToExecute()
     assert(!instsToExecute.empty());
 
     // sort list based on seq numbers
+    // instsToExecute.sort([this](const DynInstPtr& inst1, const DynInstPtr& inst2) {
+    // return compareBySeqNum(inst1, inst2);});
+    //.sort(compareBySeqNum);
+
     instsToExecute.sort([this](const DynInstPtr& inst1, const DynInstPtr& inst2) {
-    return compareBySeqNum(inst1, inst2);});
+    return compareBySeqNum(inst1, inst2);
+    });
 
     DynInstPtr inst = std::move(instsToExecute.front());
     instsToExecute.pop_front();
@@ -1600,7 +1605,16 @@ InstructionQueue::violation(const DynInstPtr &store,
 
 bool 
 InstructionQueue::compareBySeqNum(const DynInstPtr& inst1, const DynInstPtr& inst2) {
-    return inst1->seqNum < inst2->seqNum;
+    //return inst1->seqNum < inst2->seqNum;
+
+    int tid1 = inst1->threadNumber;
+    int tid2 = inst2->threadNumber;
+
+    if ((tid1 == tid2) && (cpu->thread[tid1]->tc->getProcessPtr()->getprocessThreadType() == Weak)) {
+        return inst1->seqNum < inst2->seqNum;
+    }
+    
+    return false;
 }
 void
 InstructionQueue::squash(ThreadID tid)

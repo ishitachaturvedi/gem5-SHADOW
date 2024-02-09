@@ -451,6 +451,7 @@ Commit::deactivateThread(ThreadID tid)
         DPRINTF(Commit,"[tid:%d] DEACTIVATING_THREAD rob->isEmpty %d\n",tid,rob->isEmpty(tid));
         priority_list.erase(thread_it);
     }
+    lastCommitedCycle[tid] = -1;
 }
 
 void
@@ -463,8 +464,8 @@ Commit::activateThread(ThreadID tid)
     {
         DPRINTF(Commit,"[tid:%d] FINALLY_ACTIVATING_THREAD\n",tid);
         priority_list.push_back(tid);
-        lastCommitedCycle[tid] = -1;
     }
+    lastCommitedCycle[tid] = -1;
 }
 
 bool
