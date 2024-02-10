@@ -1380,9 +1380,6 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
                                 "PC %s.\n", tid, popped_inst,dep_inst,dep_inst->seqNum, dep_inst->pcState());
                         }
 
-                        DPRINTF(IQ, "[tid:%d] PLACE3 WAW STARTING TO WAKE INSTS WRITE_INST, [sn:%llu] "
-                                "PC %s.\n", tid, dep_inst->seqNum, dep_inst->pcState());
-
                         dep_inst->markDestDepRegReady(dest_reg->flatIndex(),dep_inst->numDestRegs());
 
                         // mark dest regs as ready for this instruction
@@ -2161,56 +2158,58 @@ InstructionQueue::addToProducers(const DynInstPtr &new_inst)
         regScoreboard[dest_reg->flatIndex()] = false;           
     }
 
-    for (int dest_reg_idx = 0;
-         dest_reg_idx < total_dest_regs;
-         dest_reg_idx++)
-    {
-        PhysRegIdPtr dest_reg = new_inst->renamedDestIdx(dest_reg_idx);
-
-        // for WAW dependencies, we add this instruction to the dependenceWAWGraph
-        // when this instruction is over, it will be removed from the graph and will wake up 
-        // the instruction after it and place it at the head of the graph
-        // only for W threads: 
-        if (dest_regs_set.find(dest_reg_idx) == dest_regs_set.end())
+    if(cpu->thread[new_inst->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+        for (int dest_reg_idx = 0;
+            dest_reg_idx < total_dest_regs;
+            dest_reg_idx++)
         {
-            dest_regs_set.insert(dest_reg_idx);
+            PhysRegIdPtr dest_reg = new_inst->renamedDestIdx(dest_reg_idx);
 
-            DPRINTF(IQ,"[tid:%d] Putting inst in WAW queue [sn:%llu] "
-                    "PC %s reg %d fixed mapping %d.\n", tid,new_inst->seqNum, new_inst->pcState(),dest_reg->flatIndex(),dest_reg->isFixedMapping());
-
-            bool isFirstEntry = true;
-
-            int entry_num = -1;
-            
-            if(!dest_reg->isFixedMapping()) {
-                entry_num = dependGraph.insertBehindWAW(dest_reg->flatIndex(), new_inst);
-
-                DPRINTF(IQ,"[tid:%d] SIZE_OF_ENTRIES6 %d ENTRY %d\n",tid,dependGraph.sizeofWAWFull(dest_reg->flatIndex()),dependGraph.sizeofWAWEntry(dest_reg->flatIndex()));
-
-                if(entry_num != 0) {
-                    isFirstEntry = false;
-                }
-
-            }
-            // mark dest regs as ready if the entry is the first entry of the linked list
-            if(isFirstEntry)
+            // for WAW dependencies, we add this instruction to the dependenceWAWGraph
+            // when this instruction is over, it will be removed from the graph and will wake up 
+            // the instruction after it and place it at the head of the graph
+            // only for W threads: 
+            if (dest_regs_set.find(dest_reg_idx) == dest_regs_set.end())
             {
-                DPRINTF(IQ, "[tid:%d] PLACE15 DEP_INST_READY, [sn:%llu] "
-                    "PC %s reg %d.\n", tid,new_inst->seqNum, new_inst->pcState(),dest_reg->flatIndex());
+                dest_regs_set.insert(dest_reg_idx);
 
-                DPRINTF(IQ, "[tid:%d] PLACE3 WAR2 STARTING TO WAKE INSTS WRITE_INST, [sn:%llu] "
-                        "PC %s idx %d total_dest_regs %d dest_reg->isFixedMapping() %d.\n", tid,new_inst->seqNum, new_inst->pcState(),dest_reg->flatIndex(),total_dest_regs,dest_reg->isFixedMapping());
+                DPRINTF(IQ,"[tid:%d] Putting inst in WAW queue [sn:%llu] "
+                        "PC %s reg %d fixed mapping %d.\n", tid,new_inst->seqNum, new_inst->pcState(),dest_reg->flatIndex(),dest_reg->isFixedMapping());
 
-                new_inst->markDestDepRegReady(dest_reg_idx,total_dest_regs);
-                new_inst->markDestRegReady(dest_reg_idx,total_dest_regs); 
-            } else {
-                DPRINTF(IQ, "[tid:%d] PLACE25 WAW_HAZARD, [sn:%llu] "
-                    "PC %s entry_num %d.\n", tid,new_inst->seqNum, new_inst->pcState(),entry_num);
-            }
-        }    
-        else {
-            panic("same reg being written to twice!!\n");
-        }  
+                bool isFirstEntry = true;
+
+                int entry_num = -1;
+                
+                if(!dest_reg->isFixedMapping()) {
+                    entry_num = dependGraph.insertBehindWAW(dest_reg->flatIndex(), new_inst);
+
+                    DPRINTF(IQ,"[tid:%d] [sn:%d] WAW_DEST_NUM_CHECK REG %d SIZE_OF_ENTRIES6 %d ENTRY %d entry_num %d\n",tid,new_inst->seqNum,dest_reg->flatIndex(),dependGraph.sizeofWAWFull(dest_reg->flatIndex()),dependGraph.sizeofWAWEntry(dest_reg->flatIndex()),entry_num);
+
+                    if(entry_num != 0) {
+                        isFirstEntry = false;
+                    }
+
+                }
+                // mark dest regs as ready if the entry is the first entry of the linked list
+                if(isFirstEntry)
+                {
+                    DPRINTF(IQ, "[tid:%d] PLACE15 DEP_INST_READY, [sn:%llu] "
+                        "PC %s reg %d.\n", tid,new_inst->seqNum, new_inst->pcState(),dest_reg->flatIndex());
+
+                    DPRINTF(IQ, "[tid:%d] PLACE3 WAR2 STARTING TO WAKE INSTS WRITE_INST, [sn:%llu] "
+                            "PC %s idx %d total_dest_regs %d dest_reg->isFixedMapping() %d.\n", tid,new_inst->seqNum, new_inst->pcState(),dest_reg->flatIndex(),total_dest_regs,dest_reg->isFixedMapping());
+
+                    new_inst->markDestDepRegReady(dest_reg_idx,total_dest_regs);
+                    new_inst->markDestRegReady(dest_reg_idx,total_dest_regs); 
+                } else {
+                    DPRINTF(IQ, "[tid:%d] PLACE25 WAW_HAZARD, [sn:%llu] "
+                        "PC %s entry_num %d.\n", tid,new_inst->seqNum, new_inst->pcState(),entry_num);
+                }
+            }    
+            else {
+                panic("same reg being written to twice!!\n");
+            }  
+        }
     }
 
     DPRINTF(IQ, "[tid:%d] IMPORTANT_PLACE_INST_IN_WAR, [sn:%llu] "

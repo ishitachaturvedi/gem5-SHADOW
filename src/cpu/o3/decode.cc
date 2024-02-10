@@ -715,6 +715,7 @@ Decode::decodeInsts(ThreadID tid)
         if ((inst->numSrcRegs() == 0) && (cpu->thread[inst->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Strong)) {
             inst->setCanIssue();
         } else if((inst->numSrcRegs() == 0) && (inst->numDestRegs() == 0) && (cpu->thread[inst->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Weak)) {
+            DPRINTF(Decode, "[tid:%i] [sn:%lli] Marking inst as ready to issue in decode\n",tid, inst->seqNum);
             inst->setCanIssue();
         }
 

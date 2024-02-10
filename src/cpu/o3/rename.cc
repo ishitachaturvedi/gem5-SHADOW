@@ -1105,10 +1105,10 @@ Rename::renameSrcRegs(const DynInstPtr &inst, ThreadID tid)
         // See if the register is ready or not. INORDER
         if (scoreboard->getReg(renamed_reg) && (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong || renamed_reg->isFixedMapping())) {
             DPRINTF(Rename,
-                    "[tid:%i] "
-                    "Register %d (flat: %d) (%s) is ready.\n",
-                    tid, renamed_reg->index(), renamed_reg->flatIndex(),
-                    renamed_reg->className());
+                    "[tid:%i] [sn:%d]"
+                    "MARKING_HERE Register %d (flat: %d) (%s) is ready tid_type %d fixed_mapping %d.\n",
+                    tid, inst->seqNum, renamed_reg->index(), renamed_reg->flatIndex(),
+                    renamed_reg->className(),cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType(),renamed_reg->isFixedMapping());
 
             if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
                 inst->markSrcRegReady(src_idx);
