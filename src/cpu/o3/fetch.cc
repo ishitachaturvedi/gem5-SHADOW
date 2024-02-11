@@ -591,12 +591,15 @@ Fetch::lookupAndUpdateNextPC(const DynInstPtr &inst, PCStateBase &next_pc)
     }
 
     ThreadID tid = inst->threadNumber;
-    // Daniel Change:
+
     if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
         predict_taken = branchPred->predict(inst->staticInst, inst->seqNum,
                                         next_pc, tid);
-    }else{
-        predict_taken = false;
+    } else {
+        // stop branch prediction for W threads. Just predict as not taken right now.
+        //predict_taken = branchPred->predict(inst->staticInst, inst->seqNum, //INORDER turn off branch prediction
+        //                                next_pc, tid);
+        predict_taken = true;
     }
 
     if (predict_taken) {
@@ -1046,9 +1049,8 @@ Fetch::checkSignalsAndUpdate(ThreadID tid)
         // If it was a branch mispredict on a control instruction, update the
         // branch predictor with that instruction, otherwise just kill the
         // invalid state we generated in after sequence number
-        
-        // Daniel check for thread type:
-        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
+        // update BP only for S threads
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
             if (fromCommit->commitInfo[tid].mispredictInst &&
                 fromCommit->commitInfo[tid].mispredictInst->isControl()) {
                 branchPred->squash(fromCommit->commitInfo[tid].doneSeqNum,
@@ -1059,14 +1061,12 @@ Fetch::checkSignalsAndUpdate(ThreadID tid)
                                 tid);
             }
         }
+
         return true;
-    } else if (fromCommit->commitInfo[tid].doneSeqNum) {
+    } else if (fromCommit->commitInfo[tid].doneSeqNum && cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
         // Update the branch predictor if it wasn't a squashed instruction
         // that was broadcasted.
-        // Daniel check for thread type:
-        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
-            branchPred->update(fromCommit->commitInfo[tid].doneSeqNum, tid);
-        }
+        branchPred->update(fromCommit->commitInfo[tid].doneSeqNum, tid);
     }
 
     // Check squash signals from decode.
@@ -1074,9 +1074,8 @@ Fetch::checkSignalsAndUpdate(ThreadID tid)
         DPRINTF(Fetch, "[tid:%i] Squashing instructions due to squash "
                 "from decode.\n",tid);
 
-        // Daniel check for thread type:
-        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
-            // Update the branch predictor.
+        // Update the branch predictor.
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
             if (fromDecode->decodeInfo[tid].branchMispredict) {
                 branchPred->squash(fromDecode->decodeInfo[tid].doneSeqNum,
                         *fromDecode->decodeInfo[tid].nextPC,
@@ -1086,6 +1085,7 @@ Fetch::checkSignalsAndUpdate(ThreadID tid)
                                 tid);
             }
         }
+
         if (fetchStatus[tid] != Squashing) {
 
             DPRINTF(Fetch, "Squashing from decode with PC = %s\n",

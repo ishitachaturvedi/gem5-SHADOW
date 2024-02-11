@@ -180,6 +180,11 @@ LSQ::tick()
 
     usedLoadPorts = 0;
     usedStorePorts = 0;
+
+    // for (ThreadID tid = 0; tid < numThreads; tid++) {
+    //     DPRINTF(LSQ,"[tid:%d] Dumping memory queue%d\n",tid);
+    //     thread[tid].dumpInsts();
+    // }
 }
 
 bool
@@ -247,6 +252,29 @@ LSQ::executeStore(const DynInstPtr &inst)
     ThreadID tid = inst->threadNumber;
 
     return thread[tid].executeStore(inst);
+}
+
+std::vector<int>
+LSQ::getIncompleteStores()
+{
+    std::vector<int> incomplete_stores;
+
+    for (ThreadID tid = 0; tid < numThreads; tid++) {
+        incomplete_stores.push_back(thread[tid].getIncompleteStores());
+    }
+
+    return incomplete_stores;
+}
+
+std::vector<int>
+LSQ::getIncompleteLoads()
+{
+    std::vector<int> incomplete_stores;
+    for (ThreadID tid = 0; tid < numThreads; tid++) {
+        incomplete_stores.push_back(thread[tid].getIncompleteLoads());
+    }
+
+    return incomplete_stores;
 }
 
 void
@@ -804,6 +832,12 @@ LSQ::pushRequest(const DynInstPtr& inst, bool isLoad, uint8_t *data,
 
     const bool htm_cmd = isLoad && (flags & Request::HTM_CMD);
     const bool tlbi_cmd = isLoad && (flags & Request::TLBI_CMD);
+
+    if(!isLoad) {
+        DPRINTF(LSQUnit, "pushRequest write to store addr %#x "
+            "[sn:%llu] PC %d\n",
+            addr, inst->seqNum, inst->pcState());
+    }
 
     if (inst->translationStarted()) {
         request = inst->savedRequest;

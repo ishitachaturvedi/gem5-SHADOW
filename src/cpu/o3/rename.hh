@@ -106,6 +106,14 @@ class Rename
         SerializeStall
     };
 
+    /** Is the thread weak or strong. */
+    enum ThreadType
+    {
+        Strong = 1,
+        Weak
+    };
+
+
   private:
     /** Rename status. */
     RenameStatus _status;

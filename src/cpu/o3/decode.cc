@@ -50,6 +50,7 @@
 #include "debug/O3PipeView.hh"
 #include "params/BaseO3CPU.hh"
 #include "sim/full_system.hh"
+#include "debug/IQ.hh"
 
 // clang complains about std::set being overloaded with Packet::set if
 // we open up the entire namespace std
@@ -709,7 +710,12 @@ Decode::decodeInsts(ThreadID tid)
         // them as ready to issue at any time.  Not sure if this check
         // should exist here or at a later stage; however it doesn't matter
         // too much for function correctness.
-        if (inst->numSrcRegs() == 0) {
+
+        // Only for S threads. For W threads numSrc and Dest should all be 0
+        if ((inst->numSrcRegs() == 0) && (cpu->thread[inst->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Strong)) {
+            inst->setCanIssue();
+        } else if((inst->numSrcRegs() == 0) && (inst->numDestRegs() == 0) && (cpu->thread[inst->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Weak)) {
+            DPRINTF(Decode, "[tid:%i] [sn:%lli] Marking inst as ready to issue in decode\n",tid, inst->seqNum);
             inst->setCanIssue();
         }
 

@@ -539,7 +539,7 @@ LSQUnit::checkViolations(typename LoadQueue::iterator& loadIt,
                     if (!memDepViolator ||
                             ld_inst->seqNum < memDepViolator->seqNum) {
                         DPRINTF(LSQUnit, "Detected fault with inst [sn:%lli] "
-                                "and [sn:%lli] at address %#x\n",
+                                "and [sn:%lli] at address %#x Incorrectly hitExternalSnoop\n",
                                 inst->seqNum, ld_inst->seqNum, ld_eff_addr1);
                         memDepViolator = ld_inst;
 
@@ -562,11 +562,15 @@ LSQUnit::checkViolations(typename LoadQueue::iterator& loadIt,
                 // A load/store incorrectly passed this store.
                 // Check if we already have a violator, or if it's newer
                 // squash and refetch.
-                if (memDepViolator && ld_inst->seqNum > memDepViolator->seqNum)
+                if (memDepViolator && ld_inst->seqNum > memDepViolator->seqNum) {
+                    DPRINTF(LSQUnit, "OlderDetected fault with inst [sn:%lli] and "
+                        "[sn:%lli] at address %#x incorrectly passed store violator [sn:%lli]\n",
+                        inst->seqNum, ld_inst->seqNum, ld_eff_addr1, memDepViolator->seqNum);
                     break;
+                }
 
-                DPRINTF(LSQUnit, "Detected fault with inst [sn:%lli] and "
-                        "[sn:%lli] at address %#x\n",
+                DPRINTF(LSQUnit, "NewDetected fault with inst [sn:%lli] and "
+                        "[sn:%lli] at address %#x incorrectly passed\n",
                         inst->seqNum, ld_inst->seqNum, ld_eff_addr1);
                 memDepViolator = ld_inst;
 
@@ -714,6 +718,42 @@ LSQUnit::executeStore(const DynInstPtr &store_inst)
 
     return checkViolations(loadIt, store_inst);
 
+}
+
+int
+LSQUnit::getIncompleteStores() {
+
+    if(storeQueue.size() == 0) {
+        return 0;
+    }
+
+    /* Forward iterate the store queue (age order). */
+    for (auto& x : storeQueue) {
+        if(!x.instruction()->isNoFault()) {
+            DPRINTF(LSQUnit, "getIncompleteStores, store PC [sn:%llu]\n",
+            x.instruction()->seqNum);
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int
+LSQUnit::getIncompleteLoads() {
+
+    if(loadQueue.size() == 0) {
+        return 0;
+    }
+
+    /* Forward iterate the store queue (age order). */
+    for (auto& x : loadQueue) {
+        if(!x.instruction()->isNoFault()) {
+            DPRINTF(LSQUnit, "getIncompleteLoads, load PC [sn:%llu]%s\n",
+            x.instruction()->seqNum);
+            return 1;
+        }
+    }
+    return 0;
 }
 
 void
@@ -1283,25 +1323,25 @@ LSQUnit::recvRetry()
 void
 LSQUnit::dumpInsts() const
 {
-    cprintf("Load store queue: Dumping instructions.\n");
-    cprintf("Load queue size: %i\n", loadQueue.size());
-    cprintf("Load queue: ");
+    DPRINTF(LSQUnit, "Load store queue: Dumping instructions.\n");
+    DPRINTF(LSQUnit, "Load queue size: %i\n", loadQueue.size());
+    DPRINTF(LSQUnit, "Load queue: ");
 
     for (const auto& e: loadQueue) {
         const DynInstPtr &inst(e.instruction());
-        cprintf("%s.[sn:%llu] ", inst->pcState(), inst->seqNum);
+        DPRINTF(LSQUnit, "%s.[sn:%llu] ", inst->pcState(), inst->seqNum);
     }
-    cprintf("\n");
+    DPRINTF(LSQUnit, "\n");
 
-    cprintf("Store queue size: %i\n", storeQueue.size());
-    cprintf("Store queue: ");
+    DPRINTF(LSQUnit, "Store queue size: %i\n", storeQueue.size());
+    DPRINTF(LSQUnit, "Store queue: ");
 
     for (const auto& e: storeQueue) {
         const DynInstPtr &inst(e.instruction());
-        cprintf("%s.[sn:%llu] ", inst->pcState(), inst->seqNum);
+        DPRINTF(LSQUnit, "%s.[sn:%llu] ", inst->pcState(), inst->seqNum);
     }
 
-    cprintf("\n");
+    DPRINTF(LSQUnit, "\n");
 }
 
 void LSQUnit::schedule(Event& ev, Tick when) { cpu->schedule(ev, when); }
@@ -1352,10 +1392,10 @@ LSQUnit::read(LSQRequest *request, ssize_t load_idx)
     }
 
     DPRINTF(LSQUnit, "Read called, load idx: %i, store idx: %i, "
-            "storeHead: %i addr: %#x%s\n",
+            "storeHead: %i addr: %#x%s [sn:%llx]\n",
             load_idx - 1, load_inst->sqIt._idx, storeQueue.head() - 1,
             request->mainReq()->getPaddr(), request->isSplit() ? " split" :
-            "");
+            "",load_inst->seqNum);
 
     if (request->mainReq()->isLLSC()) {
         // Disable recording the result temporarily.  Writing to misc

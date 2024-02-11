@@ -693,6 +693,14 @@ class LSQ
     /** Executes a store. */
     Fault executeStore(const DynInstPtr &inst);
 
+    /** Are there incomplete stores in the pipeline? These stores can cuase faults and re-execution
+     */
+    std::vector<int> getIncompleteStores();
+
+    /** Are there incomplete loads in the pipeline? These stores can cuase faults and re-execution
+     */
+    std::vector<int> getIncompleteLoads();
+
     /**
      * Commits loads up until the given sequence number for a specific thread.
      */

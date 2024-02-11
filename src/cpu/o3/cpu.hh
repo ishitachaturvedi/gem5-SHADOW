@@ -422,9 +422,9 @@ class CPU : public BaseCPU
     /** The commit stage. */
     Commit commit;
 
-    /** S threads support register renaming and have a shared register file space and free list. W threads do not support any renaming, so there need to be separeate registers for each thread which are not shared. The regFile renamins the same for S threads. It is shared across threads. WthreadRegfile has register space for W threads and their own freeList. The free list access will have to be changed for W threads. /**
+    /** S threads support register renaming and have a shared register file space and free list. W threads do not support any renaming, so there need to be separeate registers for each thread which are not shared. The regFile renamins the same for S threads. It is shared across threads. WthreadRegfile has register space for W threads and their own freeList. The free list access will have to be changed for W threads.*/
 
-    /** The register file -> This is shared by all S threads.*/
+    /** The register file -> This is shared by all S threads. */
     PhysRegFile regFile;
 
     /** The free list for S threads. */

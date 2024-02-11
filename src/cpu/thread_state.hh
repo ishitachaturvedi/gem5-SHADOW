@@ -88,6 +88,14 @@ struct ThreadState : public Serializable
     Counter numInst;
      /** Number of ops (including micro ops) committed. */
     Counter numOp;
+
+    /* Is the thread issuing a control instruction */
+    bool ControlInstIssued;
+    /* Is the thread issuing a memory instruction */
+    bool MemInstIssued;
+
+    int ControlInstSeq;
+    int MemInstSeq;
     // Defining the stat group
     struct ThreadStateStats : public statistics::Group
     {

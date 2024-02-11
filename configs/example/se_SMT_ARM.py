@@ -41,14 +41,34 @@
 
 # multiple workloads: Many workloads run on 1 cpu. We dont have a config with many workloads and many CPUs. It brings in the question of load balancing between CPUs. That is beyond
 # the scope of this work. 
-#time build/ARM/gem5.opt -d out_md5_1_dir configs/example/se_SMT_ARM.py "/scratch/ishitac/starbench/md5/pthread/md5 -i 3 -c 1 -t 1 " "/scratch/ishitac/starbench/md5/pthread/md5 -i 3 -c 1 -t 1" --caches --l1d_size=3kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3_grace" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=11 --smt -t 3
+#time build/ARM/gem5.opt -d out_md5_1_dir configs/example/se_SMT_ARM.py "test_codes/pthreads_lock-arm " "test_codes/pthreads_lock-arm" --caches --l1d_size=3kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3_grace" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=11 --smt -t 3
+
+#time build/ARM/gem5.opt -d SThreads configs/example/se_SMT_ARM.py "test_codes/pthreads_lock-arm" "test_codes/pthreads_lock-arm" --threadTypes S W --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=10 --smt -t 6 -WThreads 0 -SThreads 6 > outS
 
 # Adding S and W threads and workload types:
 # time build/ARM/gem5.opt --debug-flags=Rename -d out_md5_1_dir configs/example/se_SMT_ARM.py "/scratch/ishitac/starbench/md5/pthread/md5 -i 3 -c 1 -t 2 " "/scratch/ishitac/starbench/md5/pthread/md5 -i 3 -c 1 -t 2 " --threadTypes S W --caches --l1d_size=3kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3_grace" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=2 --smt -t 6 -WThreads 3 -SThreads 3
 
-# TEST
-# build/ARM/gem5.opt --debug-flags=O3CPU configs/example/se_SMT_ARM.py "test_codes/hello_pthreads-arm" --threadTypes S --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=5 --smt -t 6 -WThreads 0 -SThreads 6
+# time build/ARM/gem5.opt configs/example/se_SMT_ARM.py "test_codes/pthreads_lock-arm" "test_codes/pthreads_lock-arm" --threadTypes S W --caches --l1d_size=3kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3_grace" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=2 --smt -t 10 -WThreads 5 -SThreads 5
 
+# time build/ARM/gem5.opt configs/example/se_SMT_ARM.py "test_codes/pthreads_lock-arm" --threadTypes W --caches --l1d_size=3kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3_grace" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=2 --smt -t 6 -WThreads 6 -SThreads 0
+
+# time build/ARM/gem5.opt -d WThreads configs/example/se_SMT_ARM.py "test_codes/pthreads_lock-arm" --threadTypes W --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3_grace" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=10 --smt -t 6 -WThreads 6 -SThreads 0
+
+# time build/ARM/gem5.opt configs/example/se_SMT_ARM.py "test_codes/pthreads_lock-arm" "test_codes/pthreads_lock-arm" --threadTypes S S --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=10 --smt -t 12 -WThreads 0 -SThreads 12
+
+# time build/ARM/gem5.opt configs/example/se_SMT_ARM.py "test_codes/pthreads_lock-arm" "test_codes/pthreads_lock-arm" --threadTypes W W --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=10 --smt -t 12 -WThreads 12 -SThreads 0
+
+# TEST
+# build/ARM/gem5.opt --debug-flags=O3CPU configs/example/se_SMT_ARM.py "test_codes/hello_pthreads-arm" --threadTypes S --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=10 --smt -t 6 -WThreads 0 -SThreads 6
+
+# time build/ARM/gem5.opt -d WThreads configs/example/se_SMT_ARM.py "test_codes/hello_pthreads-arm" --threadTypes W --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=10 --smt -t 6 -WThreads 6 -SThreads 0
+
+# build/ARM/gem5.opt --debug-end=151250 --debug-flags=LSQUnit,O3CPUAll,MemDepUnit configs/example/se_SMT_ARM.py "test_codes/hello_pthreads-arm" --threadTypes S --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=10 --smt -t 6 -WThreads 0 -SThreads 6 > out
+
+
+# build/ARM/gem5.opt configs/example/se_SMT_ARM.py "bmrk_binaries/CRONO/tsp 2 16" --threadTypes S --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=10 --smt -t 6 -WThreads 0 -SThreads 6 > outS
+
+# time build/ARM/gem5.opt -d WThreads_tsp configs/example/se_SMT_ARM.py "bmrk_binaries/CRONO/tsp 2 16" --threadTypes W --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=10 --smt -t 6 -WThreads 6 -SThreads 0 > out
 
 """This script is the syscall emulation example script from the ARM
 Research Starter Kit on System Modeling. More information can be found

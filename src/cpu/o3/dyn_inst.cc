@@ -78,8 +78,19 @@ DynInst::DynInst(const Arrays &arrays, const StaticInstPtr &static_inst,
         cpu->dumpInsts();
         dumpSNList();
 #endif
-        assert(cpu->instcount <= (1500*MaxThreads));
+        //assert(cpu->instcount <= (1500*MaxThreads));
     }
+
+    SrcRegsCheck.resize(arrays.numSrcs,0);
+    //DestRegsCheck.resize(arrays.numDests,0);
+    DestRegsCheck = 0;
+    numPinnedWritesToComplete.resize(arrays.numDests,0);
+    pinned.resize(arrays.numDests,0);
+    numPinnedWrites.resize(arrays.numDests,0);
+    numWrites.resize(arrays.numDests,0);
+    numWARPending.resize(arrays.numDests,0);
+
+    squashedInQueue = false;
 
     DPRINTF(DynInst,
         "DynInst: [sn:%lli] Instruction created. Instcount for %s = %i\n",
@@ -293,12 +304,42 @@ DynInst::dump(std::string &outstring)
 }
 
 void
-DynInst::markSrcRegReady()
+DynInst::markSrcRegReady() //Ishita: src regs are marked as ready, similarly, dest also need to be marked as ready. Only when all regs are ready we can issue. This takes care of all types of deps.
 {
-    DPRINTF(IQ, "[sn:%lli] has %d ready out of %d sources. RTI %d)\n",
+    DPRINTF(IQ, "markSrcRegReady_SIMPLE [sn:%lli] has %d ready out of %d sources. RTI %d)\n",
             seqNum, readyRegs+1, numSrcRegs(), readyToIssue());
     if (++readyRegs == numSrcRegs()) {
         setCanIssue();
+    }
+}
+
+void
+DynInst::markSrcRegReadyWDone(RegIndex src_idx) //Ishita: src regs are marked as ready, similarly, dest also need to be marked as ready. Only when all regs are ready we can issue. This takes care of all types of deps.
+{
+    //if(SrcRegsCheck[src_idx] == 1) { // only RAW hazard can take place -> this can be much simpler.
+        DPRINTF(IQ, "SRC [sn:%lli] has %d ready out of %d sources. RTI %d\n", seqNum, readyRegs+1, (numSrcRegs() + numDestRegs()), readyToIssue());
+        if (++readyRegs == (numSrcRegs() + numDestRegs())) {
+            setCanIssue();
+        }
+    //}
+}
+
+
+
+// mark the dest reg as ready
+void
+DynInst::markDestRegReady(RegIndex src_idx, int tot_regs) 
+{
+    //if(DestRegsCheck[src_idx] == 2) {
+    if(DestRegsCheck == 2*tot_regs) {
+        DPRINTF(IQ, "SET_DEST [sn:%lli] has %d ready out of %d sources. RTI %d DESTREG_VAL %d tot_regs %d\n", seqNum, readyRegs+1, (numSrcRegs() + numDestRegs()), readyToIssue(),DestRegsCheck,tot_regs);
+        readyRegs = readyRegs + numDestRegs();
+        if (readyRegs == (numSrcRegs() + numDestRegs())) {
+            setCanIssue();
+        }
+    } else {
+        assert(DestRegsCheck < (2*tot_regs + 1));
+        DPRINTF(IQ, "LESS_DEST_VAL [sn:%lli] has reg_idx %d has %d ready out of %d sources. RTI %d DESTREG_VAL %d tot_regs %d\n", seqNum, src_idx, readyRegs, (numSrcRegs() + numDestRegs()), readyToIssue(),DestRegsCheck,tot_regs);
     }
 }
 
@@ -309,6 +350,29 @@ DynInst::markSrcRegReady(RegIndex src_idx)
     markSrcRegReady();
 }
 
+void
+DynInst::markSrcRegReadyW(RegIndex src_idx)
+{
+    readySrcIdx(src_idx, true);
+    markSrcRegReadyWDone(src_idx);
+}
+
+void
+DynInst::markSrcDepRegReady(RegIndex src_idx) {
+    SrcRegsCheck[src_idx]++;
+    if(!(SrcRegsCheck[src_idx] == 1)) {
+        panic("SrcRegsCheck value is %d for src_red %d and not 1!\n",SrcRegsCheck[src_idx],src_idx);
+    }
+    assert(SrcRegsCheck[src_idx] == 1);
+    assert(!readyToIssue());
+}
+
+void 
+DynInst::markDestDepRegReady(RegIndex src_idx, int tot_regs) {
+    ++DestRegsCheck;
+    DPRINTF(IQ, "MARK_REG_READY [sn:%lli] has reg_idx %d has %d ready out of %d sources. RTI %d DESTREG_VAL %d tot_regs %d\n", seqNum, src_idx, readyRegs, (numSrcRegs() + numDestRegs()), readyToIssue(),DestRegsCheck,tot_regs);
+    assert(DestRegsCheck < (2*tot_regs + 1));
+}
 
 void
 DynInst::setSquashed()

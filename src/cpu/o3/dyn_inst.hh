@@ -150,9 +150,11 @@ class DynInst : public ExecContext, public RefCounted
         CanIssue,                /// Instruction can issue and execute
         Issued,                  /// Instruction has issued
         Executed,                /// Instruction has executed
+        WokeDependents,          /// Instruction has woken dependents
         CanCommit,               /// Instruction can commit
         AtCommit,                /// Instruction has reached commit
         Committed,               /// Instruction has committed
+        isFaulting,                 /// Memory instruction has executed without any faults
         Squashed,                /// Instruction is squashed
         SquashedInIQ,            /// Instruction is squashed in the IQ
         SquashedInLSQ,           /// Instruction is squashed in the LSQ
@@ -202,9 +204,6 @@ class DynInst : public ExecContext, public RefCounted
      */
     std::queue<InstResult> instResult;
 
-    /** PC state for this instruction. */
-    std::unique_ptr<PCStateBase> pc;
-
     /** Values to be written to the destination misc. registers. */
     std::vector<RegVal> _destMiscRegVal;
 
@@ -235,9 +234,52 @@ class DynInst : public ExecContext, public RefCounted
     // Whether or not the source register is ready, one bit per register.
     uint8_t *_readySrcIdx;
 
+    // store the pinned writes for the registers
+    std::vector<int> numPinnedWritesToComplete;
+    std::vector<bool> pinned;
+    std::vector<int> numPinnedWrites;
+    std::vector<int> numWrites;
+
   public:
+
+    /** PC state for this instruction. */
+    std::unique_ptr<PCStateBase> pc;
+
     size_t numSrcs() const { return _numSrcs; }
     size_t numDests() const { return _numDests; }
+
+    // store the pinned values here.
+    void
+    setNumPinnedWrites(int numWritesVal, int idx)
+    {
+        // An instruction with a pinned destination reg can get
+        // squashed. The numPinnedWrites counter may be zero when
+        // the squash happens but we need to know if the dest reg
+        // was pinned originally in order to reset counters properly
+        // for a possible re-rename using the same physical reg (which
+        // may be required in case of a mem access order violation).
+        pinned[idx] = (numWritesVal != 0);
+        numPinnedWrites[idx] = numWritesVal;
+        numWrites[idx] = numWritesVal;
+    }
+
+    int getnumWrites(int idx) {
+        return numWrites[idx];
+    }
+
+    void
+    setNumPinnedWritesToComplete(int numWrites,int idx)
+    {
+        numPinnedWritesToComplete[idx] = numWrites;
+    }
+
+    int
+    getNumPinnedWritesToComplete(int idx) const
+    {
+        return numPinnedWritesToComplete[idx];
+    }
+
+    bool isPinned(int idx) const { return pinned[idx]; }
 
     // Returns the flattened register index of the idx'th destination
     // register.
@@ -318,10 +360,6 @@ class DynInst : public ExecContext, public RefCounted
     /** Iterator pointing to this BaseDynInst in the list of all insts. */
     ListIt instListIt;
 
-    ////////////////////// Branch Data ///////////////
-    /** Predicted PC state after this instruction. */
-    std::unique_ptr<PCStateBase> predPC;
-
     /** The Macroop if one exists */
     const StaticInstPtr macroop;
 
@@ -332,6 +370,10 @@ class DynInst : public ExecContext, public RefCounted
     /////////////////////// Load Store Data //////////////////////
     /** The effective virtual address (lds & stores only). */
     Addr effAddr = 0;
+
+    ////////////////////// Branch Data ///////////////
+    /** Predicted PC state after this instruction. */
+    std::unique_ptr<PCStateBase> predPC;
 
     /** The effective physical address. */
     Addr physEffAddr = 0;
@@ -353,6 +395,11 @@ class DynInst : public ExecContext, public RefCounted
     ssize_t sqIdx = -1;
     typename LSQUnit::SQIterator sqIt;
 
+    /** Check if registers pass all dependence checks for W threads */
+    std::vector<int> SrcRegsCheck; /** Can be stalled due to RAW hazard */ 
+    //std::vector<int> DestRegsCheck; /** Can be stalled due to WAW hazards, WAR hazard */
+    int DestRegsCheck;/** Can be stalled due to WAW hazards, WAR hazard -> only 1 output reg. No need for an array */
+
 
     /////////////////////// TLB Miss //////////////////////
     /**
@@ -366,6 +413,11 @@ class DynInst : public ExecContext, public RefCounted
     RequestPtr reqToVerify;
 
   public:
+
+    /** Number of instructions on which it has a WAR dependence. When this number is 0, this
+     * instruction can be issued. There is 1 entry for each reg. */
+    std::vector<int> numWARPending;
+
     /** Records changes to result? */
     void recordResult(bool f) { instFlags[RecordResult] = f; }
 
@@ -724,6 +776,18 @@ class DynInst : public ExecContext, public RefCounted
     /** Records that one of the source registers is ready. */
     void markSrcRegReady();
 
+    /** Record the the RAW dependence on the src has been resolved */
+    void markSrcDepRegReady(RegIndex src_idx);
+
+    /** Record the the WAW/WAR dependence on the dest has been resolved */
+    void markDestDepRegReady(RegIndex src_idx, int tot_regs);
+
+    /** Records that one of the destination registers is ready. */
+    void markDestRegReady(RegIndex dest_idx, int tot_regs);
+
+    void markSrcRegReadyW(RegIndex src_idx);
+    void markSrcRegReadyWDone(RegIndex src_idx);
+
     /** Marks a specific register as ready. */
     void markSrcRegReady(RegIndex src_idx);
 
@@ -739,6 +803,12 @@ class DynInst : public ExecContext, public RefCounted
     /** Returns whether or not the result is ready. */
     bool isResultReady() const { return status[ResultReady]; }
 
+    /** Marks the memory instruction issued without any faults. */
+    void setNoFault() { status.set(isFaulting); }
+
+    /** Returns whether or not the memory instruction issued without any faults. */
+    bool isNoFault() const { return status[isFaulting]; }
+
     /** Sets this instruction as ready to issue. */
     void setCanIssue() { status.set(CanIssue); }
 
@@ -747,6 +817,12 @@ class DynInst : public ExecContext, public RefCounted
 
     /** Clears this instruction being able to issue. */
     void clearCanIssue() { status.reset(CanIssue); }
+
+     /** Sets this instruction as completed waking up dependents. */
+    void setWokeDependents() { status.set(WokeDependents); }
+
+    /** Returns whether or not this instruction has woken up dependents. */
+    bool HasWokenDependents() const { return status[WokeDependents]; }
 
     /** Sets this instruction as issued from the IQ. */
     void setIssued() { status.set(Issued); }
@@ -953,6 +1029,8 @@ class DynInst : public ExecContext, public RefCounted
     {
         thread->storeCondFailures = sc_failures;
     }
+
+    bool squashedInQueue;
 
   public:
     // monitor/mwait funtions

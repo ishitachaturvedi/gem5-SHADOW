@@ -89,6 +89,12 @@ class Decode
         Unblocking
     };
 
+    enum ThreadType
+    {
+        Strong = 1,
+        Weak
+    };
+
   private:
     /** Decode status. */
     DecodeStatus _status;

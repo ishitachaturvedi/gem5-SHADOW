@@ -58,6 +58,7 @@
 #include "debug/Rename.hh"
 #include "debug/O3PipeView.hh"
 #include "params/BaseO3CPU.hh"
+#include "debug/IQ.hh"
 
 namespace gem5
 {
@@ -101,6 +102,8 @@ IEW::IEW(CPU *_cpu, const BaseO3CPUParams &params)
 
     // Setup wire to read instructions coming from issue.
     fromIssue = issueToExecQueue.getWire(-issueToExecuteDelay);
+    // fromIssue_S = issueToExecQueue.getWire(-issueToExecuteDelay);
+    // fromIssue_W = issueToExecQueue.getWire(-issueToExecuteDelay); // Ishita
 
     // Instruction queue needs the queue between issue and execute.
     instQueue.setIssueToExecuteQueue(&issueToExecQueue);
@@ -326,7 +329,9 @@ IEW::setRenameQueue(TimeBuffer<RenameStruct> *rq_ptr)
     renameQueue = rq_ptr;
 
     // Setup wire to read information from rename queue.
-    fromRename = renameQueue->getWire(-renameToIEWDelay);
+    fromRename = renameQueue->getWire(-renameToIEWDelay); 
+    // fromRename_S = renameQueue->getWire(-renameToIEWDelay);
+    // fromRename_W = renameQueue->getWire(-renameToIEWDelay); // Ishita
 }
 
 void
@@ -384,11 +389,11 @@ IEW::isDrained() const
 
     for (ThreadID tid = 0; tid < numThreads; tid++) {
         if (!insts[tid].empty()) {
-            DPRINTF(Drain, "%i: Insts not empty.\n", tid);
+            DPRINTF(Drain, "[tid:%i]: Insts not empty.\n", tid);
             drained = false;
         }
         if (!skidBuffer[tid].empty()) {
-            DPRINTF(Drain, "%i: Skid buffer not empty.\n", tid);
+            DPRINTF(Drain, "[tid:%i] : Skid buffer not empty.\n", tid);
             drained = false;
         }
         drained = drained && dispatchStatus[tid] == Running;
@@ -485,12 +490,13 @@ IEW::squash(ThreadID tid)
 void
 IEW::squashDueToBranch(const DynInstPtr& inst, ThreadID tid)
 {
-    DPRINTF(IEW, "[tid:%i] [sn:%llu] Squashing from a specific instruction,"
-            " PC: %s "
-            "\n", tid, inst->seqNum, inst->pcState() );
+    DPRINTF(IEW, "[tid:%i] [sn:%llu] SquashReason squashing from a specific instruction,"
+            " PC: %s squshSN:%llu"
+            "\n", tid, inst->seqNum, inst->pcState(),toCommit->squashedSeqNum[tid] );
 
     if (!toCommit->squash[tid] ||
             inst->seqNum < toCommit->squashedSeqNum[tid]) {
+
         toCommit->squash[tid] = true;
         toCommit->squashedSeqNum[tid] = inst->seqNum;
         toCommit->branchTaken[tid] = inst->pcState().branching();
@@ -502,6 +508,10 @@ IEW::squashDueToBranch(const DynInstPtr& inst, ThreadID tid)
         toCommit->includeSquashInst[tid] = false;
 
         wroteToTimeBuffer = true;
+
+        DPRINTF(IEW, "[tid:%i] [sn:%llu] SETTING_VALS,"
+            " PC: %s squshSN:%llu"
+            "\n", tid, inst->seqNum, inst->pcState(),toCommit->squashedSeqNum[tid] );
     }
 
 }
@@ -509,7 +519,7 @@ IEW::squashDueToBranch(const DynInstPtr& inst, ThreadID tid)
 void
 IEW::squashDueToMemOrder(const DynInstPtr& inst, ThreadID tid)
 {
-    DPRINTF(IEW, "[tid:%i] Memory violation, squashing violator and younger "
+    DPRINTF(IEW, "[tid:%i] SquashReason Memory violation, squashing violator and younger "
             "insts, PC: %s [sn:%llu].\n", tid, inst->pcState(), inst->seqNum);
     // Need to include inst->seqNum in the following comparison to cover the
     // corner case when a branch misprediction and a memory violation for the
@@ -517,6 +527,13 @@ IEW::squashDueToMemOrder(const DynInstPtr& inst, ThreadID tid)
     // case the memory violator should take precedence over the branch
     // misprediction because it requires the violator itself to be included in
     // the squash.
+
+    // W threads should never show this violation
+    if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+        panic("There should not be any data speculation for W threads\n");
+    }
+
+
     if (!toCommit->squash[tid] ||
             inst->seqNum <= toCommit->squashedSeqNum[tid]) {
         toCommit->squash[tid] = true;
@@ -802,18 +819,36 @@ void
 IEW::sortInsts()
 {
     int insts_from_rename = fromRename->size;
-// #ifdef DEBUG
-//     for (ThreadID tid = 0; tid < numThreads; tid++)
-//         assert(insts[tid].empty());
-// #endif
+
     for (int i = 0; i < insts_from_rename; ++i) {
         insts[fromRename->insts[i]->threadNumber].push(fromRename->insts[i]);
-        //if(fromRename->insts[i]->threadNumber == 4)
         {
             int tid = fromRename->insts[i]->threadNumber;
             DPRINTF(IEW, "[tid:%d] Inserting inst in instqueue\n",tid);
         }
     }
+
+    // int insts_from_rename_S = fromRename_S->size;
+
+    // for (int i = 0; i < insts_from_rename_S; ++i) {
+    //     int tid = fromRename_S->insts[i]->threadNumber;
+    //     if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+    //     insts[fromRename_S->insts[i]->threadNumber].push(fromRename_S->insts[i]);
+    //         DPRINTF(IEW, "[tid:%d] Inserting inst in instqueue\n",tid);
+    //     }
+    // }
+
+    // int insts_from_rename_W = fromRename_W->size;
+
+    // for (int i = 0; i < insts_from_rename_W; ++i) {
+    //     int tid = fromRename_W->insts[i]->threadNumber;
+    //     if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+    //     insts[fromRename_W->insts[i]->threadNumber].push(fromRename_W->insts[i]);
+    //         DPRINTF(IEW, "[tid:%d] Inserting inst in instqueue\n",tid);
+    //     }
+    // }
+
+
 }
 
 void
@@ -868,12 +903,64 @@ IEW::deactivateStage()
 void
 IEW::dispatch(ThreadID tid)
 {
-    // If status is Running or idle,
-    //     call dispatchInsts()
-    // If status is Unblocking,
-    //     buffer any instructions coming from rename
-    //     continue trying to empty skid buffer
-    //     check if stall conditions have passed
+    // // If status is Running or idle,
+    // //     call dispatchInsts()
+    // // If status is Unblocking,
+    // //     buffer any instructions coming from rename
+    // //     continue trying to empty skid buffer
+    // //     check if stall conditions have passed
+
+    // if (dispatchStatus[tid] == Blocked) {
+    //     ++iewStats.blockCycles;
+
+    // } else if (dispatchStatus[tid] == Squashing) {
+    //     ++iewStats.squashCycles;
+    // }
+
+    // // Dispatch should try to dispatch as many instructions as its bandwidth
+    // // will allow, as long as it is not currently blocked.
+    // if (dispatchStatus[tid] == Running ||
+    //     dispatchStatus[tid] == Idle) {
+    //     DPRINTF(IEW, "[tid:%i] Not blocked, so attempting to run "
+    //             "dispatch.\n", tid);
+
+    //     dispatchInsts(tid);
+    //     ++iewStats.runningCycles;
+    // } else if (dispatchStatus[tid] == Unblocking) {
+    //     // Make sure that the skid buffer has something in it if the
+    //     // status is unblocking.
+    //     assert(!skidsEmpty());
+
+    //     // If the status was unblocking, then instructions from the skid
+    //     // buffer were used.  Remove those instructions and handle
+    //     // the rest of unblocking.
+    //     dispatchInsts(tid);
+
+    //     ++iewStats.unblockCycles;
+
+    //         if (fromRename->size != 0) {
+    //             // Add the current inputs to the skid buffer so they can be
+    //             // reprocessed when this stage unblocks.
+    //             skidInsert(tid);
+    //         }
+
+    //         // if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+    //         //     if (fromRename_S->size != 0) {
+    //         //         // Add the current inputs to the skid buffer so they can be
+    //         //         // reprocessed when this stage unblocks.
+    //         //         skidInsert(tid);
+    //         //     }
+    //         // } else {
+    //         //     if (fromRename_W->size != 0) {
+    //         //     // Add the current inputs to the skid buffer so they can be
+    //         //     // reprocessed when this stage unblocks.
+    //         //     skidInsert(tid);
+    //         // }
+    //     }
+
+    //     unblock(tid);
+    // }
+
 
     if (dispatchStatus[tid] == Blocked) {
         ++iewStats.blockCycles;
@@ -911,6 +998,7 @@ IEW::dispatch(ThreadID tid)
 
         unblock(tid);
     }
+
 }
 
 void
@@ -945,8 +1033,8 @@ IEW::dispatchInsts(ThreadID tid)
         assert(inst);
 
         DPRINTF(IEW, "[tid:%i] Issue: Adding PC %s [sn:%lli] [tid:%i] to "
-                "IQ.\n",
-                tid, inst->pcState(), inst->seqNum, inst->threadNumber);
+                "IQ isExecuted %d.\n",
+                tid, inst->pcState(), inst->seqNum, inst->threadNumber, inst->isExecuted());
 
         // Be sure to mark these instructions as ready so that the
         // commit stage can go ahead and execute them, and mark
@@ -1172,6 +1260,32 @@ IEW::printAvailableInsts()
 
     }
 
+    // while (fromIssue_S->insts[inst]) {
+
+    //     if (inst%3==0) std::cout << "\n\t";
+
+    //     std::cout << "PC: " << fromIssue_S->insts[inst]->pcState()
+    //          << " TN: " << fromIssue_S->insts[inst]->threadNumber
+    //          << " SN: " << fromIssue_S->insts[inst]->seqNum << " | ";
+
+    //     inst++;
+
+    // }
+
+    // inst = 0;
+
+    // while (fromIssue_W->insts[inst]) {
+
+    //     if (inst%3==0) std::cout << "\n\t";
+
+    //     std::cout << "PC: " << fromIssue_W->insts[inst]->pcState()
+    //          << " TN: " << fromIssue_W->insts[inst]->threadNumber
+    //          << " SN: " << fromIssue_W->insts[inst]->seqNum << " | ";
+
+    //     inst++;
+
+    // }
+
     std::cout << "\n";
 }
 
@@ -1203,8 +1317,38 @@ IEW::executeInsts()
 
         DynInstPtr inst = instQueue.getInstToExecute();
 
+        // check that there is no pending store that has not completed.
+        // a pending store an lead to a fault and this instruction will be 
+        // re-executed. So dont execute anything till we establish no fault.
+
         DPRINTF(IEW, "Execute: Processing PC %s, [tid:%i] [sn:%llu].\n",
                 inst->pcState(), inst->threadNumber,inst->seqNum);
+
+        int tid = inst->threadNumber;
+
+        int8_t total_src_regs1 = inst->numSrcRegs();
+        for (int src_reg_idx = 0;
+                        src_reg_idx < total_src_regs1;
+                        src_reg_idx++) {
+            const PhysRegIdPtr reg = inst->renamedSrcIdx(src_reg_idx);
+            RegVal regval = 0;
+            DPRINTF(IQ,"[tid:%d] REG_ISSUE2_OUTVALS for SRC PC %s [sn:%llu] total_src_regs %d reg %d : ",tid, inst->pcState(), inst->seqNum,total_src_regs1,reg->flatIndex());
+            if (!reg->is(InvalidRegClass) && !reg->is(MiscRegClass) && !reg->is(VecRegClass) && !reg->is(VecPredRegClass))
+                regval = cpu->getReg(reg);
+            DPRINTF(IQ,"\n");
+        }
+        int8_t total_dest_regs1 = inst->numDestRegs();
+        for (int dest_reg_idx = 0;
+            dest_reg_idx < total_dest_regs1;
+            dest_reg_idx++)
+        {
+            const PhysRegIdPtr reg = inst->renamedDestIdx(dest_reg_idx);
+            RegVal regval = 0;
+            DPRINTF(IQ,"[tid:%d] REG_ISSUE2_OUTVALS for DEST PC %s [sn:%llu] total_dest_regs %d reg %d : ",tid, inst->pcState(),inst->seqNum,total_dest_regs1,reg->flatIndex());
+            if (!reg->is(InvalidRegClass) && !reg->is(MiscRegClass) && !reg->is(VecRegClass) && !reg->is(VecPredRegClass))
+                regval = cpu->getReg(reg);
+            DPRINTF(IQ,"\n");
+        }
 
         // Notify potential listeners that this instruction has started
         // executing
@@ -1212,8 +1356,8 @@ IEW::executeInsts()
 
         // Check if the instruction is squashed; if so then skip it
         if (inst->isSquashed()) {
-            DPRINTF(IEW, "Execute: Instruction was squashed. PC: %s, [tid:%i]"
-                         " [sn:%llu]\n", inst->pcState(), inst->threadNumber,
+            DPRINTF(IEW, "[tid:%d] Execute: Instruction was squashed. PC: %s, [tid:%i]"
+                         " [sn:%llu]\n", tid, inst->pcState(), inst->threadNumber,
                          inst->seqNum);
 
             // Consider this instruction executed so that commit can go
@@ -1235,8 +1379,8 @@ IEW::executeInsts()
         // Note that if the instruction faults, it will be handled
         // at the commit stage.
         if (inst->isMemRef()) {
-            DPRINTF(IEW, "Execute: Calculating address for memory "
-                    "reference.\n");
+            DPRINTF(IEW, "[tid:%d] Execute: Calculating address for memory "
+                    "reference.\n",tid);
 
             // Tell the LDSTQ to execute this instruction (if it is a load).
             if (inst->isAtomic()) {
@@ -1247,11 +1391,25 @@ IEW::executeInsts()
                     fault == NoFault) {
                     // A hw page table walk is currently going on; the
                     // instruction must be deferred.
-                    DPRINTF(IEW, "Execute: Delayed translation, deferring "
-                            "store.\n");
+                    DPRINTF(IEW, "[tid:%d] Execute: Delayed translation, deferring "
+                            "store.\n",tid);
                     instQueue.deferMemInst(inst);
                     continue;
                 }
+
+                if(inst->fault == NoFault) {
+                    inst->setNoFault();
+                    if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+                        assert(cpu->thread[tid]->MemInstIssued);
+                        cpu->thread[tid]->MemInstIssued = false;
+                        cpu->thread[tid]->MemInstSeq = -1;
+                        DPRINTF(IEW, "[tid:%i]: SETTING3_MemInstIssued %s "
+                        "[sn:%llu] MemInstIssued %d\n",
+                        tid, inst->pcState(),
+                        inst->seqNum,cpu->thread[tid]->MemInstIssued);
+                    }
+                }
+
             } else if (inst->isLoad()) {
                 // Loads will mark themselves as executed, and their writeback
                 // event adds the instruction to the queue to commit
@@ -1264,12 +1422,29 @@ IEW::executeInsts()
                     DPRINTF(IEW, "Execute: Delayed translation, deferring "
                             "load.\n");
                     instQueue.deferMemInst(inst);
+                    // mark this instruction as need to be reissued
+                    // so we dont move forward with next instructions
+                    // and accidentally go OoO
                     continue;
                 }
 
                 if (inst->isDataPrefetch() || inst->isInstPrefetch()) {
                     inst->fault = NoFault;
                 }
+
+                if(inst->fault == NoFault) {
+                    inst->setNoFault();
+                    if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+                        assert(cpu->thread[tid]->MemInstIssued);
+                        cpu->thread[tid]->MemInstIssued = false;
+                        cpu->thread[tid]->MemInstSeq = -1;
+                        DPRINTF(IEW, "[tid:%i]: SETTING1_MemInstIssued %s "
+                        "[sn:%llu] MemInstIssued %d\n",
+                        tid, inst->pcState(),
+                        inst->seqNum,cpu->thread[tid]->MemInstIssued);
+                    }
+                }
+
             } else if (inst->isStore()) {
                 fault = ldstQueue.executeStore(inst);
 
@@ -1277,8 +1452,8 @@ IEW::executeInsts()
                     fault == NoFault) {
                     // A hw page table walk is currently going on; the
                     // instruction must be deferred.
-                    DPRINTF(IEW, "Execute: Delayed translation, deferring "
-                            "store.\n");
+                    DPRINTF(IEW, "[tid:%d] Execute: Delayed translation, deferring "
+                            "store.\n",tid);
                     instQueue.deferMemInst(inst);
                     continue;
                 }
@@ -1293,6 +1468,19 @@ IEW::executeInsts()
                     inst->setExecuted();
                     instToCommit(inst);
                     activityThisCycle();
+                }
+
+                if(inst->fault == NoFault) {
+                    inst->setNoFault();
+                    if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+                        assert(cpu->thread[tid]->MemInstIssued);
+                        cpu->thread[tid]->MemInstIssued = false;
+                        cpu->thread[tid]->MemInstSeq = -1;
+                        DPRINTF(IEW, "[tid:%i]: SETTING2_MemInstIssued %s "
+                        "[sn:%llu] MemInstIssued %d\n",
+                        tid, inst->pcState(),
+                        inst->seqNum,cpu->thread[tid]->MemInstIssued);
+                    }
                 }
 
                 // Store conditionals will mark themselves as
@@ -1313,6 +1501,9 @@ IEW::executeInsts()
                     inst->forwardOldRegs();
             }
 
+            DPRINTF(IEW, "[tid:%d] Execute: Set executed PC %s, [tid:%i] [sn:%llu].\n",
+                tid, inst->pcState(), inst->threadNumber,inst->seqNum);
+
             inst->setExecuted();
 
             instToCommit(inst);
@@ -1328,8 +1519,6 @@ IEW::executeInsts()
         // This probably needs to prioritize the redirects if a different
         // scheduler is used.  Currently the scheduler schedules the oldest
         // instruction first, so the branch resolution order will be correct.
-        ThreadID tid = inst->threadNumber;
-
         if (!fetchRedirect[tid] ||
             !toCommit->squash[tid] ||
             toCommit->squashedSeqNum[tid] > inst->seqNum) {
@@ -1337,6 +1526,17 @@ IEW::executeInsts()
             // Prevent testing for misprediction on load instructions,
             // that have not been executed.
             bool loadNotExecuted = !inst->isExecuted() && inst->isLoad();
+
+            if(!loadNotExecuted && inst->isControl() && inst->isExecuted() && !inst->mispredicted() && cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak && !inst->squashedInQueue) {
+                DPRINTF(IQ, "[tid:%i] RELIEVING1_ControlInstIssued %s "
+                    "[sn:%llu] ControlInstIssued %d\n",
+                    tid, inst->pcState(),
+                    inst->seqNum,cpu->thread[tid]->ControlInstIssued);
+                assert(cpu->thread[tid]->ControlInstIssued);
+                assert(cpu->thread[tid]->ControlInstSeq == inst->seqNum);
+                cpu->thread[tid]->ControlInstIssued = false;
+                cpu->thread[tid]->ControlInstSeq = -1;
+            }
 
             if (inst->mispredicted() && !loadNotExecuted) {
                 fetchRedirect[tid] = true;
@@ -1368,9 +1568,9 @@ IEW::executeInsts()
                 DynInstPtr violator;
                 violator = ldstQueue.getMemDepViolator(tid);
 
-                DPRINTF(IEW, "LDSTQ detected a violation. Violator PC: %s "
+                DPRINTF(IEW, "[tid:%d] LDSTQ detected a violation. Violator PC: %s "
                         "[sn:%lli], inst PC: %s [sn:%lli]. Addr is: %#x.\n",
-                        violator->pcState(), violator->seqNum,
+                        tid, violator->pcState(), violator->seqNum,
                         inst->pcState(), inst->seqNum, inst->physEffAddr);
 
                 fetchRedirect[tid] = true;
@@ -1391,12 +1591,12 @@ IEW::executeInsts()
 
                 DynInstPtr violator = ldstQueue.getMemDepViolator(tid);
 
-                DPRINTF(IEW, "LDSTQ detected a violation.  Violator PC: "
+                DPRINTF(IEW, "[tid:%d] LDSTQ detected a violation.  Violator PC: "
                         "%s, inst PC: %s.  Addr is: %#x.\n",
-                        violator->pcState(), inst->pcState(),
+                        tid, violator->pcState(), inst->pcState(),
                         inst->physEffAddr);
-                DPRINTF(IEW, "Violation will not be handled because "
-                        "already squashing\n");
+                DPRINTF(IEW, "[tid:%d] Violation will not be handled because "
+                        "already squashing\n",tid);
 
                 ++iewStats.memOrderViolationEvents;
             }
@@ -1434,8 +1634,8 @@ IEW::writebackInsts()
         DynInstPtr inst = toCommit->insts[inst_num];
         ThreadID tid = inst->threadNumber;
 
-        DPRINTF(IEW, "Sending instructions to commit, [sn:%lli] PC %s.\n",
-                inst->seqNum, inst->pcState());
+        DPRINTF(IEW, "[tid:%d] Sending instructions to commit, [sn:%lli] PC %s.\n",
+                tid, inst->seqNum, inst->pcState());
 
         iewStats.instsToCommit[tid]++;
         // Notify potential listeners that execution is complete for this
@@ -1449,14 +1649,17 @@ IEW::writebackInsts()
         // when it's ready to execute the strictly ordered load.
         if (!inst->isSquashed() && inst->isExecuted() &&
                 inst->getFault() == NoFault) {
+                
             int dependents = instQueue.wakeDependents(inst);
+
+            inst->setWokeDependents();
 
             for (int i = 0; i < inst->numDestRegs(); i++) {
                 // Mark register as ready if not pinned
                 if (inst->renamedDestIdx(i)->
                         getNumPinnedWritesToComplete() == 0) {
-                    DPRINTF(IEW,"Setting Destination Register %i (%s)\n",
-                            inst->renamedDestIdx(i)->index(),
+                    DPRINTF(IEW,"[tid:%d] Setting Destination Register %i (%s)\n",
+                            tid, inst->renamedDestIdx(i)->index(),
                             inst->renamedDestIdx(i)->className());
                     scoreboard->setReg(inst->renamedDestIdx(i));
                 }
@@ -1496,7 +1699,7 @@ IEW::tick()
     while (threads != end) {
         ThreadID tid = *threads++;
 
-        DPRINTF(IEW,"Issue: Processing [tid:%i]\n",tid);
+        DPRINTF(IEW,"Issue: Processing [tid:%i] queue size %d\n",tid, instQueue.getCount(tid));
 
         checkSignalsAndUpdate(tid);
         dispatch(tid);
@@ -1510,6 +1713,7 @@ IEW::tick()
         // Have the instruction queue try to schedule any ready instructions.
         // (In actuality, this scheduling is for instructions that will
         // be executed next cycle.)
+
         instQueue.scheduleReadyInsts();
 
         // Also should advance its own time buffers if the stage ran.
@@ -1555,14 +1759,14 @@ IEW::tick()
 
         if (fromCommit->commitInfo[tid].nonSpecSeqNum != 0) {
 
-            DPRINTF(IEW,"NonspecInst from thread %i seqNum %llu\n",tid,fromCommit->commitInfo[tid].nonSpecSeqNum);
+            DPRINTF(IEW,"[tid:%d] NonspecInst from thread %i seqNum %llu\n",tid ,tid,fromCommit->commitInfo[tid].nonSpecSeqNum);
             if (fromCommit->commitInfo[tid].strictlyOrdered) {
                 DPRINTF(IEW,"NonspecInst from thread ReplayMemInst %i seqNum %llu\n",tid,fromCommit->commitInfo[tid].nonSpecSeqNum);
                 instQueue.replayMemInst(
                     fromCommit->commitInfo[tid].strictlyOrderedLoad);
                 fromCommit->commitInfo[tid].strictlyOrderedLoad->setAtCommit();
             } else {
-                DPRINTF(IEW,"NonspecInst from thread ALUInst %i seqNum %llu\n",tid,fromCommit->commitInfo[tid].nonSpecSeqNum);
+                DPRINTF(IEW,"[tid:%d] NonspecInst from thread ALUInst %i seqNum %llu\n",tid,tid,fromCommit->commitInfo[tid].nonSpecSeqNum);
                 instQueue.scheduleNonSpec(
                     fromCommit->commitInfo[tid].nonSpecSeqNum);
             }
@@ -1644,6 +1848,17 @@ IEW::checkMisprediction(const DynInstPtr& inst)
     if (!fetchRedirect[tid] ||
         !toCommit->squash[tid] ||
         toCommit->squashedSeqNum[tid] > inst->seqNum) {
+
+        if(inst->isControl() && !inst->mispredicted() && cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+            assert(cpu->thread[tid]->ControlInstIssued);
+            assert(cpu->thread[tid]->ControlInstSeq == inst->seqNum);
+            cpu->thread[tid]->ControlInstIssued = false;
+            cpu->thread[tid]->ControlInstSeq = -1;
+            DPRINTF(IQ, "[tid:%i]: RELIEVING2_ControlInstIssued %s "
+                    "[sn:%llu] ControlInstIssued %d\n",
+                    tid, inst->pcState(),
+                    inst->seqNum,cpu->thread[tid]->ControlInstIssued);
+        }
 
         if (inst->mispredicted()) {
             fetchRedirect[tid] = true;

@@ -66,6 +66,7 @@
 #include "params/BaseO3CPU.hh"
 #include "sim/faults.hh"
 #include "sim/full_system.hh"
+#include "debug/IQ.hh"
 
 namespace gem5
 {
@@ -122,6 +123,7 @@ Commit::Commit(CPU *_cpu, const BaseO3CPUParams &params)
         pc[tid].reset(params.isa[0]->newPCState());
         youngestSeqNum[tid] = 0;
         lastCommitedSeqNum[tid] = 0;
+        lastCommitedCycle[tid] = -1;
         trapInFlight[tid] = false;
         committedStores[tid] = false;
         checkEmptyROB[tid] = false;
@@ -276,7 +278,9 @@ Commit::setRenameQueue(TimeBuffer<RenameStruct> *rq_ptr)
     renameQueue = rq_ptr;
 
     // Setup wire to get instructions from rename (for the ROB).
-    fromRename = renameQueue->getWire(-renameToROBDelay);
+    fromRename = renameQueue->getWire(-renameToROBDelay); // Ishita
+    // fromRename_S = renameQueue->getWire(-renameToROBDelay); // Ishita
+    // fromRename_W = renameQueue->getWire(-renameToROBDelay);
 }
 
 void
@@ -285,10 +289,9 @@ Commit::setIEWQueue(TimeBuffer<IEWStruct> *iq_ptr)
     iewQueue = iq_ptr;
 
     // Setup wire to get instructions from IEW.
-    // Daniel Test with no delay:
+    fromIEW = iewQueue->getWire(-iewToCommitDelay);
     fromIEW_W = iewQueue->getWire(0);
     fromIEW_S = iewQueue->getWire(-iewToCommitDelay);
-    //fromIEW = iewQueue->getWire(0);
 }
 
 void
@@ -368,6 +371,7 @@ Commit::clearStates(ThreadID tid)
     tcSquash[tid] = false;
     pc[tid].reset(cpu->tcBase(tid)->getIsaPtr()->newPCState());
     lastCommitedSeqNum[tid] = 0;
+    lastCommitedCycle[tid] = -1;
     squashAfterInst[tid] = NULL;
 }
 
@@ -447,6 +451,7 @@ Commit::deactivateThread(ThreadID tid)
         DPRINTF(Commit,"[tid:%d] DEACTIVATING_THREAD rob->isEmpty %d\n",tid,rob->isEmpty(tid));
         priority_list.erase(thread_it);
     }
+    lastCommitedCycle[tid] = -1;
 }
 
 void
@@ -460,6 +465,7 @@ Commit::activateThread(ThreadID tid)
         DPRINTF(Commit,"[tid:%d] FINALLY_ACTIVATING_THREAD\n",tid);
         priority_list.push_back(tid);
     }
+    lastCommitedCycle[tid] = -1;
 }
 
 bool
@@ -564,7 +570,9 @@ void
 Commit::generateTCEvent(ThreadID tid)
 {
     assert(!trapInFlight[tid]);
-    DPRINTF(Commit, "Generating TC squash event for [tid:%i]\n", tid);
+    DPRINTF(Commit, "SquashReason Generating TC squash event for [tid:%i]\n", tid);
+
+
 
     tcSquash[tid] = true;
 }
@@ -581,6 +589,14 @@ Commit::squashAll(ThreadID tid)
 
     InstSeqNum squashed_inst = rob->isEmpty(tid) ?
         lastCommitedSeqNum[tid] : rob->readHeadInst(tid)->seqNum - 1;
+
+    lastCommitedCycle[tid] = curTick();
+
+    if(!rob->isEmpty(tid)) {
+        DPRINTF(Commit,"[tid:%d] committing instruction2 [sn:%llu] lastCommitedCycle %llu\n",tid,rob->readHeadInst(tid)->seqNum,lastCommitedCycle[tid]);
+    } else {
+        DPRINTF(Commit,"[tid:%d] committing instruction3 [sn:EMPTY] lastCommitedCycle %llu\n",tid,lastCommitedCycle[tid]);
+    }
 
     // All younger instructions will be squashed. Set the sequence
     // number as the youngest instruction in the ROB (0 in this case.
@@ -682,10 +698,24 @@ Commit::tick()
 
     // Check if any of the threads are done squashing.  Change the
     // status if they are done.
+
+    int maxNonCommitCycle = -1;
+    int maxNonCommitTid = -1;
+
     while (threads != end) {
 
         ThreadID tid = *threads++;
-        DPRINTF(Commit,"[tid:%d] Commit status: %d\n",tid,commitStatus[tid]);
+        DPRINTF(Commit,"[tid:%d] Commit status: %d lastCommitedCycle %d\n",tid,commitStatus[tid],lastCommitedCycle[tid]);
+
+
+        if(maxNonCommitCycle < lastCommitedCycle[tid]) {
+            maxNonCommitCycle = lastCommitedCycle[tid];
+            maxNonCommitTid = tid;
+        }
+
+        if(lastCommitedCycle[tid]!=-1 && (curTick() - lastCommitedCycle[tid]) > 1000000000) {
+            panic("This program has deadlocked!!!! Not making forward progress. Last commit at lastCommitedCycle %d for thread %d\n",lastCommitedCycle[tid],tid);
+        }
 
         // Clear the bit saying if the thread has committed stores
         // this cycle.
@@ -705,15 +735,13 @@ Commit::tick()
         }
     }
 
-    //Daniel change: markCompleted before commit if weak, after if strong:
-
-    //markCompletedInsts(Weak);
+    if(maxNonCommitTid!=-1 && ((curTick() - maxNonCommitCycle) > 10000000)) {
+        panic("This program has deadlocked! Not making forward progress. Last commit at lastCommitedCycle %llu for thread %d curentTick %d\n",lastCommitedCycle[maxNonCommitTid],maxNonCommitTid,curTick());
+    }
 
     commit();
 
     markCompletedInsts();
-    // markCompletedInsts(Strong);
-    // markCompletedInsts(Weak);   
 
     threads = activeThreads->begin();
 
@@ -850,11 +878,13 @@ Commit::commit()
 
     while (threads != end) {
         ThreadID tid = *threads++;
-        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
+
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
             fromIEW = fromIEW_S;
-        }else{
+        } else {
             fromIEW = fromIEW_W;
         }
+
         DPRINTF(Commit," [tid:%d] ENTERING COMMIT HERE commit status %d trapSquash %d\n",tid,commitStatus[tid],trapSquash[tid]);
 
         // Not sure which one takes priority.  I think if we have
@@ -863,7 +893,7 @@ Commit::commit()
             assert(!tcSquash[tid]);
             squashFromTrap(tid);
 
-            DPRINTF(Commit," [tid:%d] SQUASH FROM TRAP rob->isEmpty(tid) %d\n",tid,rob->isEmpty(tid));
+            DPRINTF(Commit," [tid:%d] SquashReason SQUASH FROM TRAP rob->isEmpty(tid) %d\n",tid,rob->isEmpty(tid));
 
             // If the thread is trying to exit (i.e., an exit syscall was
             // executed), this trapSquash was originated by the exit
@@ -888,6 +918,22 @@ Commit::commit()
             // commitInsts() called squashAfter) is pending. Squash the
             // thread now.
             squashFromSquashAfter(tid);
+        }
+
+        if(fromIEW->mispredictInst[tid]) {
+            DPRINTF(IQ, "Thread %i: MISPREDICT_CHECK "
+                    "Control1InstIssued %d squash %d commitStatus %d squashedSeqNum %d youngestSeqNum %d\n",
+                    tid, cpu->thread[tid]->ControlInstIssued,fromIEW->squash[tid],commitStatus[tid],fromIEW->squashedSeqNum[tid],youngestSeqNum[tid]);
+        }
+
+        if(fromIEW->mispredictInst[tid] && cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+            DPRINTF(IQ, "Thread %i: RELIEVING4_ControlInstIssued "
+                    "ControlInstIssued %d [sn:%llu]\n",
+                    tid, cpu->thread[tid]->ControlInstIssued,cpu->thread[tid]->ControlInstSeq);
+            assert(cpu->thread[tid]->ControlInstSeq == fromIEW->squashedSeqNum[tid]);
+            assert(cpu->thread[tid]->ControlInstIssued);
+            cpu->thread[tid]->ControlInstIssued = false;
+            cpu->thread[tid]->ControlInstSeq = -1;
         }
 
         // Squashed sequence number must be older than youngest valid
@@ -1028,6 +1074,8 @@ Commit::commitInsts()
 
     DynInstPtr head_inst;
 
+    std::vector<int> commitheadSeq(numThreads,-1);
+
     // Commit as many instructions as possible until the commit bandwidth
     // limit is reached, or it becomes impossible to commit any more.
     while (num_committed < commitWidth)
@@ -1052,14 +1100,17 @@ Commit::commitInsts()
             }
         }
 
-        // ThreadID commit_thread = getCommittingThread();
-
         if (commit_thread == -1 || !rob->isHeadReady(commit_thread))
             break;
+
 
         head_inst = rob->readHeadInst(commit_thread);
 
         ThreadID tid = head_inst->threadNumber;
+
+        if(commitheadSeq[tid] == -1) {
+            commitheadSeq[tid] = head_inst->seqNum;
+        }
 
         DPRINTF(Commit, "[tid:%d] Inside while loop num_committed %d commit_thread %llu.\n",tid,num_committed,commit_thread);
 
@@ -1074,8 +1125,17 @@ Commit::commitInsts()
         if (head_inst->isSquashed()) {
             while(rob->isHeadReady(commit_thread) && rob->readHeadInst(commit_thread)->isSquashed()) 
             {
+                // if this is not the instruction which started the squash and it is a W thread no other instruction
+                // should have executed because we have non speculative issue. If not, then we have an issue and panic
+                if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak && rob->readHeadInst(commit_thread)->seqNum!=commitheadSeq[tid] && rob->readHeadInst(commit_thread)->isExecuted() && !rob->readHeadInst(commit_thread)->isNop()) {
+                    panic("We speculatively issued an instruction which is now being squashed in W threads incorrect squash: [sn:%llu] squash starter: [sn:%llu] Executed %d\n",rob->readHeadInst(commit_thread)->seqNum,commitheadSeq[tid],rob->readHeadInst(commit_thread)->isExecuted());
+                }
+
                 DPRINTF(Commit, "[tid:%d] Retiring squashed instruction from "
                         "ROB.\n",tid);
+
+                DPRINTF(Commit, "[tid:%d] instruction_squashed "
+                        "ROB [sn:%llu].\n",tid,rob->readHeadInst(commit_thread)->seqNum);
 
                 rob->retireHead(commit_thread);
 
@@ -1144,6 +1204,11 @@ Commit::commitInsts()
 
                 // Keep track of the last sequence number commited
                 lastCommitedSeqNum[tid] = head_inst->seqNum;
+
+
+                lastCommitedCycle[tid] = curTick();
+
+                DPRINTF(Commit,"[tid:%d] committing instruction1 [sn:%llu] lastCommitedCycle %llu\n",tid,head_inst->seqNum,lastCommitedCycle[tid]);
 
                 // If this is an instruction that doesn't play nicely with
                 // others squash everything and restart fetch
@@ -1405,6 +1470,9 @@ Commit::getInsts()
 {
     DPRINTF(Commit, "Getting instructions from Rename stage.\n");
 
+
+    DPRINTF(Commit, "Getting instructions from Rename stage.\n");
+
     // Read any renamed instructions and place them into the ROB.
     int insts_to_process = std::min((int)renameWidth, fromRename->size);
 
@@ -1417,8 +1485,8 @@ Commit::getInsts()
             commitStatus[tid] != TrapPending) {
             changedROBNumEntries[tid] = true;
 
-            DPRINTF(Commit, "[tid:%i] [sn:%llu] Inserting PC %s into ROB.\n",
-                    tid, inst->seqNum, inst->pcState());
+            DPRINTF(Commit, "[tid:%i] [sn:%llu] Inserting PC %s into ROB isExecuted %d.\n",
+                    tid, inst->seqNum, inst->pcState(), inst->isExecuted());
 
             rob->insertInst(inst);
 
@@ -1431,15 +1499,72 @@ Commit::getInsts()
                     tid, inst->seqNum, inst->pcState());
         }
     }
+
+    // Read any renamed instructions and place them into the ROB.
+    // int insts_to_process_S = std::min((int)renameWidth, fromRename_S->size);
+
+    // int issued_inst_num = 0;
+
+    // for (int inst_num = 0; inst_num < insts_to_process_S; ++inst_num) {
+    //     const DynInstPtr &inst = fromRename_S->insts[inst_num];
+    //     ThreadID tid = inst->threadNumber;
+
+    //     if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+    //         issued_inst_num++;
+    //         if (!inst->isSquashed() &&
+    //             commitStatus[tid] != ROBSquashing &&
+    //             commitStatus[tid] != TrapPending) {
+    //             changedROBNumEntries[tid] = true;
+
+    //             DPRINTF(Commit, "[tid:%i] [sn:%llu] Inserting PC %s into ROB isExecuted %d op_class %d.\n",
+    //                     tid, inst->seqNum, inst->pcState(), inst->isExecuted(), inst->opClass());
+
+    //             rob->insertInst(inst);
+
+    //             assert(rob->getThreadEntries(tid) <= rob->getMaxEntries(tid));
+
+    //             youngestSeqNum[tid] = inst->seqNum;
+    //         } else {
+    //             DPRINTF(Commit, "[tid:%i] [sn:%llu] "
+    //                     "Instruction PC %s was squashed, skipping.\n",
+    //                     tid, inst->seqNum, inst->pcState());
+    //         }
+    //     }
+    // }
+
+    // // Read any renamed instructions and place them into the ROB.
+    // int insts_to_process_W = std::min((int)(renameWidth)-issued_inst_num, fromRename_W->size);
+
+    // for (int inst_num = 0; inst_num < insts_to_process_W; ++inst_num) {
+    //     const DynInstPtr &inst = fromRename_W->insts[inst_num];
+    //     ThreadID tid = inst->threadNumber;
+
+    //     if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+    //         if (!inst->isSquashed() &&
+    //             commitStatus[tid] != ROBSquashing &&
+    //             commitStatus[tid] != TrapPending) {
+    //             changedROBNumEntries[tid] = true;
+
+    //             DPRINTF(Commit, "[tid:%i] [sn:%llu] Inserting PC %s into ROB isExecuted %d op_class %d.\n",
+    //                     tid, inst->seqNum, inst->pcState(), inst->isExecuted(), inst->opClass());
+
+    //             rob->insertInst(inst);
+
+    //             assert(rob->getThreadEntries(tid) <= rob->getMaxEntries(tid));
+
+    //             youngestSeqNum[tid] = inst->seqNum;
+    //         } else {
+    //             DPRINTF(Commit, "[tid:%i] [sn:%llu] "
+    //                     "Instruction PC %s was squashed, skipping.\n",
+    //                     tid, inst->seqNum, inst->pcState());
+    //         }
+    //     }
+    // }
 }
 
-//Daniel Change to consider threadtype
 void
 Commit::markCompletedInsts()
 {
-    // Grab completed insts out of the IEW instruction queue, and mark
-    // instructions completed within the ROB.
-
     //Iterate for weak
     for (int inst_num = 0; inst_num < fromIEW_W->size; ++inst_num) {
         assert(fromIEW_W->insts[inst_num]);
@@ -1449,7 +1574,7 @@ Commit::markCompletedInsts()
             if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak){
                 DPRINTF(Commit, "[tid:%i] Marking PC %s, [sn:%llu] ready "
                     "within ROB.\n",
-                    fromIEW_W->insts[inst_num]->threadNumber,
+                fromIEW_W->insts[inst_num]->threadNumber,
                     fromIEW_W->insts[inst_num]->pcState(),
                     fromIEW_W->insts[inst_num]->seqNum);
                 fromIEW_W->insts[inst_num]->setCanCommit();
@@ -1472,6 +1597,23 @@ Commit::markCompletedInsts()
             }
         }
     }
+
+
+    // Grab completed insts out of the IEW instruction queue, and mark
+    // instructions completed within the ROB.
+    // for (int inst_num = 0; inst_num < fromIEW->size; ++inst_num) {
+    //     assert(fromIEW->insts[inst_num]);
+    //     if (!fromIEW->insts[inst_num]->isSquashed()) {
+    //         DPRINTF(Commit, "[tid:%i] Marking PC %s, [sn:%llu] ready "
+    //                 "within ROB.\n",
+    //                 fromIEW->insts[inst_num]->threadNumber,
+    //                 fromIEW->insts[inst_num]->pcState(),
+    //                 fromIEW->insts[inst_num]->seqNum);
+
+    //         // Mark the instruction as ready to commit.
+    //         fromIEW->insts[inst_num]->setCanCommit();
+    //     }
+    // }
 }
 
 void

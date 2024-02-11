@@ -60,6 +60,7 @@
 #include "cpu/timebuf.hh"
 #include "enums/SMTQueuePolicy.hh"
 #include "sim/eventq.hh"
+#include "cpu/o3/lsq.hh"
 
 namespace gem5
 {
@@ -235,6 +236,24 @@ class InstructionQueue
      */
     void commit(const InstSeqNum &inst, ThreadID tid = 0);
 
+    /**
+     * Check if there is an older instruction in the instList which has not committed,
+     * if this is true, then dont issue this instruction till older instructio issues.
+     * This is important for in order issue of W threads.
+     */
+    bool olderIssuePending(const InstSeqNum &inst, ThreadID tid);
+
+    /** get which sn is still not issued which we are waiting on */
+    int SeqNumolderIssuePending(const InstSeqNum &inst, ThreadID tid);
+
+    /**
+     * Check if a younger instruction has been issued OoO for W threads.
+     * This can happen if a memory instruction has been marked for re-issue
+     * and the pipeline moves forward because this instruction was marked as issued
+     * the firs time it was encountered.
+     */
+    bool youngerInstIssued(const InstSeqNum &inst, ThreadID tid);
+
     /** Wakes all dependents of a completed instruction. */
     int wakeDependents(const DynInstPtr &completed_inst);
 
@@ -264,6 +283,9 @@ class InstructionQueue
 
     /** Indicates an ordering violation between a store and a load. */
     void violation(const DynInstPtr &store, const DynInstPtr &faulting_load);
+
+    /** Reorder list based on seqNum */
+    bool compareBySeqNum(const DynInstPtr& inst1, const DynInstPtr& inst2);
 
     /**
      * Squashes instructions for a thread. Squashing information is obtained
@@ -347,14 +369,6 @@ class InstructionQueue
     {
         bool operator()(const DynInstPtr &lhs, const DynInstPtr &rhs) const;
     };
-
-    typedef std::priority_queue<
-        DynInstPtr, std::vector<DynInstPtr>, PqCompare> ReadyInstQueue;
-
-    /** List of ready instructions, per op class.  They are separated by op
-     *  class to allow for easy mapping to FUs.
-     */
-    ReadyInstQueue readyInsts[Num_OpClasses];
 
     /** List of non-speculative instructions that will be scheduled
      *  once the IQ gets a signal from commit.  While it's redundant to
@@ -544,6 +558,13 @@ class InstructionQueue
     } iqStats;
 
    public:
+    typedef std::priority_queue<
+        DynInstPtr, std::vector<DynInstPtr>, PqCompare> ReadyInstQueue;
+
+    /** List of ready instructions, per op class.  They are separated by op
+     *  class to allow for easy mapping to FUs.
+     */
+    ReadyInstQueue readyInsts[Num_OpClasses];
     struct IQIOStats : public statistics::Group
     {
         IQIOStats(statistics::Group *parent);

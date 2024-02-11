@@ -51,6 +51,7 @@
 #include "debug/O3PipeView.hh"
 #include "debug/Rename.hh"
 #include "params/BaseO3CPU.hh"
+#include "debug/IQ.hh"
 
 namespace gem5
 {
@@ -190,9 +191,9 @@ Rename::setTimeBuffer(TimeBuffer<TimeStruct> *tb_ptr)
     timeBuffer = tb_ptr;
 
     // Setup wire to read information from time buffer, from IEW stage.
-    fromIEW = timeBuffer->getWire(-iewToRenameDelay);
+    fromIEW = timeBuffer->getWire(-iewToRenameDelay); // ishita
 
-    // Setup wire to read infromation from time buffer, from commit stage.
+    // Setup wire to read information from time buffer, from commit stage.
     fromCommit = timeBuffer->getWire(-commitToRenameDelay);
 
     // Setup wire to write information to previous stages.
@@ -976,13 +977,16 @@ Rename::doSquash(const InstSeqNum &squashed_seq_num, ThreadID tid)
         // is the same as the old one.  While it would be merely a
         // waste of time to update the rename table, we definitely
         // don't want to put these on the free list.
-        if (hb_it->newPhysReg != hb_it->prevPhysReg) {
-            // Tell the rename map to set the architected register to the
-            // previous physical register that it was renamed to.
-            renameMap[tid]->setEntry(hb_it->archReg, hb_it->prevPhysReg);
+        // only add a register back to the free list if it is a S thread. For W thread we never rename and once a mapping exists, it is never changed, so we never free these registers
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+            if (hb_it->newPhysReg != hb_it->prevPhysReg) {
+                // Tell the rename map to set the architected register to the
+                // previous physical register that it was renamed to.
+                renameMap[tid]->setEntry(hb_it->archReg, hb_it->prevPhysReg);
 
-            // Put the renamed physical register back on the free list.
-            freeList->addReg(hb_it->newPhysReg);
+                // Put the renamed physical register back on the free list.
+                freeList->addReg(hb_it->newPhysReg);
+            }
         }
 
         // Notify potential listeners that the register mapping needs to be
@@ -1027,17 +1031,20 @@ Rename::removeFromHistory(InstSeqNum inst_seq_num, ThreadID tid)
            hb_it != historyBuffer[tid].end() &&
            hb_it->instSeqNum <= inst_seq_num) {
 
-        DPRINTF(Rename, "[tid:%i] Freeing up older rename of reg %i (%s), "
+        // Don't free special phys regs like misc and zero regs, which
+        // can be recognized because the new mapping is the same as
+        // the old one.
+        // only add a register back to the free list if it is a S thread. For W thread we never rename and once a mapping exists, it is never changed, so we never free these registers
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+            DPRINTF(Rename, "[tid:%i] Freeing up older rename of reg %i (%s), "
                 "[sn:%llu].\n",
                 tid, hb_it->prevPhysReg->index(),
                 hb_it->prevPhysReg->className(),
                 hb_it->instSeqNum);
 
-        // Don't free special phys regs like misc and zero regs, which
-        // can be recognized because the new mapping is the same as
-        // the old one.
-        if (hb_it->newPhysReg != hb_it->prevPhysReg) {
-            freeList->addReg(hb_it->prevPhysReg);
+            if (hb_it->newPhysReg != hb_it->prevPhysReg) {
+                freeList->addReg(hb_it->prevPhysReg);
+            }
         }
 
         ++stats.committedMaps;
@@ -1095,15 +1102,19 @@ Rename::renameSrcRegs(const DynInstPtr &inst, ThreadID tid)
 
         inst->renameSrcReg(src_idx, renamed_reg);
 
-        // See if the register is ready or not.
-        if (scoreboard->getReg(renamed_reg)) {
+        // See if the register is ready or not. INORDER
+        if (scoreboard->getReg(renamed_reg) && (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong || renamed_reg->isFixedMapping())) {
             DPRINTF(Rename,
-                    "[tid:%i] "
-                    "Register %d (flat: %d) (%s) is ready.\n",
-                    tid, renamed_reg->index(), renamed_reg->flatIndex(),
-                    renamed_reg->className());
+                    "[tid:%i] [sn:%d]"
+                    "MARKING_HERE Register %d (flat: %d) (%s) is ready tid_type %d fixed_mapping %d.\n",
+                    tid, inst->seqNum, renamed_reg->index(), renamed_reg->flatIndex(),
+                    renamed_reg->className(),cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType(),renamed_reg->isFixedMapping());
 
-            inst->markSrcRegReady(src_idx);
+            if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+                inst->markSrcRegReady(src_idx);
+            } else {
+                inst->markSrcRegReadyW(src_idx);
+            } 
         } else {
             DPRINTF(Rename,
                     "[tid:%i] "
@@ -1132,7 +1143,21 @@ Rename::renameDestRegs(const DynInstPtr &inst, ThreadID tid)
         RegId flat_dest_regid = dest_reg.flatten(*isa);
         flat_dest_regid.setNumPinnedWrites(dest_reg.getNumPinnedWrites());
 
-        rename_result = map->rename(flat_dest_regid);
+        // stop renaming for W threads -> the dest reg rename function maintains the original mapping. We pass if the thread is wimpy or not to this function.
+        bool isWThread = (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak);
+
+        rename_result = map->rename(flat_dest_regid, isWThread, tid, inst->seqNum);
+
+        // For weak threads, we store the pinned values here. Since we can have WAW hazards, we dont want 
+        // to overwrite pinned values.
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) { // Ishita 
+
+            inst->setNumPinnedWrites(flat_dest_regid.getNumPinnedWrites(),dest_idx);
+            inst->setNumPinnedWritesToComplete(flat_dest_regid.getNumPinnedWrites() + 1,dest_idx);
+            DPRINTF(IQ, "[tid:%d] RENAME_PLACE_INST_CHECK [sn:%llu] Renaming reg %d numPinnedWrites %d archwrite %d isPinned %d\n",
+                    tid,inst->seqNum,rename_result.first->flatIndex(), inst->getNumPinnedWritesToComplete(dest_idx),flat_dest_regid.getNumPinnedWrites(),inst->isPinned(dest_idx));
+
+        }
 
         inst->flattenedDestIdx(dest_idx, flat_dest_regid);
 
