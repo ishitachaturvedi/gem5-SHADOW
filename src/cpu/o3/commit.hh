@@ -349,14 +349,10 @@ class Commit
     /** IEW instruction queue interface. */
     TimeBuffer<IEWStruct> *iewQueue;
 
-    //Daniel Change:
     /** Wire to read information from IEW queue. */
-    TimeBuffer<IEWStruct>::wire fromIEW_W;
-    TimeBuffer<IEWStruct>::wire fromIEW_S;
     TimeBuffer<IEWStruct>::wire fromIEW;
     TimeBuffer<IEWStruct>::wire fromIEW_W;
     TimeBuffer<IEWStruct>::wire fromIEW_S;
-
 
     /** Rename instruction queue interface, for ROB. */
     TimeBuffer<RenameStruct> *renameQueue;
