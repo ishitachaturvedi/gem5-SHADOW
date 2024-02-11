@@ -449,8 +449,7 @@ void
 InstructionQueue::setTimeBuffer(TimeBuffer<TimeStruct> *tb_ptr)
 {
     timeBuffer = tb_ptr;
-    // Daniel change to no delay:
-    //fromCommit = timeBuffer->getWire(0);
+
     fromCommit = timeBuffer->getWire(-commitToIEWDelay);
 }
 
