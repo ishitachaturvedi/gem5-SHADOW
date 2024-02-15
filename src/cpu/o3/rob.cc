@@ -200,9 +200,9 @@ ROB::insertInst(const DynInstPtr &inst)
 
     stats.writes++;
 
-    DPRINTF(ROB, " [tid:%d] Adding inst PC %s to the ROB numInstsInROB %d numEntries %d free enties overall %d free entries tid %d.\n", inst->threadNumber,inst->pcState(),numInstsInROB,numEntries,numFreeEntries(),inst->threadNumber);
+    DPRINTF(ROB, " [tid:%d] Adding inst PC %s to the ROB numInstsInROB %d numEntries %d free enties overall %d free entries tid %d [sn:%d].\n", inst->threadNumber,inst->pcState(),numInstsInROB,numEntries,numFreeEntries(),inst->threadNumber,inst->seqNum);
 
-    DPRINTF(ROB,"[tid:%d] Placing in ROB seqNum %d\n",inst->threadNumber,inst->seqNum);
+    DPRINTF(ROB,"[tid:%d] Placing in ROB seqNum [sn:%d]\n",inst->threadNumber,inst->seqNum);
 
     //assert(numInstsInROB != numEntries);
 

@@ -191,7 +191,7 @@ Rename::setTimeBuffer(TimeBuffer<TimeStruct> *tb_ptr)
     timeBuffer = tb_ptr;
 
     // Setup wire to read information from time buffer, from IEW stage.
-    fromIEW = timeBuffer->getWire(-iewToRenameDelay); // ishita
+    fromIEW = timeBuffer->getWire(-iewToRenameDelay); 
 
     // Setup wire to read information from time buffer, from commit stage.
     fromCommit = timeBuffer->getWire(-commitToRenameDelay);
@@ -690,7 +690,7 @@ Rename::renameInsts(ThreadID tid)
 
         DPRINTF(Rename,
                 "[tid:%i] "
-                "Processing instruction [sn:%llu] with PC %s.\n",
+                "Processing instructions here [sn:%llu] with PC %s.\n",
                 tid, inst->seqNum, inst->pcState());
 
         // Check here to make sure there are enough destination registers
@@ -747,6 +747,11 @@ Rename::renameInsts(ThreadID tid)
             serializeAfter(insts_to_rename, tid);
         }
 
+        DPRINTF(Rename,
+                "[tid:%i] "
+                "Processing instructions2 here [sn:%llu] with PC %s.\n",
+                tid, inst->seqNum, inst->pcState());
+
         renameSrcRegs(inst, inst->threadNumber);
 
         renameDestRegs(inst, inst->threadNumber);
@@ -756,6 +761,11 @@ Rename::renameInsts(ThreadID tid)
         } else if (inst->isLoad()) {
             loadsInProgress[tid]++;
         }
+
+        DPRINTF(Rename,
+                "[tid:%i] "
+                "Processing instructions3 here [sn:%llu] with PC %s.\n",
+                tid, inst->seqNum, inst->pcState());
 
         ++renamed_insts;
         // Notify potential listeners that source and destination registers for
@@ -1061,6 +1071,11 @@ Rename::renameSrcRegs(const DynInstPtr &inst, ThreadID tid)
     unsigned num_src_regs = inst->numSrcRegs();
     auto *isa = tc->getIsaPtr();
 
+     DPRINTF(Rename,
+                "[tid:%i] "
+                "Processing instructions here srcs [sn:%llu] with PC %s numsrc %d.\n",
+                tid, inst->seqNum, inst->pcState(),num_src_regs);
+
     // Get the architectual register numbers from the source and
     // operands, and redirect them to the right physical register.
     for (int src_idx = 0; src_idx < num_src_regs; src_idx++) {
@@ -1135,6 +1150,11 @@ Rename::renameDestRegs(const DynInstPtr &inst, ThreadID tid)
     unsigned num_dest_regs = inst->numDestRegs();
     auto *isa = tc->getIsaPtr();
 
+    DPRINTF(Rename,
+                "[tid:%i] "
+                "Processing instructions here dests [sn:%llu] with PC %s numdest %d.\n",
+                tid, inst->seqNum, inst->pcState(),num_dest_regs);
+
     // Rename the destination registers.
     for (int dest_idx = 0; dest_idx < num_dest_regs; dest_idx++) {
         const RegId& dest_reg = inst->destRegIdx(dest_idx);
@@ -1150,7 +1170,7 @@ Rename::renameDestRegs(const DynInstPtr &inst, ThreadID tid)
 
         // For weak threads, we store the pinned values here. Since we can have WAW hazards, we dont want 
         // to overwrite pinned values.
-        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) { // Ishita 
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) { 
 
             inst->setNumPinnedWrites(flat_dest_regid.getNumPinnedWrites(),dest_idx);
             inst->setNumPinnedWritesToComplete(flat_dest_regid.getNumPinnedWrites() + 1,dest_idx);

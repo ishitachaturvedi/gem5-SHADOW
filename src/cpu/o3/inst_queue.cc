@@ -622,6 +622,9 @@ InstructionQueue::insert(const DynInstPtr &new_inst)
 void
 InstructionQueue::insertNonSpec(const DynInstPtr &new_inst)
 {
+    // if((cpu->thread[new_inst->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Weak && (!new_inst->isReadBarrier() && !new_inst->isWriteBarrier()))) {
+    //     panic("Issuing W thread inst as non-speculative sn:%d tid:%d\n",new_inst->seqNum,new_inst->threadNumber);
+    // }
     // @todo: Clean up this code; can do it by setting inst as unable
     // to issue, then calling normal insert on the inst.
     if (new_inst->isFloating()) {

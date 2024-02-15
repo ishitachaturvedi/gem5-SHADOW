@@ -328,8 +328,8 @@ IEW::setRenameQueue(TimeBuffer<RenameStruct> *rq_ptr)
 
     // Setup wire to read information from rename queue.
     fromRename = renameQueue->getWire(-renameToIEWDelay); 
-    // fromRename_S = renameQueue->getWire(-renameToIEWDelay);
-    // fromRename_W = renameQueue->getWire(-renameToIEWDelay); // Ishita
+    fromRename_S = renameQueue->getWire(-renameToIEWDelay);
+    fromRename_W = renameQueue->getWire(0); 
 }
 
 void
@@ -761,6 +761,7 @@ IEW::checkSignalsAndUpdate(ThreadID tid)
     //     check if squashing is not high.  Switch to running this cycle.
 
     if (fromCommit->commitInfo[tid].squash) {
+        DPRINTF(IEW,"[tid:%i] Squash signal from Commit!.\n", tid);
         squash(tid);
 
         if (dispatchStatus[tid] == Blocked ||
@@ -816,35 +817,35 @@ IEW::checkSignalsAndUpdate(ThreadID tid)
 void
 IEW::sortInsts()
 {
-    int insts_from_rename = fromRename->size;
+    // int insts_from_rename = fromRename->size;
 
-    for (int i = 0; i < insts_from_rename; ++i) {
-        insts[fromRename->insts[i]->threadNumber].push(fromRename->insts[i]);
-        {
-            int tid = fromRename->insts[i]->threadNumber;
+    // for (int i = 0; i < insts_from_rename; ++i) {
+    //     insts[fromRename->insts[i]->threadNumber].push(fromRename->insts[i]);
+    //     {
+    //         int tid = fromRename->insts[i]->threadNumber;
+    //         DPRINTF(IEW, "[tid:%d] Inserting inst in instqueue\n",tid);
+    //     }
+    // }
+
+    int insts_from_rename_S = fromRename_S->size;
+
+    for (int i = 0; i < insts_from_rename_S; ++i) {
+        int tid = fromRename_S->insts[i]->threadNumber;
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+        insts[fromRename_S->insts[i]->threadNumber].push(fromRename_S->insts[i]);
             DPRINTF(IEW, "[tid:%d] Inserting inst in instqueue\n",tid);
         }
     }
 
-    // int insts_from_rename_S = fromRename_S->size;
+    int insts_from_rename_W = fromRename_W->size;
 
-    // for (int i = 0; i < insts_from_rename_S; ++i) {
-    //     int tid = fromRename_S->insts[i]->threadNumber;
-    //     if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
-    //     insts[fromRename_S->insts[i]->threadNumber].push(fromRename_S->insts[i]);
-    //         DPRINTF(IEW, "[tid:%d] Inserting inst in instqueue\n",tid);
-    //     }
-    // }
-
-    // int insts_from_rename_W = fromRename_W->size;
-
-    // for (int i = 0; i < insts_from_rename_W; ++i) {
-    //     int tid = fromRename_W->insts[i]->threadNumber;
-    //     if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
-    //     insts[fromRename_W->insts[i]->threadNumber].push(fromRename_W->insts[i]);
-    //         DPRINTF(IEW, "[tid:%d] Inserting inst in instqueue\n",tid);
-    //     }
-    // }
+    for (int i = 0; i < insts_from_rename_W; ++i) {
+        int tid = fromRename_W->insts[i]->threadNumber;
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+        insts[fromRename_W->insts[i]->threadNumber].push(fromRename_W->insts[i]);
+            DPRINTF(IEW, "[tid:%d] Inserting inst in instqueue\n",tid);
+        }
+    }
 
 
 }
@@ -988,11 +989,25 @@ IEW::dispatch(ThreadID tid)
 
         ++iewStats.unblockCycles;
 
-        if (fromRename->size != 0) {
+        // if (fromRename->size != 0) {
+        //     // Add the current inputs to the skid buffer so they can be
+        //     // reprocessed when this stage unblocks.
+        //     skidInsert(tid);
+        // }
+
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+            if (fromRename_S->size != 0) {
+                // Add the current inputs to the skid buffer so they can be
+                // reprocessed when this stage unblocks.
+                skidInsert(tid);
+            }
+        } else {
+            if (fromRename_W->size != 0) {
             // Add the current inputs to the skid buffer so they can be
             // reprocessed when this stage unblocks.
-            skidInsert(tid);
-        }
+                skidInsert(tid);
+            }
+        }   
 
         unblock(tid);
     }
@@ -1113,7 +1128,11 @@ IEW::dispatchInsts(ThreadID tid)
             inst->clearHtmTransactionalState();
         }
 
+        // Non-speculative instructions are used only for S threads.
+        // As W threads have no speculation, there is no meaning of
+        // non-speculative instruction.
         if (inst->isAtomic()) {
+        //&& (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)) {
             DPRINTF(IEW, "[tid:%i] Issue: Memory instruction "
                     "encountered, adding to LSQ.\n", tid);
 
@@ -1132,6 +1151,7 @@ IEW::dispatchInsts(ThreadID tid)
 
             toRename->iewInfo[tid].dispatchedToSQ++;
         } else if (inst->isLoad()) {
+        //|| (inst->isAtomic() && cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak)) {
             DPRINTF(IEW, "[tid:%i] Issue: Memory instruction "
                     "encountered, adding to LSQ.\n", tid);
 
@@ -1153,10 +1173,13 @@ IEW::dispatchInsts(ThreadID tid)
             ++iewStats.dispStoreInsts;
 
             if (inst->isStoreConditional()) {
+            // && (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)) {
                 // Store conditionals need to be set as "canCommit()"
                 // so that commit can process them when they reach the
                 // head of commit.
                 // @todo: This is somewhat specific to Alpha.
+                DPRINTF(IEW, "[tid:%i] Issue: Memory instruction store conditional "
+                    "encountered, adding to LSQ.\n", tid);
                 inst->setCanCommit();
                 instQueue.insertNonSpec(inst);
                 add_to_iq = false;
@@ -1168,6 +1191,9 @@ IEW::dispatchInsts(ThreadID tid)
 
             toRename->iewInfo[tid].dispatchedToSQ++;
         } else if (inst->isReadBarrier() || inst->isWriteBarrier()) {
+            DPRINTF(IEW, "[tid:%i] Issue: Memory barrier "
+                    "encountered, adding to LSQ.\n", tid);
+            // we keep barrier behaviour unmodified for W threads
             // Same as non-speculative stores.
             inst->setCanCommit();
             instQueue.insertBarrier(inst);
@@ -1190,6 +1216,7 @@ IEW::dispatchInsts(ThreadID tid)
             add_to_iq = true;
         }
         if (add_to_iq && inst->isNonSpeculative()) {
+        //&& (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)) {
             DPRINTF(IEW, "[tid:%i] Issue: Nonspeculative instruction "
                     "encountered, skipping.\n", tid);
 

@@ -359,6 +359,8 @@ class Commit
 
     /** Wire to read information from rename queue. */
     TimeBuffer<RenameStruct>::wire fromRename;
+    TimeBuffer<RenameStruct>::wire fromRename_S;
+    TimeBuffer<RenameStruct>::wire fromRename_W;
 
   public:
     /** ROB interface. */

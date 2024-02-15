@@ -193,6 +193,11 @@ class InstructionQueue
      */
     void insertBarrier(const DynInstPtr &barr_inst);
 
+    /** Inserts a memory or write barrier into the IQ to make sure
+     *  loads and stores are ordered properly for weak threads.
+     */
+    void insertBarrierW(const DynInstPtr &barr_inst);
+
     /** Returns the oldest scheduled instruction, and removes it from
      * the list of instructions waiting to execute.
      */
