@@ -124,12 +124,12 @@ def compare_files_REGOUTVALS(file1, file2):
         #             pc_matching_file2.append(pc)
         #             sn_matching_file2.append(sn)
 
-        # for line in f4:
-        #     if "instruction_squashed" in line:
-        #         sn_start = line.find('[sn:') + 4
-        #         sn_end = line.find(']', sn_start)
-        #         sn = int(line[sn_start:sn_end])
-        #         squashed_inst1.append(sn)
+        for line in f4:
+            if "instruction_squashed" in line:
+                sn_start = line.find('[sn:') + 4
+                sn_end = line.find(']', sn_start)
+                sn = int(line[sn_start:sn_end])
+                squashed_inst1.append(sn)
         for line in f1:
             if "REG_ISSUE1_OUTVALS for SRC" in line:
                 pc, data_values, sn = parse_line_REGOUTVALS(line)
@@ -143,18 +143,18 @@ def compare_files_REGOUTVALS(file1, file2):
                     sn_values_file1.append(sn)
                     pc_matching_file1.append(pc)
                     sn_matching_file1.append(sn)
-        # for line in f3:
-        #     if "instruction_squashed" in line:
-        #         sn_start = line.find('[sn:') + 4
-        #         sn_end = line.find(']', sn_start)
-        #         sn = int(line[sn_start:sn_end])
-        #         squashed_inst2.append(sn)
-        #     if "Instruction was squashed" in line:
-        #         sn_start = line.find('[sn:') + 4
-        #         sn_end = line.find(']', sn_start)
-        #         sn = int(line[sn_start:sn_end])
-        #         if sn not in squashed_inst2:
-        #             squashed_inst2.append(sn)
+        for line in f3:
+            if "instruction_squashed" in line:
+                sn_start = line.find('[sn:') + 4
+                sn_end = line.find(']', sn_start)
+                sn = int(line[sn_start:sn_end])
+                squashed_inst2.append(sn)
+            if "Instruction was squashed" in line:
+                sn_start = line.find('[sn:') + 4
+                sn_end = line.find(']', sn_start)
+                sn = int(line[sn_start:sn_end])
+                if sn not in squashed_inst2:
+                    squashed_inst2.append(sn)
         for line in f2:
             if "REG_ISSUE1_OUTVALS for SRC" in line:
                 pc, data_values, sn = parse_line_REGOUTVALS(line)
@@ -839,10 +839,10 @@ def compareCreatedAndDestroyedInst(file1):
 # compare_files_part_PC('out', 'outS')
 
 print("REGOUTVALS DEST")
-compare_files_REGOUTVALS('outtest1', 'outtest2')
+compare_files_REGOUTVALS('out', 'out2')
 print("REG_ISSUE1_OUTVALS SRC")
-compare_files_REG_ISSUE1_OUTVALS('outtest1', 'outtest2')
+compare_files_REG_ISSUE1_OUTVALS('out', 'out2')
 print("REG_ISSUE2_OUTVALS SRC")
-compare_files_REG_ISSUE2_OUTVALS('outtest1', 'outtest2')
+compare_files_REG_ISSUE2_OUTVALS('out', 'out2')
 
 #compareCreatedAndDestroyedInst('out')
