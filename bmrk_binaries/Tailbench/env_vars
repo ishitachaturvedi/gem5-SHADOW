@@ -1,0 +1,9 @@
+DATA_ROOT=bmrk_binaries/Tailbench/tailbench.inputs
+THREADS=4
+REQS=100000000
+TBENCH_WARMUPREQS=5000
+TBENCH_MAXREQS=12500
+TBENCH_QPS=500
+TBENCH_MINSLEEPNS=10000
+TBENCH_MNIST_DIR=bmrk_binaries/Tailbench/tailbench.inputs/img-dnn/mnist
+TBENCH_RANDSEED=1

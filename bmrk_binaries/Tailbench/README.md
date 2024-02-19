@@ -1,13 +1,14 @@
 img_dnn (Image Recognition): To execute with P number of threads, /path/model model, and REQS max reqs:
 
-./img-dnn_integrated -r P -f /path/model -n REQS (./img-dnn_integrated -r 4 -f ${DATA_ROOT}/img-dnn/models/model.xml -n 60)
+./bmrk_binaries/Tailbench/img-dnn_integrated -r P -f /path/model -n REQS (./img-dnn_integrated -r 4 -f ${DATA_ROOT}/img-dnn/models/model.xml -n 60)
 
 To run the benchmark with a small input data set for both the mnist data and the model (Both the binary and model.xml file have been modified):
 
-./img-dnn_integrated_small -r 4 -f /scratch/dflyer/Tailbench/tailbench.inputs/img-dnn/models/model_small.xml -n 60
+./bmrk_binaries/Tailbench/img-dnn_integrated_small -r 4 -f bmrk_binaries/Tailbench/data/img-dnn/model.xml -n 60
 
 This small benchmark will cause a segfault in the run, but after the point in which the program deadlocks when trying to spawn pthreads, so the small benchmark is useful for debugging this specific issue and not much else at the moment.
 
+Example run: time build/ARM/gem5.opt configs/example/se_SMT_ARM.py "./bmrk_binaries/Tailbench/img-dnn_integrated_small -r 1 -f bmrk_binaries/Tailbench/data/img-dnn/model.xml -n 60 " --threadTypes S --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=10 --smt -t 6 -SThreads 6 -env  bmrk_binaries/Tailbench/env_vars
 
 ** Environment Variables **
 
