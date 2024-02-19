@@ -169,7 +169,7 @@ class SimpleSeSystem(System):
         return self._num_cpus
 
 
-def get_processes(cmd):
+def get_processes(cmd,env):
     """Interprets provided args and returns a list of processes"""
 
     cwd = os.getcwd()
@@ -179,7 +179,9 @@ def get_processes(cmd):
 
         process = Process(pid=100 + idx, cwd=cwd, cmd=argv, executable=argv[0])
         process.gid = os.getgid()
-
+        if env:
+            with open(env, "r") as f:
+                process.env = [line.rstrip() for line in f]
         print("info: %d. command and arguments: %s" % (idx + 1, process.cmd))
         multiprocesses.append(process)
 
@@ -202,7 +204,7 @@ def create(args):
 
     # Parse the command line and get a list of Processes instances
     # that we can pass to gem5.
-    processes = get_processes(args.commands_to_run)
+    processes = get_processes(args.commands_to_run, args.env)
     if len(processes) != args.num_cores:
         print("Error: Cannot map %d command(s) onto %d CPU(s)"% (len(processes), args.num_cores)
         )
@@ -252,6 +254,8 @@ def main():
     )
     #Daniel Change
     parser.add_argument('-t', type=int, default = 1)
+
+    parser.add_argument('-env', type=str)
 
     # Change numThreads to change SMT Ishita
     args = parser.parse_args()

@@ -194,7 +194,7 @@ class SimpleSeSystem(System):
         return self._num_cpus
 
 
-def get_processes(cmd,threadTypes):
+def get_processes(cmd,threadTypes,env):
     """Interprets provided args and returns a list of processes"""
 
     cwd = os.getcwd()
@@ -209,6 +209,10 @@ def get_processes(cmd,threadTypes):
         process = Process(pid=100 + idx, cwd=cwd, cmd=argv, executable=argv[0])
         process.gid = os.getgid()
         process.processThreadType = threadTypes[index]
+
+        if env:
+            with open(env, "r") as f:
+                process.env = [line.rstrip() for line in f]
 
         print("info: %d. command and arguments: %s" % (idx + 1, process.cmd))
         multiprocesses.append(process)
@@ -233,7 +237,7 @@ def create(args):
 
     # Parse the command line and get a list of Processes instances
     # that we can pass to gem5.
-    processes = get_processes(args.commands_to_run,args.threadTypes)
+    processes = get_processes(args.commands_to_run,args.threadTypes,args.env)
 
     #print("ARGS :",args.commands_to_run)
     # if len(processes) != args.num_cores:
@@ -272,6 +276,7 @@ def main():
     Options.addCommonOptions(parser)
     Options.addSEOptions(parser)
 
+
     parser.add_argument(
         "commands_to_run",
         metavar="command(s)",
@@ -303,6 +308,8 @@ def main():
     parser.add_argument('-SThreads', type=int, default = 1)
 
     parser.add_argument('-WThreads', type=int, default = 0)
+
+    parser.add_argument('-env', type=str)
 
     args = parser.parse_args()
 
