@@ -4,7 +4,7 @@ img_dnn (Image Recognition): To execute with P number of threads, /path/model mo
 
 To run the benchmark with a small input data set for both the mnist data and the model (Both the binary and model.xml file have been modified):
 
-./bmrk_binaries/Tailbench/img-dnn_integrated_small -r 4 -f bmrk_binaries/Tailbench/data/img-dnn/model.xml -n 60
+./bmrk_binaries/Tailbench/img-dnn_integrated_small -r 4 -f bmrk_binaries/Tailbench/data/img-dnn/small_model.xml -n 60
 
 This small benchmark will cause a segfault in the run, but after the point in which the program deadlocks when trying to spawn pthreads, so the small benchmark is useful for debugging this specific issue and not much else at the moment.
 
