@@ -303,6 +303,14 @@ def main():
         "--num-cores", type=int, default=1, help="Number of CPU cores"
     )
 
+    parser.add_argument(
+        "--checkpoint-path",
+        type=str,
+        required=False,
+        default="riscv-hello-checkpoint/",
+        help="The directory to store the checkpoint.",
+    )
+
     parser.add_argument('-t', type=int, default = 1)
 
     parser.add_argument('-SThreads', type=int, default = 1)
