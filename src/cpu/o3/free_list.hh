@@ -46,6 +46,7 @@
 #include <array>
 #include <iostream>
 #include <queue>
+#include <unordered_set>
 
 #include "base/logging.hh"
 #include "base/trace.hh"
@@ -74,6 +75,7 @@ class SimpleFreeList
 
     /** The actual free list */
     std::queue<PhysRegIdPtr> freeRegs;
+    std::unordered_set<PhysRegIdPtr> freeRegsSet; // to ensure that I am not adding a reg to freeList twice I maintain a set for faster lookup
 
   public:
 
@@ -88,6 +90,7 @@ class SimpleFreeList
     addRegs(InputIt first, InputIt last) {
         std::for_each(first, last, [this](typename InputIt::value_type& reg) {
             freeRegs.push(&reg);
+            freeRegsSet.insert(reg);
         });
     }
 
@@ -97,7 +100,24 @@ class SimpleFreeList
         assert(!freeRegs.empty());
         PhysRegIdPtr free_reg = freeRegs.front();
         freeRegs.pop();
+        freeRegsSet.erase(free_reg);
         return free_reg;
+    }
+
+    /** check if a value is already in here **/
+    bool regExists(int regIdx) {
+        bool found = false;
+        for (auto reg : freeRegsSet) {
+            if (reg->flatIndex() == 279) {
+                found = true;
+                break;
+            }
+        }
+        return found;
+    }
+
+    int get_size() {
+      return freeRegs.size();
     }
 
     /** Return the number of free registers on the list. */

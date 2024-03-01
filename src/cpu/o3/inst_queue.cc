@@ -2142,6 +2142,9 @@ InstructionQueue::addToProducers(const DynInstPtr &new_inst)
                     dest_reg->index(), dest_reg->className(),
                     dest_reg->flatIndex()); 
             }
+            DPRINTF(IQ, "[tid:%d] adding to producer, [sn:%llu] "
+                        "PC %s REG %i (%s) (flat: %i) REG %d pinnedWrites %d.\n", tid,new_inst->seqNum, new_inst->pcState(),dest_reg->index(), dest_reg->className(),
+                    dest_reg->flatIndex(),dest_reg->index(),dest_reg->getNumPinnedWritesToComplete());
 
             dependGraph.setInst(dest_reg->flatIndex(), new_inst); // create new entry for the destination register 
         } else {

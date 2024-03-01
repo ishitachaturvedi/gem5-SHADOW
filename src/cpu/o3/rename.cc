@@ -977,7 +977,7 @@ Rename::doSquash(const InstSeqNum &squashed_seq_num, ThreadID tid)
         assert(hb_it != historyBuffer[tid].end());
 
         DPRINTF(Rename, "[tid:%i] Removing history entry with sequence "
-                "number %i (archReg: %d, newPhysReg: %d, prevPhysReg: %d).\n",
+                "number %i (archReg: %d , newPhysReg: %d , prevPhysReg: %d ).\n",
                 tid, hb_it->instSeqNum, hb_it->archReg.index(),
                 hb_it->newPhysReg->index(), hb_it->prevPhysReg->index());
 

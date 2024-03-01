@@ -104,16 +104,16 @@ SimpleRenameMap::rename(const RegId& arch_reg, bool isWThread, int tid, int sn)
                     tid, sn, arch_reg, arch_reg.index(), renamed_reg->flatIndex(), renamed_reg->getNumPinnedWritesToComplete(),arch_reg.getNumPinnedWrites(),renamed_reg->isPinned(),renamed_reg->flatIndex(), renamed_reg->flatIndex(),
             prev_reg->flatIndex(), prev_reg->flatIndex());
         } else {
+            bool found_reg = freeList->regExists(279);
             renamed_reg = freeList->getReg();
             renamed_reg->sethasrenamed();
             map[arch_reg.index()] = renamed_reg;
             renamed_reg->setNumPinnedWrites(arch_reg.getNumPinnedWrites());
             renamed_reg->setNumPinnedWritesToComplete(
                 arch_reg.getNumPinnedWrites() + 1);
-            DPRINTF(IQ, "[tid:%d] [sn:%llu] arch_reg %d RENAME_CHECK base_reg %d Renaming reg %d numPinnedWrites %d archwrite %d isPinned %d to physical reg %d (%d) old mapping was  %d (%d)\n",
+            DPRINTF(IQ, "[tid:%d] [sn:%llu] arch_reg %d RENAME_CHECK base_reg %d Renaming reg %d numPinnedWrites %d archwrite %d isPinned %d to physical reg %d (%d) old mapping was  %d (%d) found_reg %d free_list_size %d\n",
                     tid,sn,arch_reg,arch_reg.index(), renamed_reg->flatIndex(), renamed_reg->getNumPinnedWritesToComplete(),arch_reg.getNumPinnedWrites(),renamed_reg->isPinned(),renamed_reg->flatIndex(), renamed_reg->flatIndex(),
-            prev_reg->flatIndex(), prev_reg->flatIndex());
-
+            prev_reg->flatIndex(), prev_reg->flatIndex(),found_reg, freeList->get_size());
         }
     }
 
