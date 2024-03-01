@@ -471,13 +471,36 @@ class Grace12Wide(ArmO3CPU):
     backComSize = 5
     forwardComSize = 5
 
-# # 1 thread
-#     numROBEntries = 320
-#     numPhysFloatRegs = 192
-#     numPhysVecRegs = 192 
-#     numPhysIntRegs = 224
-#     numIQEntries = 120
+# 1 thread
+    numROBEntries = 320
+    numPhysFloatRegs = 192
+    numPhysVecRegs = 192 
+    numPhysIntRegs = 224
+    numIQEntries = 120
 
+# 1.5 resources scaling per thread
+# # 2 thread
+#     numROBEntries = 480
+#     numPhysFloatRegs = 288
+#     numPhysVecRegs = 288 
+#     numPhysIntRegs = 336
+#     numIQEntries = 180
+
+# # 4 thread
+#     numROBEntries = 720
+#     numPhysFloatRegs = 432
+#     numPhysVecRegs = 432 
+#     numPhysIntRegs = 504
+#     numIQEntries = 270
+
+# # 8 thread
+#     numROBEntries = 1080
+#     numPhysFloatRegs = 648
+#     numPhysVecRegs = 648 
+#     numPhysIntRegs = 756
+#     numIQEntries = 405
+
+# resource constraints
 # # 2 threads
 #     numROBEntries = 384
 #     numPhysFloatRegs = 230
@@ -506,12 +529,12 @@ class Grace12Wide(ArmO3CPU):
 #     numPhysIntRegs = 404
 #     numIQEntries = 216
 
-# 10 threads
-    numROBEntries = 640
-    numPhysFloatRegs = 384
-    numPhysVecRegs = 484 
-    numPhysIntRegs = 448
-    numIQEntries = 240
+# # 10 threads
+#     numROBEntries = 640
+#     numPhysFloatRegs = 384
+#     numPhysVecRegs = 484 
+#     numPhysIntRegs = 448
+#     numIQEntries = 240
 
     # cacheStorePorts = 512
     # cacheLoadPorts = 512
