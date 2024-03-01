@@ -1388,7 +1388,7 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
                         // mark dest regs as ready for this instruction
                         dep_inst->markDestRegReady(dest_reg->flatIndex(),dep_inst->numDestRegs());
 
-                        DPRINTF(IQ, "[tid:%d] addIfReady5 Adding instruction [sn:%llu] PC %s to the IQ.\n", tid, dep_inst->seqNum, dep_inst->pcState());
+                        DPRINTF(IQ, "[tid:%d] addIfReady5 Adding instruction [sn:%llu] PC %s to the IQ numWARPending[0] %d.\n", tid, dep_inst->seqNum, dep_inst->pcState(), dep_inst->numWARPending[0]);
                         addIfReady(dep_inst);
                     }
 
@@ -1437,7 +1437,7 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
                         // graph entries would need to hold the src_reg_idx.
 
                         DPRINTF(IQ, "[tid:%d] PLACE3 WAR STARTING TO WAKE INSTS WRITE_INST, [sn:%llu] "
-                                "PC %s.\n", tid, dep_inst->seqNum, dep_inst->pcState());
+                                "PC %s index %d numWARPending %d.\n", tid, dep_inst->seqNum, dep_inst->pcState(),reg_index,dep_inst->numWARPending[reg_index]);
 
                         if(dep_inst->numWARPending[reg_index] == 0) 
                         {
@@ -1452,7 +1452,7 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
                                     "PC %s insts_left %d.\n", tid, dep_inst->seqNum, dep_inst->pcState(),dependGraph.countNodes(src_reg->flatIndex(), locInVec));
                         } else {
                             DPRINTF(IQ, "[tid:%d] PLACE6 could not wake WAR, [sn:%llu] "
-                                    "PC %s insts_left %d numWARPending %d.\n", tid, dep_inst->seqNum, dep_inst->pcState(),dependGraph.countNodes(src_reg->flatIndex(), locInVec),dep_inst->numWARPending[reg_index]);
+                                    "PC %s insts_left %d numWARPending %d idx %d index %d.\n", tid, dep_inst->seqNum, dep_inst->pcState(),dependGraph.countNodes(src_reg->flatIndex(), locInVec),dep_inst->numWARPending[reg_index],src_reg->flatIndex(),reg_index);
 
                             if(dep_inst->numWARPending[reg_index] < 1) {
                                 panic("[tid:%d] numWARPending less than 0! sn:%d val %d reg %d",tid,dep_inst->seqNum, dep_inst->numWARPending[reg_index], src_reg->flatIndex());
@@ -2043,9 +2043,9 @@ InstructionQueue::addToDependents(const DynInstPtr &new_inst)
         {
             PhysRegIdPtr dest_reg = new_inst->renamedDestIdx(dest_reg_idx);
 
-            DPRINTF(IQ, "[tid:%d] LOOK_REGS_WRITE RegNum %d %i (%s) [sn:%llu] pinned %d numPinnedComplete %d.\n",
+            DPRINTF(IQ, "[tid:%d] LOOK_REGS_WRITE RegNum %d %i (%s) [sn:%llu] pinned %d numPinnedComplete %d isFixedMapping %d.\n",
                 tid,dest_reg->flatIndex(), dest_reg->index(),
-                dest_reg->className(),new_inst->seqNum,dest_reg->isPinned(),dest_reg->getNumPinnedWritesToComplete());
+                dest_reg->className(),new_inst->seqNum,dest_reg->isPinned(),dest_reg->getNumPinnedWritesToComplete(),dest_reg->isFixedMapping());
 
             DPRINTF(IQ, "[tid:%d] PLACE11 DEST_REGS, [sn:%llu] "
                         "PC %s.\n", tid,new_inst->seqNum, new_inst->pcState());
@@ -2069,7 +2069,7 @@ InstructionQueue::addToDependents(const DynInstPtr &new_inst)
                 // add the inst as a dependence on the last entry of the dependence graph
                 dependGraph.insertBehindWAR(dest_reg->flatIndex(), new_inst, dest_reg_idx);
 
-                DPRINTF(IQ,"[tid:%d] SIZE_OF_ENTRIES4 %d ENTRY %d\n",tid,dependGraph.sizeofWAWFull(dest_reg->flatIndex()),dependGraph.sizeofWAWEntry(dest_reg->flatIndex()));
+                DPRINTF(IQ,"[tid:%d] SIZE_OF_ENTRIES4 %d ENTRY %d numWARPending %d\n",tid,dependGraph.sizeofWAWFull(dest_reg->flatIndex()),dependGraph.sizeofWAWEntry(dest_reg->flatIndex()),new_inst->numWARPending[dest_reg_idx]);
 
                 DPRINTF(IQ, "[tid:%d] PLACE12 WAR_SRC_NOT_READY_POST, [sn:%llu] "
                         "PC %s depends on seqNum:%llu .\n", tid,new_inst->seqNum, new_inst->pcState(),dependGraph.getWARSeqNum(dest_reg->flatIndex()));
@@ -2150,8 +2150,8 @@ InstructionQueue::addToProducers(const DynInstPtr &new_inst)
         } else {
 
             DPRINTF(IQ, "[tid:%d] PLACE14 ADDING_TO_RAW_PRODUCERS, [sn:%llu] "
-                        "PC %s REG %i (%s) (flat: %i) idx_push %d.\n", tid,new_inst->seqNum, new_inst->pcState(),dest_reg->index(), dest_reg->className(),
-                    dest_reg->flatIndex(),dependGraph.countNodesRAW(dest_reg->flatIndex()));
+                        "PC %s REG %i (%s) (flat: %i) idx_push %d index %d numWARPending %d.\n", tid,new_inst->seqNum, new_inst->pcState(),dest_reg->index(), dest_reg->className(),
+                    dest_reg->flatIndex(),dependGraph.countNodesRAW(dest_reg->flatIndex()),dest_reg_idx,new_inst->numWARPending[dest_reg_idx]);
 
             // add this instruction at the end of the dependence graph
             // dependence graph need not be empty as we dont rename registers.
@@ -2180,7 +2180,7 @@ InstructionQueue::addToProducers(const DynInstPtr &new_inst)
                 dest_regs_set.insert(dest_reg_idx);
 
                 DPRINTF(IQ,"[tid:%d] Putting inst in WAW queue [sn:%llu] "
-                        "PC %s reg %d fixed mapping %d.\n", tid,new_inst->seqNum, new_inst->pcState(),dest_reg->flatIndex(),dest_reg->isFixedMapping());
+                        "PC %s reg %d fixed mapping %d index %d numWARPending %d.\n", tid,new_inst->seqNum, new_inst->pcState(),dest_reg->flatIndex(),dest_reg->isFixedMapping(),dest_reg_idx,new_inst->numWARPending[dest_reg_idx]);
 
                 bool isFirstEntry = true;
 
