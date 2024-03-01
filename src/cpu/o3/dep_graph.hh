@@ -593,11 +593,11 @@ DependencyGraph<DynInstPtr>::insertBehindWAR(RegIndex idx, const DynInstPtr &new
     int size = dependenceWARGraph[idx].size();
     modifiableInst->numWARPending[dest_reg_idx] = size;
 
-    printf("STARTING PLACING_INST_IN_DONE size %d numWARPending %d dest_reg_idx %d\n",size,new_inst->numWARPending[dest_reg_idx]);
+    //printf("STARTING PLACING_INST_IN_DONE size %d numWARPending %d dest_reg_idx %d\n",size,new_inst->numWARPending[dest_reg_idx]);
 
     for(int i = 0; i < size; i++ ) {
 
-         printf("placing behind WAR11 basse reg %d sizeOfNum %d numWARPending %d instPlaces sn:%d modifiableInst %d dest_reg_idx %d\n",idx,dependenceWARGraph[idx][i].size(),new_inst->numWARPending[dest_reg_idx],new_inst->seqNum,modifiableInst->numWARPending[dest_reg_idx]);
+         //printf("placing behind WAR11 basse reg %d sizeOfNum %d numWARPending %d instPlaces sn:%d modifiableInst %d dest_reg_idx %d\n",idx,dependenceWARGraph[idx][i].size(),new_inst->numWARPending[dest_reg_idx],new_inst->seqNum,modifiableInst->numWARPending[dest_reg_idx]);
 
         fflush(stdout);
 
@@ -605,7 +605,7 @@ DependencyGraph<DynInstPtr>::insertBehindWAR(RegIndex idx, const DynInstPtr &new
 
         dependenceWARGraph[idx][i].push_back(new_inst);
 
-        printf("placing behind WAR22 basse sn:%d reg %d sizeOfNum %d numWARPending %d instPlaces sn:%d modifiableInst %d dest_reg_idx %d\n",dependenceWARGraph[idx][i][0]->seqNum,idx,dependenceWARGraph[idx][i].size(),new_inst->numWARPending[dest_reg_idx],new_inst->seqNum,modifiableInst->numWARPending[dest_reg_idx],dest_reg_idx);
+        //printf("placing behind WAR22 basse sn:%d reg %d sizeOfNum %d numWARPending %d instPlaces sn:%d modifiableInst %d dest_reg_idx %d\n",dependenceWARGraph[idx][i][0]->seqNum,idx,dependenceWARGraph[idx][i].size(),new_inst->numWARPending[dest_reg_idx],new_inst->seqNum,modifiableInst->numWARPending[dest_reg_idx],dest_reg_idx);
 
         fflush(stdout);
 
@@ -864,7 +864,7 @@ DependencyGraph<DynInstPtr>::decreaseNumWARPending(RegIndex idx, const DynInstPt
     DynInstPtr& modifiableInst = const_cast<DynInstPtr&>(inst1);
     modifiableInst->numWARPending[reg_index] = modifiableInst->numWARPending[reg_index] - 1;
 
-    printf("popWARFinal removeInst bas3se sn:%d reg %d sizeOfNum %d removed inst sn:%d numWARPending %d\n",dependenceWARGraph[idx][num][0]->seqNum,idx,dependenceWARGraph[idx][num].size(),inst1->seqNum,modifiableInst->numWARPending[reg_index]);
+    //printf("popWARFinal removeInst bas3se sn:%d reg %d sizeOfNum %d removed inst sn:%d numWARPending %d\n",dependenceWARGraph[idx][num][0]->seqNum,idx,dependenceWARGraph[idx][num].size(),inst1->seqNum,modifiableInst->numWARPending[reg_index]);
 
     return reg_index;
 }
