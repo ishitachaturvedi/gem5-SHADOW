@@ -43,6 +43,8 @@
 
 #include "cpu/o3/comm.hh"
 #include <algorithm>
+#include <memory>
+
 namespace gem5
 {
 
@@ -143,6 +145,12 @@ class DependencyGraph
         //printf("RESINZING_WAW %d idx %d size1 %d susize %d\n",dependenceWARGraph[idx].size(),idx,size1,dependenceWARGraph[idx][index].size());
         dependenceWARGraph[idx][index].push_back(new_inst);
         //printf("RESINZING_WAW3 %d idx %d\n",dependenceWARGraph[idx].size(),idx);
+        printf("Put val idx %d i %d size %d size_vector %d\n",idx,index,dependenceWARGraph[idx][index].size(),dependenceWARGraph[idx].size());
+
+        // while(dependenceWARGraph[idx][index].size() > 0) {
+        //     dependenceWARGraph[idx][index].pop_back();
+        //}
+        //dependenceWARGraph[idx].pop_back();
     }
 
     /** Check if there are no entries for the dependence graph -> The src reg is ready */
@@ -182,27 +190,37 @@ class DependencyGraph
     void clearlastInstWAR(RegIndex idx)
     { 
         int size = dependenceWARGraph[idx].size() - 1;
-        assert(dependenceWARGraph[idx][size].size() == 1);
-        dependenceWARGraph[idx][size].pop_back();
-        dependenceWARGraph[idx].pop_back();
-        int size_later = dependenceWARGraph[idx].size() - 1;
-        assert(size == size_later + 1);
+        if(size > 0) {
+            //assert(dependenceWARGraph[idx][size].size() == 1);
+                while(dependenceWARGraph[idx][size].size() > 0) {
+                    dependenceWARGraph[idx][size].pop_back();
+                dependenceWARGraph[idx].pop_back();
+                printf("clearlastInstWAR1 idx %d i %d size %d size_vec %d \n",idx,size,dependenceWARGraph[idx][size].size(),dependenceWARGraph[idx].size());
+                int size_later = dependenceWARGraph[idx].size() - 1;
+                assert(size == size_later + 1);
+            }
+        }
     }
 
     /** Clears the producing instruction -> Removes the first entry from the vector for this register idx. */
      void clearInstWAR(RegIndex idx, int num)
     { 
-        if(!(dependenceWARGraph[idx][num].size() == 1)) {
-            panic("dependenceWAR1Graph not empty of dependencies! size is %d should be 1 reg %d entry %d\n",dependenceWARGraph[idx][num].size(),idx,num);
+        // if(!(dependenceWARGraph[idx][num].size() == 1)) {
+        //     panic("dependenceWAR1Graph not empty of dependencies! size is %d should be 1 reg %d entry %d\n",dependenceWARGraph[idx][num].size(),idx,num);
+        // }
+        if( dependenceWARGraph[idx][num].size() > 0) {
+            while(dependenceWARGraph[idx][num].size() > 0)
+                dependenceWARGraph[idx][num].pop_back();
+            //dependenceWARGraph[idx].erase(dependenceWARGraph[idx].begin() + num);
+            dependenceWARGraph[idx].pop_back();
+            //dependenceWARGraph[idx].pop_back();
         }
-        dependenceWARGraph[idx][num].pop_back();
-        dependenceWARGraph[idx].erase(dependenceWARGraph[idx].begin() + num);
+         printf("clearlastInstWAR2 idx %d i %d size %d size_vec %d\n",idx,num,dependenceWARGraph[idx][num].size(),dependenceWARGraph[idx].size());
     }
 
     /** checks that the inst in question is the oldest inst in the dependence vector for this instruction */
     bool isInstOldestRAW(RegIndex idx, const DynInstPtr &new_inst) { 
 
-        //printf("isInstOldestRAWVal size %d\n",dependenceRAWGraph[idx].size());
         fflush(stdout);
         return (dependenceRAWGraph[idx][0].inst == new_inst); 
     }
@@ -328,7 +346,8 @@ class DependencyGraph
      * outermost vector, then adds itself behind to all the vector entries.
      * so, dependenceWARGraph[reg][idx][0] -> producer
      * dependenceWARGraph[reg][idx][1,2,..] -> consumer */
-    std::vector<std::vector<std::vector<DynInstPtr>>> dependenceWARGraph;
+    //std::vector<std::vector<std::vector<DynInstPtr>>> dependenceWARGraph;
+    std::vector<std::vector<std::vector<gem5::RefCountingPtr<gem5::o3::DynInst>>>> dependenceWARGraph;
 
     /** Number of linked lists; identical to the number of registers. */
     int numEntries;
@@ -597,7 +616,7 @@ DependencyGraph<DynInstPtr>::insertBehindWAR(RegIndex idx, const DynInstPtr &new
 
     for(int i = 0; i < size; i++ ) {
 
-         //printf("placing behind WAR11 basse reg %d sizeOfNum %d numWARPending %d instPlaces sn:%d modifiableInst %d dest_reg_idx %d\n",idx,dependenceWARGraph[idx][i].size(),new_inst->numWARPending[dest_reg_idx],new_inst->seqNum,modifiableInst->numWARPending[dest_reg_idx]);
+        //printf("placing behind WAR11 basse reg %d sizeOfNum %d numWARPending %d instPlaces sn:%d modifiableInst %d dest_reg_idx %d\n",idx,dependenceWARGraph[idx][i].size(),new_inst->numWARPending[dest_reg_idx],new_inst->seqNum,modifiableInst->numWARPending[dest_reg_idx]);
 
         fflush(stdout);
 
@@ -607,10 +626,15 @@ DependencyGraph<DynInstPtr>::insertBehindWAR(RegIndex idx, const DynInstPtr &new
 
         //printf("placing behind WAR22 basse sn:%d reg %d sizeOfNum %d numWARPending %d instPlaces sn:%d modifiableInst %d dest_reg_idx %d\n",dependenceWARGraph[idx][i][0]->seqNum,idx,dependenceWARGraph[idx][i].size(),new_inst->numWARPending[dest_reg_idx],new_inst->seqNum,modifiableInst->numWARPending[dest_reg_idx],dest_reg_idx);
 
+        printf("Adding values idx %d i %d size %d size_vec %d\n",idx,i,dependenceWARGraph[idx][i].size(),dependenceWARGraph[idx].size());
+
         fflush(stdout);
 
         ++memAllocCounter;
+        // while(dependenceWARGraph[idx][i].size() > 0)
+        //     dependenceWARGraph[idx][i].pop_back();
     }
+    //dependenceWARGraph[idx].pop_back();
 }
 
 template <class DynInstPtr>
@@ -742,6 +766,7 @@ DependencyGraph<DynInstPtr>::removeWAR(RegIndex idx,
 
         //printf("Final removeInst bas1se sn:%d reg %d sizeOfNum %d instFound %d\n",dependenceWARGraph[idx][i][0]->seqNum,idx,dependenceWARGraph[idx][i].size(),count);
     }
+    printf("Remove WAR idx %d size %d size_vec %d\n",idx,dependenceWARGraph[idx].size());
 }
 
 template <class DynInstPtr>
@@ -760,15 +785,17 @@ DependencyGraph<DynInstPtr>::removeInst(RegIndex idx,
         }
     }
 
-    assert(index!=-1);
-    // should be the last index
-    assert(index == (start_size -1));
-    dependenceWAWGraph[idx][index] = NULL;
-    dependenceWAWGraph[idx].erase(dependenceWAWGraph[idx].begin() + index);
+    //assert(index!=-1);
+    if(index!=-1) {
+        // should be the last index
+        assert(index == (start_size -1));
+        dependenceWAWGraph[idx][index] = NULL;
+        dependenceWAWGraph[idx].erase(dependenceWAWGraph[idx].begin() + index);
 
-    int end_size = dependenceWAWGraph[idx].size();;
-    // an instruction should be removed
-    assert(start_size == (end_size + 1));
+        int end_size = dependenceWAWGraph[idx].size();;
+        // an instruction should be removed
+        assert(start_size == (end_size + 1));
+    }
 }
 
 template <class DynInstPtr>
@@ -802,10 +829,15 @@ template <class DynInstPtr>
 DynInstPtr
 DependencyGraph<DynInstPtr>::popFront(RegIndex idx)
 {
-   DynInstPtr inst = dependenceWAWGraph[idx][0];
-   dependenceWAWGraph[idx][0] = NULL;
-   dependenceWAWGraph[idx].erase(dependenceWAWGraph[idx].begin());
-   return inst;
+    if(dependenceWAWGraph.size() > idx) {
+        if(dependenceWAWGraph[idx].size() > 0 ) {
+            DynInstPtr inst = dependenceWAWGraph[idx][0];
+            dependenceWAWGraph[idx][0] = NULL;
+            dependenceWAWGraph[idx].erase(dependenceWAWGraph[idx].begin());
+            return inst;
+        }
+    }
+    return NULL;
 }
 
 template <class DynInstPtr>
@@ -839,9 +871,13 @@ DependencyGraph<DynInstPtr>::popWAR(RegIndex idx, int num)
     {
         inst1 = dependenceWARGraph[idx][num][1];
         assert(inst1 != NULL);
-        dependenceWARGraph[idx][num].erase(dependenceWARGraph[idx][num].begin() + 1);
+        //dependenceWARGraph[idx][num].erase(dependenceWARGraph[idx][num].begin() + 1);
+        //while(dependenceWARGraph[idx][num].size()> 0)
+        dependenceWARGraph[idx][num].pop_back();
         memAllocCounter--;
+        
     }
+    printf("popWAR idx %d i %d size %d\n",idx,num,dependenceWARGraph[idx][num].size());
 
     return inst1;
 }
@@ -913,7 +949,9 @@ template <class DynInstPtr>
 DynInstPtr
 DependencyGraph<DynInstPtr>::getNextInst(RegIndex idx)
 {
-    return dependenceWAWGraph[idx][0];
+    if(dependenceWAWGraph[idx].size() > 0 )
+        return dependenceWAWGraph[idx][0];
+    return NULL;
 }
 
 template <class DynInstPtr>

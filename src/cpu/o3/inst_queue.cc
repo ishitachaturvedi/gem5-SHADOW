@@ -1353,7 +1353,7 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
             // from the linked list Ishita dependenceWAWGraph
 
             // only for W threads: 
-            if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak)
+            //if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) // Ishita
             {
                 if (dest_regs_set.find(dest_reg_idx) == dest_regs_set.end())
                 {
@@ -1383,10 +1383,10 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
                                 "PC %s.\n", tid, popped_inst,dep_inst,dep_inst->seqNum, dep_inst->pcState());
                         }
 
-                        dep_inst->markDestDepRegReady(dest_reg->flatIndex(),dep_inst->numDestRegs());
+                        // dep_inst->markDestDepRegReady(dest_reg->flatIndex(),dep_inst->numDestRegs()); // Ishita 
 
-                        // mark dest regs as ready for this instruction
-                        dep_inst->markDestRegReady(dest_reg->flatIndex(),dep_inst->numDestRegs());
+                        // // mark dest regs as ready for this instruction
+                        // dep_inst->markDestRegReady(dest_reg->flatIndex(),dep_inst->numDestRegs()); // Ishita
 
                         DPRINTF(IQ, "[tid:%d] addIfReady5 Adding instruction [sn:%llu] PC %s to the IQ numWARPending[0] %d.\n", tid, dep_inst->seqNum, dep_inst->pcState(), dep_inst->numWARPending[0]);
                         addIfReady(dep_inst);
@@ -1399,6 +1399,32 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
         }
 
         DPRINTF(IQ, "[tid:%d] INSIDE222 PLACE Waking dependents of completed instruction numDests %d.\n",tid,total_dest_regs);
+
+        // Ishita start
+        int8_t total_src_regs = completed_inst->numSrcRegs();
+        for (int src_reg_idx = 0;
+                        src_reg_idx < total_src_regs;
+                        src_reg_idx++) {
+
+            PhysRegIdPtr src_reg = completed_inst->renamedSrcIdx(src_reg_idx);
+
+            int locInVec = dependGraph.getInstLocInWAR(src_reg->flatIndex(), completed_inst);
+
+            if(!src_reg->isFixedMapping()) {
+                DPRINTF(IQ, "[tid:%d] PLACE4 STARTING TO WAKE INSTS, [sn:%llu] "
+                        "PC %s locInVec: %d reg_num %d insts_left %d.\n", tid, completed_inst->seqNum, completed_inst->pcState(),locInVec,src_reg->flatIndex(),dependGraph.countNodes(src_reg->flatIndex(), locInVec));
+            }
+
+            /** There should be an entry for this */
+            bool locInVecFound = (locInVec != -1) ? 1 : 0;
+            if(locInVecFound) {
+                dependGraph.clearInstWAR(src_reg->flatIndex(),locInVec); 
+            }
+        }
+
+        // Ishita end
+
+
 
         /** for W threads, we need to wake up WAR dependents on the src registers. To
          * Do this we need to go through the vector entries and free up all dependencies.
@@ -1750,6 +1776,7 @@ InstructionQueue::doSquash(ThreadID tid)
                             !src_reg->isFixedMapping()) {
                             dependGraph.remove(src_reg->flatIndex(),
                                             squashed_inst); // Ishita: clear the dependence graph on squash
+                            dependGraph.clearlastInstWAR(src_reg->flatIndex()); // Ishita
                         }
                     } else {
                         DPRINTF(IQ, "[tid:%d] PLACE7 STARTING TO SQUASH, [sn:%llu] "
@@ -1829,6 +1856,39 @@ InstructionQueue::doSquash(ThreadID tid)
         //     && cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak && !squashed_inst->HasWokenDependents()) {
         // if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak && !squashed_inst->HasWokenDependents() && !squashed_inst->isIssued()) 
         
+
+
+
+        // Ishita added start
+        if(((!squashed_inst->HasWokenDependents())
+            ||
+            (squashed_inst->isMemRef() &&
+             !squashed_inst->memOpDone()))) {
+            int8_t total_dest_regs = squashed_inst->numDestRegs();
+            for (int dest_reg_idx = 0;
+                dest_reg_idx < total_dest_regs;
+                dest_reg_idx++)
+            {
+                PhysRegIdPtr dest_reg =
+                    squashed_inst->renamedDestIdx(dest_reg_idx);
+                if (dest_reg->isFixedMapping()){
+                    continue;
+                }
+                DynInstPtr last_instWAW = dependGraph.getLastWAWInst(dest_reg->flatIndex());
+
+                DPRINTF(IQ, "[tid:%d] PLACE8 INSIDE SQUASH, [sn:%llu] "
+                        "PC %s last_instWAW %d reg %d readyToCommit %d isExecuted %d isCompleted %d HasWokenDependents %d.\n", tid, squashed_inst->seqNum, squashed_inst->pcState(),last_instWAW,dest_reg->flatIndex(),squashed_inst->readyToCommit(),squashed_inst->isCompleted(),squashed_inst->isExecuted(),squashed_inst->HasWokenDependents());
+
+                assert(last_instWAW->seqNum == squashed_inst->seqNum);
+                dependGraph.removeInst(dest_reg->flatIndex(),
+                                        squashed_inst);
+                // remove inst from WAR
+                dependGraph.removeWAR(dest_reg->flatIndex(),
+                                                squashed_inst);
+            }
+        }
+        // Ishita Added end
+
         if(((!squashed_inst->HasWokenDependents())
             ||
             (squashed_inst->isMemRef() &&
@@ -2164,7 +2224,8 @@ InstructionQueue::addToProducers(const DynInstPtr &new_inst)
         regScoreboard[dest_reg->flatIndex()] = false;           
     }
 
-    if(cpu->thread[new_inst->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+    //if(cpu->thread[new_inst->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Weak) // Ishita
+    {
         for (int dest_reg_idx = 0;
             dest_reg_idx < total_dest_regs;
             dest_reg_idx++)
@@ -2205,8 +2266,8 @@ InstructionQueue::addToProducers(const DynInstPtr &new_inst)
                     DPRINTF(IQ, "[tid:%d] PLACE3 WAR2 STARTING TO WAKE INSTS WRITE_INST, [sn:%llu] "
                             "PC %s idx %d total_dest_regs %d dest_reg->isFixedMapping() %d.\n", tid,new_inst->seqNum, new_inst->pcState(),dest_reg->flatIndex(),total_dest_regs,dest_reg->isFixedMapping());
 
-                    new_inst->markDestDepRegReady(dest_reg_idx,total_dest_regs);
-                    new_inst->markDestRegReady(dest_reg_idx,total_dest_regs); 
+                    // new_inst->markDestDepRegReady(dest_reg_idx,total_dest_regs);
+                    // new_inst->markDestRegReady(dest_reg_idx,total_dest_regs); 
                 } else {
                     DPRINTF(IQ, "[tid:%d] PLACE25 WAW_HAZARD, [sn:%llu] "
                         "PC %s entry_num %d.\n", tid,new_inst->seqNum, new_inst->pcState(),entry_num);
@@ -2222,7 +2283,8 @@ InstructionQueue::addToProducers(const DynInstPtr &new_inst)
                         "PC %s total_regs %d.\n", tid,new_inst->seqNum, new_inst->pcState(),new_inst->numSrcRegs());
 
     // add srcs to vector for WAR dependence list
-    if(cpu->thread[new_inst->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+    //if(cpu->thread[new_inst->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Weak) 
+    { // Ishita
 
         DPRINTF(IQ, "[tid:%d] IMPORTANT_PLACE_INST_IN_WAR11, [sn:%llu] "
                         "PC %s total_regs %d isExecuted %d.\n", tid,new_inst->seqNum, new_inst->pcState(),new_inst->numSrcRegs(),new_inst->isExecuted());
