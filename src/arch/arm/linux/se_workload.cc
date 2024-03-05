@@ -558,7 +558,7 @@ class SyscallTable64 : public SyscallDescTable<EmuLinux::SyscallABI64>
         {   base + 56, "openat", openatFunc<ArmLinux64> },
         {   base + 57, "close", closeFunc },
         {   base + 58, "vhangup" },
-        {   base + 59, "pipe2" },
+        {   base + 59, "pipe2", pipe2Func },
         {   base + 60, "quotactl" },
 #if defined(SYS_getdents64)
         {   base + 61, "getdents64", getdents64Func },
@@ -606,7 +606,7 @@ class SyscallTable64 : public SyscallDescTable<EmuLinux::SyscallABI64>
         {  base + 100, "get_robust_list" },
         {  base + 101, "nanosleep", ignoreWarnOnceFunc },
         {  base + 102, "getitimer" },
-        {  base + 103, "setitimer" },
+        {  base + 103, "setitimer", ignoreFunc }, // May cause issues
         {  base + 104, "kexec_load" },
         {  base + 105, "init_module" },
         {  base + 106, "delete_module" },
