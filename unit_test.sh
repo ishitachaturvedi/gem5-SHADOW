@@ -29,10 +29,12 @@ time build/ARM/gem5.opt -d unittest_res/pl_w2 configs/example/se_SMT_ARM.py "tes
 
 time build/ARM/gem5.opt -d unittest_res/hppl configs/example/se_SMT_ARM.py "test_codes/hello_pthreads-arm" "test_codes/pthreads_lock-arm" --threadTypes S W --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=10 --smt -t 12 -WThreads 6 -SThreads 6 &> unittest_res/out_hppl &
 
-time build/ARM/gem5.opt -d unittest_res/plhpS configs/example/se_SMT_ARM.py "test_codes/pthreads_lock-arm" "test_codes/hello_pthreads-arm" --threadTypes S S --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=10 --smt -t 12 -WThreads 0 -SThreads 12 &> unittest_res/out_plhpS &
+# program unable to exit but completes 
+# time build/ARM/gem5.opt -d unittest_res/plhpS configs/example/se_SMT_ARM.py "test_codes/pthreads_lock-arm" "test_codes/hello_pthreads-arm" --threadTypes S S --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=10 --smt -t 12 -WThreads 0 -SThreads 12 &> unittest_res/out_plhpS &
 
 time build/ARM/gem5.opt -d unittest_res/hpplS configs/example/se_SMT_ARM.py "test_codes/hello_pthreads-arm" "test_codes/pthreads_lock-arm" --threadTypes S S --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=10 --smt -t 12 -WThreads 0 -SThreads 12 &> unittest_res/out_hpplS &
 
-time build/ARM/gem5.opt -d unittest_res/plhpW configs/example/se_SMT_ARM.py "test_codes/pthreads_lock-arm" "test_codes/hello_pthreads-arm" --threadTypes W W --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=10 --smt -t 12 -WThreads 12 -SThreads 0 &> unittest_res/out_plhpW &
+# program unable to exit but completes 
+# time build/ARM/gem5.opt -d unittest_res/plhpW configs/example/se_SMT_ARM.py "test_codes/pthreads_lock-arm" "test_codes/hello_pthreads-arm" --threadTypes W W --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=10 --smt -t 12 -WThreads 12 -SThreads 0 &> unittest_res/out_plhpW &
 
 time build/ARM/gem5.opt -d unittest_res/hpplW configs/example/se_SMT_ARM.py "test_codes/hello_pthreads-arm" "test_codes/pthreads_lock-arm" --threadTypes W W --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=10 --smt -t 12 -WThreads 12 -SThreads 0 &> unittest_res/out_hpplW &

@@ -35,6 +35,8 @@
 
 # build hello_pthreads for arm: aarch64-linux-gnu-gcc hello_pthreads.c -o hello_pthreads-arm -static -lpthread
 
+# to run various SMT config CPUs: use o3_grace_1thread, o3_grace_2thread, o3_grace_4thread or o3_grace_8thread for 1,2,4,8 SMT thread CPU configs. Each config has a different ROB,IQ,Reg size. All other values are unmodified.
+
 # Run gem5 command: build/ARM/gem5.opt configs/example/se_SMT_ARM.py "test_codes/hello_pthreads-arm" --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=5 --smt > out
 
 # build/ARM/gem5.opt configs/example/se_SMT_ARM.py "/scratch/ishitac/starbench/rgbyuv/pthread/rgbyuv -i /scratch/ishitac/starbench/rgbyuv/pthread/sample_1280_853.ppm -c 1 -t 8 -p 1" --caches --l1d_size=32kB --l1d_assoc=8 --l1i_size=32kB --l1i_assoc=8 --l2cache --cpu="o3_grace" --mem-type=DDR4_2400_16x4 --mem-size=64GB --mem-channels=2 --num-cpus=3 --smt
@@ -118,6 +120,30 @@ cpu_type = {
     ),
     "o3_grace": (
         O3_ARM_grace.Grace12Wide,
+        O3_ARM_grace.O3_ARM_grace_ICache,
+        O3_ARM_grace.O3_ARM_grace_DCache,
+        O3_ARM_grace.O3_ARM_grace_L2,
+    ),
+    "o3_grace_1thread": (
+        O3_ARM_grace.Grace12Wide_1thread,
+        O3_ARM_grace.O3_ARM_grace_ICache,
+        O3_ARM_grace.O3_ARM_grace_DCache,
+        O3_ARM_grace.O3_ARM_grace_L2,
+    ),
+    "o3_grace_2thread": (
+        O3_ARM_grace.Grace12Wide_2thread,
+        O3_ARM_grace.O3_ARM_grace_ICache,
+        O3_ARM_grace.O3_ARM_grace_DCache,
+        O3_ARM_grace.O3_ARM_grace_L2,
+    ),
+    "o3_grace_4thread": (
+        O3_ARM_grace.Grace12Wide_4thread,
+        O3_ARM_grace.O3_ARM_grace_ICache,
+        O3_ARM_grace.O3_ARM_grace_DCache,
+        O3_ARM_grace.O3_ARM_grace_L2,
+    ),
+    "o3_grace_8thread": (
+        O3_ARM_grace.Grace12Wide_8thread,
         O3_ARM_grace.O3_ARM_grace_ICache,
         O3_ARM_grace.O3_ARM_grace_DCache,
         O3_ARM_grace.O3_ARM_grace_L2,
