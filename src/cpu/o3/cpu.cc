@@ -259,22 +259,31 @@ CPU::CPU(const BaseO3CPUParams &params)
     lastActivatedCycle = 0;
 
     DPRINTF(O3CPU, "Creating O3CPU object.\n");
-
+    int strongCount = 0;
+    int weakCount = 0;
     // Setup any thread state.
     thread.resize(numThreads);
-
     for (ThreadID tid = 0; tid < numThreads; ++tid) {
         int threadSet = 0;
         if (FullSystem) {
             // SMT is not supported in FS mode yet.
             assert(numThreads == 1);
             thread[tid] = new ThreadState(this, 0, NULL);
+            //Daniel: push thread to map
+            system->threadTypes.push_back(Strong);
         } else {
             if (tid < params.workload.size()) {
                 threadSet = 1;
                 DPRINTF(O3CPU, "Inside Workload[%i] params.workload %d process is %#x Numthreads %d size %d ThreadType %d\n", tid, &params.workload,
                         thread[tid],numThreads,params.workload.size(),params.workload[tid]->processThreadType);
                 thread[tid] = new ThreadState(this, tid, params.workload[tid]);
+                //Daniel: push thread to map
+                system->threadTypes.push_back((int)(params.workload[tid]->processThreadType));
+                if(params.workload[tid]->processThreadType == Strong){
+                    strongCount++;
+                }else{
+                    weakCount++;
+                }
             } else {
                 //Allocate Empty thread so M5 can use later
                 //when scheduling threads to CPU
@@ -282,8 +291,18 @@ CPU::CPU(const BaseO3CPUParams &params)
                 DPRINTF(O3CPU, "Workload[%i] process is BACKUP?\n", tid,
                         thread[tid]);
                 thread[tid] = new ThreadState(this, tid, dummy_proc);
+                //Daniel: push thread to map
+                if(strongCount < SThreads){
+                    system->threadTypes.push_back(Strong);
+                    strongCount++;
+                }else{
+                    system->threadTypes.push_back(Weak);
+                    weakCount++;
+                }
+                // add appropriate number of s and w threads to map
             }
         }
+
 
         gem5::ThreadContext *tc;
 
@@ -309,8 +328,14 @@ CPU::CPU(const BaseO3CPUParams &params)
 
         if(threadSet)
         {
-            DPRINTF(O3CPU,"[tid:%d] InitThread Adding new thread Type: %d Strong ActiveThreads: %d TotalThreads: %d Weak ActiveThreads: %d TotalThreads: %d\n",tid,tc->getProcessPtr()->getprocessThreadType(),SThreadsAvailable,SThreads,WThreadsAvailable,WThreads); 
+            DPRINTF(O3CPU,"[tid:%d] InitThread Adding new thread Type: %d Strong ActiveThreads: %d TotalThreads: %d Weak ActiveThreads: %d TotalThreads: %d\n",tid,tc->getProcessPtr()->getprocessThreadType(),SThreadsAvailable,SThreads,WThreadsAvailable,WThreads);
+            fprintf(stderr, "[tid:%d] InitThread Adding new thread Type: %d Strong ActiveThreads: %d TotalThreads: %d Weak ActiveThreads: %d TotalThreads: %d\n",tid,tc->getProcessPtr()->getprocessThreadType(),SThreadsAvailable,SThreads,WThreadsAvailable,WThreads); 
+ 
         }
+    }
+    //Daniel: sanity check on thread map
+    for(int i = 0; i < system->threadTypes.size(); i++){
+        fprintf(stderr, "Thread type for thread %d: %d\n", i, system->threadTypes[i]);
     }
 
     // Setup the rename map for whichever stages need it.
@@ -597,6 +622,9 @@ CPU::activateThread(ThreadID tid)
             SThreadsAvailable++;
         else    
             WThreadsAvailable++;
+        
+        fprintf(stderr, "[tid:%d] activateThread Cycle %d Adding new thread Type: %d Strong ActiveThreads: %d TotalThreads: %d Weak ActiveThreads: %d TotalThreads: %d\n",tid,curCycle(),thread[tid]->tc->getProcessPtr()->getprocessThreadType(),SThreadsAvailable,SThreads,WThreadsAvailable,WThreads); 
+
     }
 
     DPRINTF(O3CPU,"[tid:%d] activateThread Adding new thread Type: %d Strong ActiveThreads: %d TotalThreads: %d Weak ActiveThreads: %d TotalThreads: %d\n",tid,thread[tid]->tc->getProcessPtr()->getprocessThreadType(),SThreadsAvailable,SThreads,WThreadsAvailable,WThreads); 
@@ -652,6 +680,8 @@ CPU::deactivateThread(ThreadID tid)
             SThreadsAvailable--;
         else    
             WThreadsAvailable--;
+
+        fprintf(stderr, "[tid:%d] deactivateThread Removing new thread Type: %d Strong ActiveThreads: %d TotalThreads: %d Weak ActiveThreads: %d TotalThreads: %d\n",tid,thread[tid]->tc->getProcessPtr()->getprocessThreadType(),SThreadsAvailable,SThreads,WThreadsAvailable,WThreads);
         assert(SThreadsAvailable>=0);
         assert(WThreadsAvailable>=0);
     }

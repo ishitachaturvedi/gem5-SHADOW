@@ -200,7 +200,7 @@ class System : public SimObject, public PCEventScope
             }
         };
 
-        ThreadContext *findFree();
+        //ThreadContext *findFree();
 
         ThreadContext *
         operator [](ContextID id) const
@@ -311,6 +311,11 @@ class System : public SimObject, public PCEventScope
     unsigned int cacheLineSize() const { return _cacheLineSize; }
 
     Threads threads;
+
+    std::vector<int> threadTypes; // Daniel: map of thread types
+
+    ThreadContext *findFree(int threadType);
+
 
     const bool multiThread;
 

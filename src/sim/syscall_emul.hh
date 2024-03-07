@@ -1625,7 +1625,7 @@ doClone(SyscallDesc *desc, ThreadContext *tc, RegVal flags, RegVal newStack,
         return -EINVAL;
 
     ThreadContext *ctc;
-    if (!(ctc = tc->getSystemPtr()->threads.findFree())) {
+    if (!(ctc = tc->getSystemPtr()->findFree(tc->getProcessPtr()->getprocessThreadType()))) {
         DPRINTF_SYSCALL(Verbose, "clone: no spare thread context in system"
                         "[cpu %d, thread %d]", tc->cpuId(), tc->threadId());
         return -EAGAIN;

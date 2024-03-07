@@ -119,12 +119,28 @@ System::Threads::replace(ThreadContext *tc, ContextID id)
     t.context = tc;
 }
 
+// Daniel Modified:
+// ThreadContext *
+// System::Threads::findFree()
+// {
+//     for (auto &thread: threads) {
+//         if (thread.context->status() == ThreadContext::Halted){
+//             return thread.context;
+//         }
+//     }
+//     return nullptr;
+// }
+
 ThreadContext *
-System::Threads::findFree()
+System::findFree(int threadType)
 {
-    for (auto &thread: threads) {
-        if (thread.context->status() == ThreadContext::Halted)
-            return thread.context;
+    for (auto &thread: threads.threads) {
+        if (thread.context->status() == ThreadContext::Halted){
+            if(threadTypes.empty() || threadTypes[thread.context->contextId()] == threadType){
+                fprintf(stderr, "Returning thread %d for process of type %d\n", thread.context->contextId(), threadType);
+                return thread.context;
+            }
+        }
     }
     return nullptr;
 }
