@@ -1675,6 +1675,9 @@ Commit::getCommittingThread()
           case CommitPolicy::OldestReady:
             return oldestReady();
 
+          case CommitPolicy::SWIQCount:
+            return SWiqCount();
+
           default:
             return InvalidThreadID;
         }
@@ -1716,6 +1719,57 @@ Commit::roundRobin()
         }
 
         pri_iter++;
+    }
+
+    return InvalidThreadID;
+}
+
+
+ThreadID
+Commit::SWiqCount()
+{
+    DPRINTF(Commit, "ENTERING RR priority_list size %d\n", priority_list.size());
+    std::list<ThreadID>::iterator pri_iter = priority_list.begin();
+    std::list<ThreadID>::iterator end = priority_list.end();
+
+    ThreadID strongThreadToIssue = InvalidThreadID;
+    ThreadID weakThreadToIssue = InvalidThreadID;
+
+    while (pri_iter != end) {
+        ThreadID tid = *pri_iter;
+
+        // Check if the thread is ready to issue
+        if (commitStatus[tid] == Running ||
+            commitStatus[tid] == Idle ||
+            commitStatus[tid] == FetchTrapPending) {
+
+            if (rob->isHeadReady(tid)) {
+                // Check if the thread is strong or weak
+                if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+                    // If a strong thread is ready to issue, prioritize it
+                    strongThreadToIssue = tid;
+                    break; // Exit the loop since we found a strong thread to issue
+                } else if (weakThreadToIssue == InvalidThreadID) {
+                    // If no strong thread is ready and we haven't found a weak thread yet, store it
+                    weakThreadToIssue = tid;
+                }
+            }
+        }
+
+        pri_iter++;
+    }
+
+    // Issue the strong thread if available, otherwise issue the weak thread if available
+    if (strongThreadToIssue != InvalidThreadID) {
+        // If a strong thread is available, move it to the end of the priority list
+        priority_list.erase(std::find(priority_list.begin(), priority_list.end(), strongThreadToIssue));
+        priority_list.push_back(strongThreadToIssue);
+        return strongThreadToIssue;
+    } else if (weakThreadToIssue != InvalidThreadID) {
+        // If no strong thread is available but a weak thread is, move it to the end of the priority list
+        priority_list.erase(std::find(priority_list.begin(), priority_list.end(), weakThreadToIssue));
+        priority_list.push_back(weakThreadToIssue);
+        return weakThreadToIssue;
     }
 
     return InvalidThreadID;

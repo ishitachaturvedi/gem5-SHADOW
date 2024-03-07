@@ -319,6 +319,9 @@ class Commit
     /** Gets the thread to commit, based on the SMT policy. */
     ThreadID getCommittingThread();
 
+    /** Returns the approporiate thread to fetch by prioritizing S threads over W threads and using the IQ count policy internally for and W threads **/
+    ThreadID SWiqCount();
+
     /** Returns the thread ID to use based on a round robin policy. */
     ThreadID roundRobin();
 

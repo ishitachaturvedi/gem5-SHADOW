@@ -56,7 +56,7 @@ class SMTQueuePolicy(ScopedEnum):
 
 
 class CommitPolicy(ScopedEnum):
-    vals = ["RoundRobin", "OldestReady"]
+    vals = ["RoundRobin", "OldestReady","SWIQCount"]
 
 
 class BaseO3CPU(BaseCPU):
@@ -191,7 +191,7 @@ class BaseO3CPU(BaseCPU):
         "Partitioned", "SMT ROB Sharing Policy"
     )
     smtROBThreshold = Param.Int(100, "SMT ROB Threshold Sharing Parameter")
-    smtCommitPolicy = Param.CommitPolicy("RoundRobin", "SMT Commit Policy")
+    smtCommitPolicy = Param.CommitPolicy("SWIQCount", "SMT Commit Policy")
 
     branchPred = Param.BranchPredictor(
         TournamentBP(numThreads=Parent.numThreads), "Branch Predictor"
