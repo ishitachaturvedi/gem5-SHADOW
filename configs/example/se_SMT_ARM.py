@@ -148,6 +148,18 @@ cpu_type = {
         O3_ARM_grace.O3_ARM_grace_DCache,
         O3_ARM_grace.O3_ARM_grace_L2,
     ),
+    "o3_grace_0.5thread": (
+        O3_ARM_grace.Grace12Wide_half_thread,
+        O3_ARM_grace.O3_ARM_grace_ICache,
+        O3_ARM_grace.O3_ARM_grace_DCache,
+        O3_ARM_grace.O3_ARM_grace_L2,
+    ),
+    "o3_grace_2threadDoubleResources": (
+        O3_ARM_grace.Grace12Wide_2threadDoubleResources,
+        O3_ARM_grace.O3_ARM_grace_ICache,
+        O3_ARM_grace.O3_ARM_grace_DCache,
+        O3_ARM_grace.O3_ARM_grace_L2,
+    ),
 }
 
 

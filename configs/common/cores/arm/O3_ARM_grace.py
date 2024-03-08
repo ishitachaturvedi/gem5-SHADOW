@@ -599,6 +599,120 @@ class Grace12Wide_1thread(ArmO3CPU):
     LFSTSize = 1024
     SSITSize = 1024
 
+    smtLSQPolicy = "Partitioned"
+    smtROBPolicy = "Partitioned"
+    smtIQPolicy = "Partitioned"
+
+class Grace12Wide_2threadDoubleResources(ArmO3CPU):
+    # def __init__(self):
+    #     super().__init__()
+
+    commitToIEWDelay = 1
+    commitToRenameDelay = 1
+    iewToRenameDelay = 1
+    commitToDecodeDelay = 1
+    iewToDecodeDelay = 1
+    renameToDecodeDelay = 1
+    commitToFetchDelay = 1
+    iewToFetchDelay = 1
+    renameToFetchDelay = 1
+    decodeToFetchDelay = 1
+    fetchWidth = 12
+    fetchBufferSize = 64
+    fetchToDecodeDelay = 1
+    decodeWidth = 8
+    decodeToRenameDelay = 1
+    renameWidth = 8
+    renameToIEWDelay = 1
+    issueToExecuteDelay = 1
+    dispatchWidth = 8
+    issueWidth = 12
+    wbWidth = 8
+    iewToCommitDelay = 1
+    renameToROBDelay = 1
+    commitWidth = 8
+    squashWidth = 8
+    trapLatency = 13
+    backComSize = 5
+    forwardComSize = 5
+
+    numROBEntries = 640
+    numPhysFloatRegs = 384
+    numPhysVecRegs = 384 
+    numPhysIntRegs = 448
+    numIQEntries = 240
+
+    switched_out = False
+    branchPred = O3_ARM_Grace_BP()
+    fuPool = O3_ARM_Grace_FUP()
+
+    LQEntries = 136
+    SQEntries = 144
+    LSQDepCheckShift = 0
+    LFSTSize = 1024
+    SSITSize = 1024
+
+    smtLSQPolicy = "Partitioned"
+    smtROBPolicy = "Partitioned"
+    smtIQPolicy = "Partitioned"
+
+
+class Grace12Wide_half_thread(ArmO3CPU):
+    # def __init__(self):
+    #     super().__init__()
+
+    commitToIEWDelay = 1
+    commitToRenameDelay = 1
+    iewToRenameDelay = 1
+    commitToDecodeDelay = 1
+    iewToDecodeDelay = 1
+    renameToDecodeDelay = 1
+    commitToFetchDelay = 1
+    iewToFetchDelay = 1
+    renameToFetchDelay = 1
+    decodeToFetchDelay = 1
+    fetchWidth = 12
+    # fetchWidth = 24
+    fetchBufferSize = 32
+    fetchToDecodeDelay = 1
+    decodeWidth = 12
+    decodeToRenameDelay = 1
+    renameWidth = 12
+    renameToIEWDelay = 1
+    issueToExecuteDelay = 1
+    dispatchWidth = 12
+    issueWidth = 18
+    wbWidth = 12
+    iewToCommitDelay = 1
+    renameToROBDelay = 1
+    commitWidth = 12
+    squashWidth = 12
+    trapLatency = 13
+    backComSize = 5
+    forwardComSize = 5
+
+    numROBEntries = 240
+    numPhysFloatRegs = 192
+    numPhysVecRegs = 192 
+    numPhysIntRegs = 224
+    numIQEntries = 90
+    #numIQEntries = 200
+
+    switched_out = False
+    branchPred = O3_ARM_Grace_BP()
+    fuPool = O3_ARM_Grace_FUP()
+
+    LQEntries = 51
+    SQEntries = 55
+    # SQEntries = 150
+    LSQDepCheckShift = 0
+    LFSTSize = 1024
+    SSITSize = 1024
+
+    smtLSQPolicy = "Partitioned"
+    smtROBPolicy = "Partitioned"
+    smtIQPolicy = "Partitioned"
+
 class Grace12Wide_2thread(ArmO3CPU):
     # def __init__(self):
     #     super().__init__()
@@ -651,6 +765,10 @@ class Grace12Wide_2thread(ArmO3CPU):
     LFSTSize = 1024
     SSITSize = 1024
 
+    smtLSQPolicy = "Partitioned"
+    smtROBPolicy = "Partitioned"
+    smtIQPolicy = "Partitioned"
+
 class Grace12Wide_4thread(ArmO3CPU):
     # def __init__(self):
     #     super().__init__()
@@ -700,6 +818,10 @@ class Grace12Wide_4thread(ArmO3CPU):
     LFSTSize = 1024
     SSITSize = 1024
 
+    smtLSQPolicy = "Partitioned"
+    smtROBPolicy = "Partitioned"
+    smtIQPolicy = "Partitioned"
+
 class Grace12Wide_8thread(ArmO3CPU):
     # def __init__(self):
     #     super().__init__()
@@ -748,6 +870,10 @@ class Grace12Wide_8thread(ArmO3CPU):
     LSQDepCheckShift = 0
     LFSTSize = 1024
     SSITSize = 1024
+
+    smtLSQPolicy = "Partitioned"
+    smtROBPolicy = "Partitioned"
+    smtIQPolicy = "Partitioned"
 
 # Instruction Cache
 class O3_ARM_grace_ICache(Cache):
