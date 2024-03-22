@@ -215,13 +215,37 @@ InstructionQueue::IQStats::IQStats(CPU *cpu, const unsigned &total_width)
              "attempts to use FU when none available"),
     ADD_STAT(statIssuedInstType, statistics::units::Count::get(),
              "Number of instructions issued per FU type, per thread"),
+    ADD_STAT(statFuBusyPerThread, statistics::units::Count::get(),
+             "Number of instructions structural stalls per FU type, per thread"),
+    ADD_STAT(statOlderROBNotIssuedPerThread, statistics::units::Count::get(),
+             "Number of times instruction not issued because older ROB instruction not issued, per thread"),
+    ADD_STAT(statStalledOnControlInstructionPerThread, statistics::units::Count::get(),
+             "Number of times instruction not issued because older control instruction not completed, per thread"),
+    ADD_STAT(statFuBusyPerThreadCollective, statistics::units::Count::get(),
+             "Number of times instruction not issued because FU not available, per thread"),
+    ADD_STAT(statStalledOnMemoryReorderPerThread, statistics::units::Count::get(),
+             "Number of times instruction not issued because older memory instruction not completed, per thread"),
+    ADD_STAT(statStalledNotOldestInIQPerThread, statistics::units::Count::get(),
+             "Number of times instruction not issued because older IQ instruction not issued, per thread"),
+    ADD_STAT(statNumCheckIssuePerThread, statistics::units::Count::get(),
+             "Number of times we tried to issue instructions"),
+    ADD_STAT(statNumIssueNotPossiblePerThread, statistics::units::Count::get(),
+             "Number of times issue not possible"),
     ADD_STAT(issueRate, statistics::units::Rate<
                 statistics::units::Count, statistics::units::Cycle>::get(),
              "Inst issue rate", instsIssued / cpu->baseStats.numCycles),
     ADD_STAT(fuBusy, statistics::units::Count::get(), "FU busy when requested"),
     ADD_STAT(fuBusyRate, statistics::units::Rate<
                 statistics::units::Count, statistics::units::Count>::get(),
-             "FU busy rate (busy events/executed inst)")
+             "FU busy rate (busy events/executed inst)"),
+    ADD_STAT(statOlderROBNotIssuedPerThreadRate, statistics::units::Count::get(),
+             "Number of times instruction not issued because older ROB instruction not issued, per thread rate (busy events/executed inst)"),
+    ADD_STAT(statStalledOnControlInstructionPerThreadRate, statistics::units::Count::get(),
+             "Number of times instruction not issued because older control instruction not completed, per thread rate (busy events/executed inst)"),
+    ADD_STAT(statStalledOnMemoryReorderPerThreadRate, statistics::units::Count::get(),
+             "Number of times instruction not issued because older memory instruction not completed, per thread rate (busy events/executed inst)"),
+    ADD_STAT(statStalledNotOldestInIQPerThreadRate, statistics::units::Count::get(),
+             "Number of times instruction not issued because older IQ instruction not issued, per thread rate (busy events/executed inst)")
 {
     instsAdded
         .prereq(instsAdded);
@@ -290,6 +314,11 @@ InstructionQueue::IQStats::IQStats(CPU *cpu, const unsigned &total_width)
         ;
     statIssuedInstType.ysubnames(enums::OpClassStrings);
 
+    statFuBusyPerThread.init(cpu->numThreads,enums::Num_OpClass)
+        .flags(statistics::total | statistics::pdf | statistics::dist)
+        ;
+    statFuBusyPerThread.ysubnames(enums::OpClassStrings);
+
     //
     //  How long did instructions for a particular FU type wait prior to issue
     //
@@ -318,7 +347,42 @@ InstructionQueue::IQStats::IQStats(CPU *cpu, const unsigned &total_width)
         statFuBusy.subname(i, enums::OpClassStrings[i]);
     }
 
+    statFuBusyPerThreadCollective
+        .init(cpu->numThreads)
+        .flags(statistics::total)
+        ;
+
     fuBusy
+        .init(cpu->numThreads)
+        .flags(statistics::total)
+        ;
+
+    statOlderROBNotIssuedPerThread
+        .init(cpu->numThreads)
+        .flags(statistics::total)
+        ;
+
+    statNumCheckIssuePerThread
+        .init(cpu->numThreads)
+        .flags(statistics::total)
+        ;
+
+    statNumIssueNotPossiblePerThread
+        .init(cpu->numThreads)
+        .flags(statistics::total)
+        ;
+
+    statStalledOnControlInstructionPerThread
+        .init(cpu->numThreads)
+        .flags(statistics::total)
+        ;
+
+    statStalledOnMemoryReorderPerThread
+        .init(cpu->numThreads)
+        .flags(statistics::total)
+        ;
+
+    statStalledNotOldestInIQPerThread
         .init(cpu->numThreads)
         .flags(statistics::total)
         ;
@@ -327,6 +391,10 @@ InstructionQueue::IQStats::IQStats(CPU *cpu, const unsigned &total_width)
         .flags(statistics::total)
         ;
     fuBusyRate = fuBusy / instsIssued;
+    statOlderROBNotIssuedPerThreadRate = statOlderROBNotIssuedPerThread / instsIssued;
+    statStalledOnControlInstructionPerThreadRate = statStalledOnControlInstructionPerThread / instsIssued;
+    statStalledOnMemoryReorderPerThreadRate = statStalledOnMemoryReorderPerThread / instsIssued;
+    statStalledNotOldestInIQPerThreadRate = statStalledNotOldestInIQPerThread / instsIssued;
 }
 
 InstructionQueue::IQIOStats::IQIOStats(statistics::Group *parent)
@@ -889,15 +957,20 @@ InstructionQueue::scheduleReadyInsts()
             }
         }
 
+        iqStats.statNumCheckIssuePerThread[tid]++;
         // If we have an instruction that doesn't require a FU, or a
         // valid FU, then schedule for execution.
         if (idx != FUPool::NoFreeFU
         // condition for in-order execution and dont issue instructions if you are waiting on a control instruction to finish
         // W threads: for memory instructions we need to stop the issue of instructions for a thread for which a memory instruction has not been marked as not faulting. If a memory instruction is marked as "needs to be reissued" in execute, we cannot move the pipeline forward. We use a flag like we do in control instructions for this. At a given time only 1 memory instruction can be serviced. We dont want any 
-        && ((cpu->rob.AreOlderInstIssued(issuing_inst->threadNumber,issuing_inst->seqNum) && !cpu->thread[tid]->ControlInstIssued && !(cpu->thread[tid]->MemInstIssued && cpu->thread[tid]->MemInstIssued!= issuing_inst->seqNum) &&  !olderIssuePending(issuing_inst->seqNum, issuing_inst->threadNumber)) || cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
-        ) 
-        
+        //&& ((cpu->rob.AreOlderInstIssued(issuing_inst->threadNumber,issuing_inst->seqNum) && !cpu->thread[tid]->ControlInstIssued && !(cpu->thread[tid]->MemInstIssued && cpu->thread[tid]->MemInstIssued!= issuing_inst->seqNum) &&  !olderIssuePending(issuing_inst->seqNum, issuing_inst->threadNumber)) || cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
+        && ((!cpu->thread[tid]->ControlInstIssued && !(cpu->thread[tid]->MemInstIssued && cpu->thread[tid]->MemInstIssued!= issuing_inst->seqNum) &&  !olderIssuePending(issuing_inst->seqNum, issuing_inst->threadNumber)) || cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
+        )
         {
+            // // test
+            // cpu->thread[tid]->MemInstIssued = false;
+            // cpu->thread[tid]->MemInstSeq = -1;
+
             // ensure that there is no OoO issue going on. No older seq number should have been marked as issued for this tid.
             if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak && youngerInstIssued(issuing_inst->seqNum, issuing_inst->threadNumber)) {
                 panic("[tid:%d] Instruction [sn:%llu] is being issued OoO for W thread!\n",tid,issuing_inst->seqNum);
@@ -1030,6 +1103,24 @@ InstructionQueue::scheduleReadyInsts()
         } else {
             iqStats.statFuBusy[op_class]++;
             iqStats.fuBusy[tid]++;
+            iqStats.statNumIssueNotPossiblePerThread[tid]++;
+
+            if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() != Strong) {
+                if(cpu->thread[tid]->ControlInstIssued)
+                    iqStats.statStalledOnControlInstructionPerThread[tid]++;
+                else if(cpu->thread[tid]->MemInstIssued && cpu->thread[tid]->MemInstIssued!= issuing_inst->seqNum)
+                    iqStats.statStalledOnMemoryReorderPerThread[tid]++;
+                else if(olderIssuePending(issuing_inst->seqNum, issuing_inst->threadNumber))
+                    iqStats.statStalledNotOldestInIQPerThread[tid]++;
+                else if(idx != FUPool::NoFreeFU) {
+                    iqStats.statFuBusyPerThread[tid][op_class]++;
+                    iqStats.statFuBusyPerThreadCollective[tid]++;
+                }
+            }
+            else {
+                iqStats.statFuBusyPerThread[tid][op_class]++;
+                iqStats.statFuBusyPerThreadCollective[tid]++;
+            }
             ++order_it;
 
             DPRINTF(IQ, "[tid:%d] : could not instruction PC %s "
@@ -1041,6 +1132,7 @@ InstructionQueue::scheduleReadyInsts()
 
     iqStats.numIssuedDist.sample(total_issued);
     iqStats.instsIssued+= total_issued;
+
 
     // If we issued any instructions, tell the CPU we had activity.
     // @todo If the way deferred memory instructions are handeled due to

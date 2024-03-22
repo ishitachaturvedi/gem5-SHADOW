@@ -549,10 +549,28 @@ class InstructionQueue
          * FU was busy.
          */
         statistics::Vector statFuBusy;
+        statistics::Vector statFuBusyPerThreadCollective;
         // statistics::Vector dist_unissued;
         /** Stat for total number issued for each instruction type. */
         statistics::Vector2d statIssuedInstType;
-
+        /** Stalls for each op per thread type. */
+        statistics::Vector2d statFuBusyPerThread;
+        /** Older ROB instruction not issued **/
+        statistics::Vector statOlderROBNotIssuedPerThread;
+        statistics::Formula statOlderROBNotIssuedPerThreadRate;
+        /** Stalled on control instruction **/
+        statistics::Vector statStalledOnControlInstructionPerThread;
+        statistics::Formula statStalledOnControlInstructionPerThreadRate;
+        /** Stalled on Memory not reorder **/
+        statistics::Vector statStalledOnMemoryReorderPerThread;
+        statistics::Formula statStalledOnMemoryReorderPerThreadRate;
+        /** Stalled because not oldest instruction in IQ **/
+        statistics::Vector statStalledNotOldestInIQPerThread;
+        statistics::Formula statStalledNotOldestInIQPerThreadRate;
+        /** How many times we checked if issue possible **/
+        statistics::Vector statNumCheckIssuePerThread;
+        /** How many times issue was not possible **/
+        statistics::Vector statNumIssueNotPossiblePerThread;
         /** Number of instructions issued per cycle. */
         statistics::Formula issueRate;
 

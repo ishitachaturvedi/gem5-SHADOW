@@ -115,14 +115,34 @@ Rename::RenameStats::RenameStats(statistics::Group *parent)
                "Number of squashed instructions processed by rename"),
       ADD_STAT(ROBFullEvents, statistics::units::Count::get(),
                "Number of times rename has blocked due to ROB full"),
+      ADD_STAT(ROBFullEventsS, statistics::units::Count::get(),
+               "Number of times rename has blocked due to ROB full for S threads"),
+      ADD_STAT(ROBFullEventsW, statistics::units::Count::get(),
+               "Number of times rename has blocked due to ROB full for W threads"),
       ADD_STAT(IQFullEvents, statistics::units::Count::get(),
                "Number of times rename has blocked due to IQ full"),
+      ADD_STAT(IQFullEventsS, statistics::units::Count::get(),
+               "Number of times rename has blocked due to IQ full for S threads"),
+      ADD_STAT(IQFullEventsW, statistics::units::Count::get(),
+               "Number of times rename has blocked due to IQ full for W threads"),
       ADD_STAT(LQFullEvents, statistics::units::Count::get(),
                "Number of times rename has blocked due to LQ full" ),
+      ADD_STAT(LQFullEventsS, statistics::units::Count::get(),
+               "Number of times rename has blocked due to LQ full for S threads" ),
+      ADD_STAT(LQFullEventsW, statistics::units::Count::get(),
+               "Number of times rename has blocked due to LQ full for W threads" ),
       ADD_STAT(SQFullEvents, statistics::units::Count::get(),
                "Number of times rename has blocked due to SQ full"),
+      ADD_STAT(SQFullEventsS, statistics::units::Count::get(),
+               "Number of times rename has blocked due to SQ full for S threads"),
+      ADD_STAT(SQFullEventsW, statistics::units::Count::get(),
+               "Number of times rename has blocked due to SQ full for W threads"),
       ADD_STAT(fullRegistersEvents, statistics::units::Count::get(),
                "Number of times there has been no free registers"),
+      ADD_STAT(fullRegistersEventsS, statistics::units::Count::get(),
+               "Number of times there has been no free registers for S threads"),
+      ADD_STAT(fullRegistersEventsW, statistics::units::Count::get(),
+               "Number of times there has been no free registers for W threads"),
       ADD_STAT(renamedOperands, statistics::units::Count::get(),
                "Number of destination operands rename has renamed"),
       ADD_STAT(lookups, statistics::units::Count::get(),
@@ -157,10 +177,20 @@ Rename::RenameStats::RenameStats(statistics::Group *parent)
     squashedInsts.prereq(squashedInsts);
 
     ROBFullEvents.prereq(ROBFullEvents);
+    ROBFullEventsS.prereq(ROBFullEventsW);
+    ROBFullEventsS.prereq(ROBFullEventsW);
     IQFullEvents.prereq(IQFullEvents);
+    IQFullEventsS.prereq(IQFullEventsS);
+    IQFullEventsW.prereq(IQFullEventsW);
     LQFullEvents.prereq(LQFullEvents);
+    LQFullEventsS.prereq(LQFullEventsS);
+    LQFullEventsW.prereq(LQFullEventsW);
     SQFullEvents.prereq(SQFullEvents);
+    SQFullEventsS.prereq(SQFullEventsS);
+    SQFullEventsW.prereq(SQFullEventsW);
     fullRegistersEvents.prereq(fullRegistersEvents);
+    fullRegistersEventsS.prereq(fullRegistersEventsS);
+    fullRegistersEventsW.prereq(fullRegistersEventsW);
 
     renamedOperands.prereq(renamedOperands);
     lookups.prereq(lookups);
@@ -589,7 +619,7 @@ Rename::renameInsts(ThreadID tid)
 
         block(tid);
 
-        incrFullStat(source);
+        incrFullStat(source,tid);
 
         return;
     } else if (min_free_entries < insts_available) {
@@ -604,7 +634,7 @@ Rename::renameInsts(ThreadID tid)
 
         blockThisCycle = true;
 
-        incrFullStat(source);
+        incrFullStat(source,tid);
     }
 
     InstQueue &insts_to_rename = renameStatus[tid] == Unblocking ?
@@ -650,7 +680,7 @@ Rename::renameInsts(ThreadID tid)
                 DPRINTF(Rename, "[tid:%i] Cannot rename due to no free LQ\n",
                         tid);
                 source = LQ;
-                incrFullStat(source);
+                incrFullStat(source,tid);
                 break;
             }
         }
@@ -660,7 +690,7 @@ Rename::renameInsts(ThreadID tid)
                 DPRINTF(Rename, "[tid:%i] Cannot rename due to no free SQ\n",
                         tid);
                 source = SQ;
-                incrFullStat(source);
+                incrFullStat(source,tid);
                 break;
             }
         }
@@ -703,6 +733,10 @@ Rename::renameInsts(ThreadID tid)
             blockThisCycle = true;
             insts_to_rename.push_front(inst);
             ++stats.fullRegistersEvents;
+            if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
+                ++stats.fullRegistersEventsS;
+            else
+                ++stats.fullRegistersEventsW;
 
             break;
         }
@@ -1470,20 +1504,38 @@ Rename::serializeAfter(InstQueue &inst_list, ThreadID tid)
 }
 
 void
-Rename::incrFullStat(const FullSource &source)
+Rename::incrFullStat(const FullSource &source, ThreadID tid)
 {
+
+    bool isSType = (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong);
     switch (source) {
       case ROB:
         ++stats.ROBFullEvents;
+        if(isSType)
+            ++stats.ROBFullEventsS;
+        else
+            ++stats.ROBFullEventsW;
         break;
       case IQ:
         ++stats.IQFullEvents;
+        if(isSType)
+            ++stats.IQFullEventsS;
+        else
+            ++stats.IQFullEventsW;
         break;
       case LQ:
         ++stats.LQFullEvents;
+        if(isSType)
+            ++stats.LQFullEventsS;
+        else
+            ++stats.LQFullEventsW;
         break;
       case SQ:
         ++stats.SQFullEvents;
+        if(isSType)
+            ++stats.SQFullEventsS;
+        else
+            ++stats.SQFullEventsW;
         break;
       default:
         panic("Rename full stall stat should be incremented for a reason!");

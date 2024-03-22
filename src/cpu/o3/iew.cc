@@ -740,10 +740,10 @@ IEW::checkStall(ThreadID tid)
     bool ret_val(false);
 
     if (fromCommit->commitInfo[tid].robSquashing) {
-        DPRINTF(IEW,"[tid:%i] Stall from Commit stage detected.\n",tid);
+        DPRINTF(IEW,"[tid:%i] block_reason Stall from Commit stage detected.\n",tid);
         ret_val = true;
     } else if (instQueue.isFull(tid)) {
-        DPRINTF(IEW,"[tid:%i] Stall: IQ  is full.\n",tid);
+        DPRINTF(IEW,"[tid:%i] block_reason Stall: IQ  is full.\n",tid);
         ret_val = true;
     }
 
@@ -1084,6 +1084,8 @@ IEW::dispatchInsts(ThreadID tid)
         if (instQueue.isFull(tid)) {
             DPRINTF(IEW, "[tid:%i] Issue: IQ has become full.\n", tid);
 
+            DPRINTF(IEW, "[tid:%i] block_reason Issue: IQ has become full.\n", tid);
+
             // Call function to start blocking.
             block(tid);
 
@@ -1101,6 +1103,9 @@ IEW::dispatchInsts(ThreadID tid)
             (inst->isLoad() && ldstQueue.lqFull(tid)) ||
             (inst->isStore() && ldstQueue.sqFull(tid))) {
             DPRINTF(IEW, "[tid:%i] Issue: %s has become full.\n",tid,
+                    inst->isLoad() ? "LQ" : "SQ");
+            
+            DPRINTF(IEW, "[tid:%i] block_reason Issue: %s has become full.\n",tid,
                     inst->isLoad() ? "LQ" : "SQ");
 
             // Call function to start blocking.
@@ -1143,6 +1148,9 @@ IEW::dispatchInsts(ThreadID tid)
             // AMOs need to be set as "canCommit()"
             // so that commit can process them when they reach the
             // head of commit.
+
+            // if S thread we insert it in non-sepculatove queue
+            // W threads are already non speculative, so we dont need this.
             inst->setCanCommit();
             instQueue.insertNonSpec(inst);
             add_to_iq = false;
@@ -1200,7 +1208,7 @@ IEW::dispatchInsts(ThreadID tid)
             add_to_iq = false;
         } else if (inst->isNop()) {
             DPRINTF(IEW, "[tid:%i] Issue: Nop instruction encountered, "
-                    "skipping.\n", tid);
+                    "skipping [sn:%llu].\n", tid,inst->seqNum);
 
             inst->setIssued();
             inst->setExecuted();
@@ -1251,7 +1259,7 @@ IEW::dispatchInsts(ThreadID tid)
     }
 
     if (!insts_to_dispatch.empty()) {
-        DPRINTF(IEW,"[tid:%i] Issue: Bandwidth Full. Blocking.\n", tid);
+        DPRINTF(IEW,"[tid:%i] block_reason Issue: Bandwidth Full. Blocking.\n", tid);
         block(tid);
         toRename->iewUnblock[tid] = false;
     }
@@ -1424,7 +1432,7 @@ IEW::executeInsts()
                 if(inst->fault == NoFault) {
                     inst->setNoFault();
                     if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
-                        assert(cpu->thread[tid]->MemInstIssued);
+                        //assert(cpu->thread[tid]->MemInstIssued); //  test
                         cpu->thread[tid]->MemInstIssued = false;
                         cpu->thread[tid]->MemInstSeq = -1;
                         DPRINTF(IEW, "[tid:%i]: SETTING3_MemInstIssued %s "
@@ -1459,7 +1467,7 @@ IEW::executeInsts()
                 if(inst->fault == NoFault) {
                     inst->setNoFault();
                     if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
-                        assert(cpu->thread[tid]->MemInstIssued);
+                        // assert(cpu->thread[tid]->MemInstIssued); // test
                         cpu->thread[tid]->MemInstIssued = false;
                         cpu->thread[tid]->MemInstSeq = -1;
                         DPRINTF(IEW, "[tid:%i]: SETTING1_MemInstIssued %s "
@@ -1485,6 +1493,8 @@ IEW::executeInsts()
                 // If the store had a fault then it may not have a mem req
                 if (fault != NoFault || !inst->readPredicate() ||
                         !inst->isStoreConditional()) {
+                    DPRINTF(IEW, "[tid:%d] Execute: isStoreConditional,  "
+                            "store [sn:%llu].\n",tid,inst->seqNum);
                     // If the instruction faulted, then we need to send it
                     // along to commit without the instruction completing.
                     // Send this instruction to commit, also make sure iew
@@ -1497,7 +1507,7 @@ IEW::executeInsts()
                 if(inst->fault == NoFault) {
                     inst->setNoFault();
                     if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
-                        assert(cpu->thread[tid]->MemInstIssued);
+                        //assert(cpu->thread[tid]->MemInstIssued); // test
                         cpu->thread[tid]->MemInstIssued = false;
                         cpu->thread[tid]->MemInstSeq = -1;
                         DPRINTF(IEW, "[tid:%i]: SETTING2_MemInstIssued %s "

@@ -513,7 +513,7 @@ class Rename
     /** Function used to increment the stat that corresponds to the source of
      * the stall.
      */
-    void incrFullStat(const FullSource &source);
+    void incrFullStat(const FullSource &source, ThreadID tid);
 
     struct RenameStats : public statistics::Group
     {
@@ -554,6 +554,34 @@ class Rename
         statistics::Scalar fullRegistersEvents;
         /** Stat for total number of renamed destination registers. */
         statistics::Scalar renamedOperands;
+
+
+        /** S and W thread information **/
+
+        /** Stat for total number of times that the ROB starts a stall in
+         * rename. */
+        statistics::Scalar ROBFullEventsS;
+        statistics::Scalar ROBFullEventsW;
+        /** Stat for total number of times that the IQ starts a stall in
+         *  rename. */
+        statistics::Scalar IQFullEventsS;
+        statistics::Scalar IQFullEventsW;
+        /** Stat for total number of times that the LQ starts a stall in
+         *  rename. */
+        statistics::Scalar LQFullEventsS;
+        statistics::Scalar LQFullEventsW;
+        /** Stat for total number of times that the SQ starts a stall in
+         *  rename. */
+        statistics::Scalar SQFullEventsS;
+        statistics::Scalar SQFullEventsW;
+        /** Stat for total number of times that rename runs out of free
+         *  registers to use to rename. */
+        statistics::Scalar fullRegistersEventsS;
+        statistics::Scalar fullRegistersEventsW;
+        /** Stat for total number of renamed destination registers. */
+        statistics::Scalar renamedOperandsS;
+        statistics::Scalar renamedOperandsW;
+
         /** Stat for total number of source register rename lookups. */
         statistics::Scalar lookups;
         statistics::Scalar intLookups;
