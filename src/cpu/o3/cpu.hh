@@ -643,6 +643,9 @@ class CPU : public BaseCPU
         //number of misc
         statistics::Scalar miscRegfileReads;
         statistics::Scalar miscRegfileWrites;
+        //Daniel added:
+        statistics::Scalar cycleCountS;
+        statistics::Scalar cycleCountW;
     } cpuStats;
 
   public:

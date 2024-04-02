@@ -615,6 +615,14 @@ class Fetch
         statistics::Formula branchRate;
         /** Number of instruction fetched per cycle. */
         statistics::Formula rate;
+        
+        // Daniel stalled stats:
+        statistics::Scalar stalledS;
+        statistics::Scalar stalledW;
+        statistics::Scalar stalledSNotW;
+        statistics::Scalar stalledSAndW;
+        statistics::Scalar notStalled;
+        statistics::Scalar multipleRunning;
     } fetchStats;
 };
 

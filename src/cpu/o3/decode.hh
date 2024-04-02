@@ -356,6 +356,14 @@ class Decode
         statistics::Scalar decodedInsts;
         /** Stat for total number of squashed instructions. */
         statistics::Scalar squashedInsts;
+
+        // Daniel stalled stats:
+        statistics::Scalar stalledS;
+        statistics::Scalar stalledW;
+        statistics::Scalar stalledSNotW;
+        statistics::Scalar stalledSAndW;
+        statistics::Scalar notStalled;
+        statistics::Scalar multipleRunning;
     } stats;
 };
 

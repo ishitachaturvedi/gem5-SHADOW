@@ -192,7 +192,17 @@ IEW::IEWStats::IEWStats(CPU *cpu)
              "Insts written-back per cycle"),
     ADD_STAT(wbFanout, statistics::units::Rate<
                 statistics::units::Count, statistics::units::Count>::get(),
-             "Average fanout of values written-back")
+             "Average fanout of values written-back"),
+    ADD_STAT(stalledS, statistics::units::Count::get(),
+               "Number of cycles all S threads are stalled"),
+    ADD_STAT(stalledW, statistics::units::Count::get(),
+            "Number of cycles all W threads are stalled"),
+    ADD_STAT(stalledSNotW, statistics::units::Count::get(),
+            "Number of cycles all S threads are stalled but not W threads"),
+    ADD_STAT(stalledSAndW, statistics::units::Count::get(),
+            "Number of cycles all S and W threads are stalled"),
+    ADD_STAT(notStalled, statistics::units::Count::get(),
+            "Number of cycles iew is not stalled")  
 {
     instsToCommit
         .init(cpu->numThreads)
@@ -217,6 +227,12 @@ IEW::IEWStats::IEWStats(CPU *cpu)
     wbFanout
         .flags(statistics::total);
     wbFanout = producerInst / consumerInst;
+
+    stalledS.prereq(stalledS);
+    stalledW.prereq(stalledW);
+    stalledSNotW.prereq(stalledSNotW);
+    stalledSAndW.prereq(stalledSAndW);
+    notStalled.prereq(notStalled);
 }
 
 IEW::IEWStats::ExecutedInstStats::ExecutedInstStats(CPU *cpu)
@@ -1717,6 +1733,12 @@ IEW::tick()
     wroteToTimeBuffer = false;
     updatedQueues = false;
 
+    //Daniel checking blockage
+    unsigned notBlockedS = 0;
+    unsigned sThreadCount = 0;
+    unsigned notBlockedW = 0;
+    unsigned wThreadCount = 0;
+
     ldstQueue.tick();
 
     sortInsts();
@@ -1736,7 +1758,36 @@ IEW::tick()
         DPRINTF(IEW,"Issue: Processing [tid:%i] queue size %d\n",tid, instQueue.getCount(tid));
 
         checkSignalsAndUpdate(tid);
+        // Daniel checking decode blocks
+        if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
+            sThreadCount++;
+            if(dispatchStatus[tid] == Unblocking || dispatchStatus[tid] == Running){
+                notBlockedS++;
+            }
+        }
+        if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+            wThreadCount++;
+            if (dispatchStatus[tid] == Unblocking || dispatchStatus[tid] == Running){
+                notBlockedW++;
+            }
+        }
         dispatch(tid);
+    }
+
+    if (sThreadCount > 0 && notBlockedS == 0){
+        ++iewStats.stalledS;
+    }
+    if (wThreadCount > 0 && notBlockedW == 0){
+        ++iewStats.stalledW;
+    }
+    if (sThreadCount > 0 && wThreadCount > 0 && notBlockedS == 0 && notBlockedW > 0){
+        ++iewStats.stalledSNotW;
+    }
+    if (sThreadCount > 0 && notBlockedS == 0 && wThreadCount > 0 && notBlockedW == 0){
+        ++iewStats.stalledSAndW;
+    }
+    if (notBlockedS > 0 || notBlockedW > 0){
+        ++iewStats.notStalled;
     }
 
     if (exeStatus != Squashing) {

@@ -402,6 +402,10 @@ CPU::CPUStats::CPUStats(CPU *cpu)
       ADD_STAT(quiesceCycles, statistics::units::Cycle::get(),
                "Total number of cycles that CPU has spent quiesced or waiting "
                "for an interrupt"),
+      ADD_STAT(cycleCountS, statistics::units::Count::get(),
+               "Cycle count of strong threads"),
+      ADD_STAT(cycleCountW, statistics::units::Count::get(),
+               "Cycle count of weak threads"),
       ADD_STAT(committedInsts, statistics::units::Count::get(),
                "Number of Instructions Simulated"),
       ADD_STAT(committedOps, statistics::units::Count::get(),
@@ -453,6 +457,10 @@ CPU::CPUStats::CPUStats(CPU *cpu)
     quiesceCycles
         .prereq(quiesceCycles);
 
+    cycleCountS
+        .prereq(cycleCountS);
+    cycleCountW
+        .prereq(cycleCountW);
     // Number of Instructions simulated
     // --------------------------------
     // Should probably be in Base CPU but need templated
@@ -529,6 +537,8 @@ CPU::tick()
     updateCycleCounters(BaseCPU::CPU_STATE_ON);
 
 //    activity = false;
+    //Daniel possible change:
+    // Iterate through active Threads and check for s thread, if active s thread set s thread variable to true
     //Tick each of the stages
     fetch.tick();
     decode.tick();
@@ -1808,6 +1818,11 @@ CPU::scheduleThreadExitEvent(ThreadID tid)
     assert(exitingThreads.count(tid) == 1);
     exitingThreads[tid] = true;
     
+    // fprintf(stderr, "[tid:%d] Thread is exiting\n", tid);
+    // if(thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
+    //     cpuStats.cycleCountS = baseStats.numCycles;
+    // }
+
     int threadIdExists = 0; // Comment_out
     for (ThreadData& data : exitingThreads1) {
         if (data.thread_id == tid) {
@@ -1876,6 +1891,13 @@ CPU::exitThreads()
     auto it1 = exitingThreads.begin();
     while (it1 != exitingThreads.end()) {
         ThreadID thread_id = it1->first;
+        fprintf(stderr, "[tid:%d] Thread is exiting\n", thread_id);
+        if(thread[thread_id]->tc->getProcessPtr()->getprocessThreadType() == Strong){
+            cpuStats.cycleCountS = curCycle();
+        }
+        if(thread[thread_id]->tc->getProcessPtr()->getprocessThreadType() == Weak){
+            cpuStats.cycleCountW = curCycle();
+        }
         bool readyToExit = it1->second;
         bool readyToExit1 = 0;
         bool threadIdExists = 0;

@@ -164,7 +164,18 @@ Rename::RenameStats::RenameStats(statistics::Group *parent)
       ADD_STAT(tempSerializing, statistics::units::Count::get(),
                "count of temporary serializing insts renamed"),
       ADD_STAT(skidInsts, statistics::units::Count::get(),
-               "count of insts added to the skid buffer")
+               "count of insts added to the skid buffer"),
+
+      ADD_STAT(stalledS, statistics::units::Count::get(),
+               "Number of cycles all S threads are stalled"),
+      ADD_STAT(stalledW, statistics::units::Count::get(),
+               "Number of cycles all W threads are stalled"),
+      ADD_STAT(stalledSNotW, statistics::units::Count::get(),
+               "Number of cycles all S threads are stalled but not W threads"),
+      ADD_STAT(stalledSAndW, statistics::units::Count::get(),
+               "Number of cycles all S and W threads are stalled"),
+      ADD_STAT(notStalled, statistics::units::Count::get(),
+               "Number of cycles rename is not stalled")
 {
     squashCycles.prereq(squashCycles);
     idleCycles.prereq(idleCycles);
@@ -204,6 +215,12 @@ Rename::RenameStats::RenameStats(statistics::Group *parent)
     serializing.flags(statistics::total);
     tempSerializing.flags(statistics::total);
     skidInsts.flags(statistics::total);
+
+    stalledS.prereq(stalledS);
+    stalledW.prereq(stalledW);
+    stalledSNotW.prereq(stalledSNotW);
+    stalledSAndW.prereq(stalledSAndW);
+    notStalled.prereq(notStalled);
 }
 
 void
@@ -457,6 +474,12 @@ Rename::tick()
 
     bool status_change = false;
 
+    //Daniel checking blockage
+    unsigned notBlockedS = 0;
+    unsigned sThreadCount = 0;
+    unsigned notBlockedW = 0;
+    unsigned wThreadCount = 0;
+
     toIEWIndex = 0;
 
     sortInsts();
@@ -472,7 +495,36 @@ Rename::tick()
 
         status_change = checkSignalsAndUpdate(tid) || status_change;
 
+        // Daniel checking rename blocks
+        if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
+            sThreadCount++;
+            if(renameStatus[tid] == Unblocking || renameStatus[tid] == Running){
+                notBlockedS++;
+            }
+        }
+        if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+            wThreadCount++;
+            if (renameStatus[tid] == Unblocking || renameStatus[tid] == Running){
+                notBlockedW++;
+            }
+        }
+
         rename(status_change, tid);
+    }
+    if (sThreadCount > 0 && notBlockedS == 0){
+        ++stats.stalledS;
+    }
+    if (wThreadCount > 0 && notBlockedW == 0){
+        ++stats.stalledW;
+    }
+    if (sThreadCount > 0 && wThreadCount > 0 && notBlockedS == 0 && notBlockedW > 0){
+        ++stats.stalledSNotW;
+    }
+    if (sThreadCount > 0 && notBlockedS == 0 && wThreadCount > 0 && notBlockedW == 0){
+        ++stats.stalledSAndW;
+    }
+    if (notBlockedS > 0 || notBlockedW > 0){
+        ++stats.notStalled;
     }
 
     if (status_change) {

@@ -599,6 +599,13 @@ class Rename
         statistics::Scalar tempSerializing;
         /** Number of instructions inserted into skid buffers. */
         statistics::Scalar skidInsts;
+
+        // Daniel stalled stats:
+        statistics::Scalar stalledS;
+        statistics::Scalar stalledW;
+        statistics::Scalar stalledSNotW;
+        statistics::Scalar stalledSAndW;
+        statistics::Scalar notStalled;
     } stats;
 };
 

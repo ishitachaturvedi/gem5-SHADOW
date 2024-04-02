@@ -142,7 +142,19 @@ Decode::DecodeStats::DecodeStats(CPU *cpu)
       ADD_STAT(decodedInsts, statistics::units::Count::get(),
                "Number of instructions handled by decode"),
       ADD_STAT(squashedInsts, statistics::units::Count::get(),
-               "Number of squashed instructions handled by decode")
+               "Number of squashed instructions handled by decode"),
+      ADD_STAT(stalledS, statistics::units::Count::get(),
+               "Number of cycles all S threads are stalled"),
+      ADD_STAT(stalledW, statistics::units::Count::get(),
+               "Number of cycles all W threads are stalled"),
+      ADD_STAT(stalledSNotW, statistics::units::Count::get(),
+               "Number of cycles all S threads are stalled but not W threads"),
+      ADD_STAT(stalledSAndW, statistics::units::Count::get(),
+               "Number of cycles all S and W threads are stalled"),
+      ADD_STAT(notStalled, statistics::units::Count::get(),
+               "Number of cycles decode is not stalled"),
+      ADD_STAT(multipleRunning, statistics::units::Count::get(),
+               "Multiple threads running together")                                             
 {
     idleCycles.prereq(idleCycles);
     blockedCycles.prereq(blockedCycles);
@@ -154,6 +166,12 @@ Decode::DecodeStats::DecodeStats(CPU *cpu)
     controlMispred.prereq(controlMispred);
     decodedInsts.prereq(decodedInsts);
     squashedInsts.prereq(squashedInsts);
+    stalledS.prereq(stalledS);
+    stalledW.prereq(stalledW);
+    stalledSNotW.prereq(stalledSNotW);
+    stalledSAndW.prereq(stalledSAndW);
+    notStalled.prereq(notStalled);
+    multipleRunning.prereq(multipleRunning);
 }
 
 void
@@ -584,6 +602,12 @@ Decode::tick()
 
     bool status_change = false;
 
+    //Daniel checking blockage
+    unsigned notBlockedS = 0;
+    unsigned sThreadCount = 0;
+    unsigned notBlockedW = 0;
+    unsigned wThreadCount = 0;
+
     toRenameIndex = 0;
 
     list<ThreadID>::iterator threads = activeThreads->begin();
@@ -597,8 +621,42 @@ Decode::tick()
 
         DPRINTF(Decode,"Processing [tid:%i]\n",tid);
         status_change =  checkSignalsAndUpdate(tid) || status_change;
-
+        
+        // Daniel checking decode blocks
+        int insts_available = decodeStatus[tid] == Unblocking ?
+        skidBuffer[tid].size() : insts[tid].size();
+        if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
+            sThreadCount++;
+            if(insts_available != 0 && (decodeStatus[tid] == Unblocking || decodeStatus[tid] == Running)){
+                notBlockedS++;
+            }
+        }
+        if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+            wThreadCount++;
+            if (insts_available != 0 && (decodeStatus[tid] == Unblocking || decodeStatus[tid] == Running)){
+                notBlockedW++;
+            }
+        }
         decode(status_change, tid);
+    }
+
+    if (sThreadCount > 0 && notBlockedS == 0){
+        ++stats.stalledS;
+    }
+    if (wThreadCount > 0 && notBlockedW == 0){
+        ++stats.stalledW;
+    }
+    if (sThreadCount > 0 && wThreadCount > 0 && notBlockedS == 0 && notBlockedW > 0){
+        ++stats.stalledSNotW;
+    }
+    if (sThreadCount > 0 && notBlockedS == 0 && wThreadCount > 0 && notBlockedW == 0){
+        ++stats.stalledSAndW;
+    }
+    if (notBlockedS > 0 || notBlockedW > 0){
+        ++stats.notStalled;
+    }
+    if (notBlockedS + notBlockedW > 1){
+        ++stats.multipleRunning;
     }
 
     if (status_change) {

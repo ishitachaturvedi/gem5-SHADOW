@@ -487,6 +487,13 @@ class IEW
          *  execute. */
         statistics::Formula branchMispredicts;
 
+        // Daniel stalled stats:
+        statistics::Scalar stalledS;
+        statistics::Scalar stalledW;
+        statistics::Scalar stalledSNotW;
+        statistics::Scalar stalledSAndW;
+        statistics::Scalar notStalled;
+
         struct ExecutedInstStats : public statistics::Group
         {
             ExecutedInstStats(CPU *cpu);

@@ -208,7 +208,19 @@ Fetch::FetchStatGroup::FetchStatGroup(CPU *cpu, Fetch *fetch)
     ADD_STAT(rate, statistics::units::Rate<
                     statistics::units::Count, statistics::units::Cycle>::get(),
              "Number of inst fetches per cycle",
-             insts / cpu->baseStats.numCycles)
+             insts / cpu->baseStats.numCycles),
+    ADD_STAT(stalledS, statistics::units::Count::get(),
+            "Number of cycles all S threads are stalled"),
+    ADD_STAT(stalledW, statistics::units::Count::get(),
+            "Number of cycles all W threads are stalled"),
+    ADD_STAT(stalledSNotW, statistics::units::Count::get(),
+            "Number of cycles all S threads are stalled but not W threads"),
+    ADD_STAT(stalledSAndW, statistics::units::Count::get(),
+            "Number of cycles all S and W threads are stalled"),
+    ADD_STAT(notStalled, statistics::units::Count::get(),
+            "Number of cycles decode is not stalled"),
+    ADD_STAT(multipleRunning, statistics::units::Count::get(),
+            "Multiple threads running together")     
 {
         icacheStallCycles
             .prereq(icacheStallCycles);
@@ -257,6 +269,12 @@ Fetch::FetchStatGroup::FetchStatGroup(CPU *cpu, Fetch *fetch)
             .flags(statistics::total);
         rate
             .flags(statistics::total);
+        stalledS.prereq(stalledS);
+        stalledW.prereq(stalledW);
+        stalledSNotW.prereq(stalledSNotW);
+        stalledSAndW.prereq(stalledSAndW);
+        notStalled.prereq(notStalled);
+        multipleRunning.prereq(multipleRunning);
 }
 void
 Fetch::setTimeBuffer(TimeBuffer<TimeStruct> *time_buffer)
@@ -927,6 +945,12 @@ Fetch::tick()
 
     wroteToTimeBuffer = false;
 
+    //Daniel checking blockage
+    unsigned notBlockedS = 0;
+    unsigned sThreadCount = 0;
+    unsigned notBlockedW = 0;
+    unsigned wThreadCount = 0;
+
     for (ThreadID i = 0; i < numThreads; ++i) {
         issuePipelinedIfetch[i] = false;
     }
@@ -939,6 +963,38 @@ Fetch::tick()
         // for each thread.
         bool updated_status = checkSignalsAndUpdate(tid);
         status_change =  status_change || updated_status;
+        // Daniel checking fetch blocks
+        if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
+            sThreadCount++;
+            if(fetchStatus[tid] == Running){
+                notBlockedS++;
+            }
+        }
+        if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+            wThreadCount++;
+            if (fetchStatus[tid] == Running){
+                notBlockedW++;
+            }
+        }
+    }
+
+    if (sThreadCount > 0 && notBlockedS == 0){
+        ++fetchStats.stalledS;
+    }
+    if (wThreadCount > 0 && notBlockedW == 0){
+        ++fetchStats.stalledW;
+    }
+    if (sThreadCount > 0 && wThreadCount > 0 && notBlockedS == 0 && notBlockedW > 0){
+        ++fetchStats.stalledSNotW;
+    }
+    if (sThreadCount > 0 && notBlockedS == 0 && wThreadCount > 0 && notBlockedW == 0){
+        ++fetchStats.stalledSAndW;
+    }
+    if (notBlockedS > 0 || notBlockedW > 0){
+        ++fetchStats.notStalled;
+    }
+    if (notBlockedS + notBlockedW > 1){
+        ++fetchStats.multipleRunning;
     }
 
     DPRINTF(Fetch, "Running stage.\n");
