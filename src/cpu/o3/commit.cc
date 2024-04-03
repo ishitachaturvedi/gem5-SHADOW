@@ -182,7 +182,15 @@ Commit::CommitStats::CommitStats(CPU *cpu, Commit *commit)
       ADD_STAT(committedInstType, statistics::units::Count::get(),
                "Class of committed instruction"),
       ADD_STAT(commitEligibleSamples, statistics::units::Cycle::get(),
-               "number cycles where commit BW limit reached")
+               "number cycles where commit BW limit reached"),
+      ADD_STAT(totalTransitTime, statistics::units::Count::get(),
+               "Total time in transit"),
+      ADD_STAT(IEWTime, statistics::units::Count::get(),
+               "Time spent in IEW"),
+      ADD_STAT(IQTime, statistics::units::Count::get(),
+               "Time spent waiting in IQ"),
+      ADD_STAT(ROBTime, statistics::units::Count::get(),
+               "Time spent waiting in ROB")
 {
     using namespace statistics;
 
@@ -243,6 +251,28 @@ Commit::CommitStats::CommitStats(CPU *cpu, Commit *commit)
         .flags(total | pdf | dist);
 
     committedInstType.ysubnames(enums::OpClassStrings);
+
+    totalTransitTime
+        .init(commit->numThreads,enums::Num_OpClass)
+        .flags(total);
+    totalTransitTime.ysubnames(enums::OpClassStrings);
+
+    IEWTime
+        .init(commit->numThreads,enums::Num_OpClass)
+        .flags(total);
+
+    IEWTime.ysubnames(enums::OpClassStrings);
+
+    IQTime
+        .init(commit->numThreads,enums::Num_OpClass)
+        .flags(total);
+
+    IQTime.ysubnames(enums::OpClassStrings);
+
+    ROBTime
+        .init(commit->numThreads,enums::Num_OpClass)
+        .flags(total);
+    ROBTime.ysubnames(enums::OpClassStrings);
 }
 
 void
@@ -780,6 +810,14 @@ Commit::tick()
     }
 
     updateStatus();
+
+    //Update transit time stats
+    // while (threads != end) {
+    //     ThreadID tid = *threads++;
+    //     for(int i = 0; i < enums::Num_OpClass; i++){
+    //         committedInstTime[tid][i] = (float)stats.totalTransitTime[tid][i] / stats.committedInstType[tid][i];
+    //     }
+    // }
 }
 
 void
@@ -1156,6 +1194,11 @@ Commit::commitInsts()
             if (commit_success) {
                 ++num_committed;
                 stats.committedInstType[tid][head_inst->opClass()]++;
+                //committedInstTime[tid][head_inst->opClass()] += cpu->curcycle() - head_inst->cycleAdded;
+                stats.ROBTime[tid][head_inst->opClass()] += head_inst->cycleCommitted - head_inst->cycleReady;
+                stats.IEWTime[tid][head_inst->opClass()] += head_inst->cycleExecuted - head_inst->cycleIssued;
+                stats.IQTime[tid][head_inst->opClass()] += head_inst->cycleIssued - head_inst->cycleInIQ;
+                stats.totalTransitTime[tid][head_inst->opClass()] += head_inst->cycleCommitted - head_inst->cycleInROB;
                 ppCommit->notify(head_inst);
 
                 // hardware transactional memory
@@ -1580,6 +1623,7 @@ Commit::markCompletedInsts()
                     fromIEW_W->insts[inst_num]->seqNum);
                 assert(fromIEW_W->insts[inst_num]->isInROB());
                 fromIEW_W->insts[inst_num]->setCanCommit();
+                //fromIEW_W->insts[inst_num]->cycleReady = cpu->curCycle();
             }
         }
     }
@@ -1596,6 +1640,7 @@ Commit::markCompletedInsts()
                     fromIEW_S->insts[inst_num]->pcState(),
                     fromIEW_S->insts[inst_num]->seqNum);
                 fromIEW_S->insts[inst_num]->setCanCommit();
+                //fromIEW_S->insts[inst_num]->cycleReady = cpu->curCycle();
             }
         }
     }

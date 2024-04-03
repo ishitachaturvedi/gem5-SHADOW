@@ -504,6 +504,9 @@ class Commit
     int htmStarts[MaxThreads];
     int htmStops[MaxThreads];
 
+    // Holds the running total of transit times:
+    //float committedInstTime[MaxThreads][enums::Num_OpClass];
+
     struct CommitStats : public statistics::Group
     {
         CommitStats(CPU *cpu, Commit *commit);
@@ -549,6 +552,12 @@ class Commit
 
         /** Number of cycles where the commit bandwidth limit is reached. */
         statistics::Scalar commitEligibleSamples;
+
+        /** Instruciton Transit Time by instruction type (OpClass) */
+        statistics::Vector2d totalTransitTime;
+        statistics::Vector2d IQTime;
+        statistics::Vector2d ROBTime;
+        statistics::Vector2d IEWTime;
     } stats;
 };
 

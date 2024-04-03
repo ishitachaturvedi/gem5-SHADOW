@@ -139,6 +139,14 @@ class DynInst : public ExecContext, public RefCounted
     /** InstRecord that tracks this instructions. */
     trace::InstRecord *traceData = nullptr;
 
+    /* Cycle instruciton entered the ROB */
+    int cycleInIQ = 0;
+    int cycleInROB = 0;
+    int cycleReady = 0;
+    int cycleIssued = 0;
+    int cycleCommitted = 0;
+    int cycleExecuted = 0;
+
   protected:
     enum Status
     {
@@ -825,7 +833,8 @@ class DynInst : public ExecContext, public RefCounted
     bool HasWokenDependents() const { return status[WokeDependents]; }
 
     /** Sets this instruction as issued from the IQ. */
-    void setIssued() { status.set(Issued); }
+    void setIssued() { status.set(Issued);
+                        cycleIssued = cpu->curCycle();}
 
     /** Returns whether or not this instruction has issued. */
     bool isIssued() const { return status[Issued]; }
@@ -834,13 +843,15 @@ class DynInst : public ExecContext, public RefCounted
     void clearIssued() { status.reset(Issued); }
 
     /** Sets this instruction as executed. */
-    void setExecuted() { status.set(Executed); }
+    void setExecuted() { status.set(Executed);
+                        cycleExecuted = cpu->curCycle();}
 
     /** Returns whether or not this instruction has executed. */
     bool isExecuted() const { return status[Executed]; }
 
     /** Sets this instruction as ready to commit. */
-    void setCanCommit() { status.set(CanCommit); }
+    void setCanCommit() { status.set(CanCommit);
+                        cycleReady = cpu->curCycle();}
 
     /** Clears this instruction as being ready to commit. */
     void clearCanCommit() { status.reset(CanCommit); }
@@ -853,7 +864,8 @@ class DynInst : public ExecContext, public RefCounted
     bool isAtCommit() { return status[AtCommit]; }
 
     /** Sets this instruction as committed. */
-    void setCommitted() { status.set(Committed); }
+    void setCommitted() { status.set(Committed);
+                          cycleCommitted = cpu->curCycle();}
 
     /** Returns whether or not this instruction is committed. */
     bool isCommitted() const { return status[Committed]; }
@@ -867,7 +879,8 @@ class DynInst : public ExecContext, public RefCounted
     //Instruction Queue Entry
     //-----------------------
     /** Sets this instruction as a entry the IQ. */
-    void setInIQ() { status.set(IqEntry); }
+    void setInIQ() { status.set(IqEntry);
+                    cycleInIQ = cpu->curCycle();}
 
     /** Sets this instruction as a entry the IQ. */
     void clearInIQ() { status.reset(IqEntry); }
@@ -903,7 +916,8 @@ class DynInst : public ExecContext, public RefCounted
     //Reorder Buffer Functions
     //-----------------------
     /** Sets this instruction as a entry the ROB. */
-    void setInROB() { status.set(RobEntry); }
+    void setInROB() { status.set(RobEntry);
+                    cycleInROB = cpu->curCycle();}
 
     /** Sets this instruction as a entry the ROB. */
     void clearInROB() { status.reset(RobEntry); }

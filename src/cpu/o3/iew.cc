@@ -1052,7 +1052,6 @@ IEW::dispatchInsts(ThreadID tid)
           ++dis_num_inst)
     {
         inst = insts_to_dispatch.front();
-
         if (dispatchStatus[tid] == Unblocking) {
             DPRINTF(IEW, "[tid:%i] Issue: Examining instruction from skid "
                     "buffer\n", tid);
@@ -1759,15 +1758,17 @@ IEW::tick()
 
         checkSignalsAndUpdate(tid);
         // Daniel checking decode blocks
+        int insts_available = dispatchStatus[tid] == Unblocking ?
+        skidBuffer[tid].size() : insts[tid].size();
         if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
             sThreadCount++;
-            if(dispatchStatus[tid] == Unblocking || dispatchStatus[tid] == Running){
+            if(insts_available != 0 && (dispatchStatus[tid] == Idle || dispatchStatus[tid] == Unblocking || dispatchStatus[tid] == Running)){
                 notBlockedS++;
             }
         }
         if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
             wThreadCount++;
-            if (dispatchStatus[tid] == Unblocking || dispatchStatus[tid] == Running){
+            if (insts_available != 0 && (dispatchStatus[tid] == Idle ||dispatchStatus[tid] == Unblocking || dispatchStatus[tid] == Running)){
                 notBlockedW++;
             }
         }

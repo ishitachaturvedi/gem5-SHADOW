@@ -627,13 +627,13 @@ Decode::tick()
         skidBuffer[tid].size() : insts[tid].size();
         if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
             sThreadCount++;
-            if(insts_available != 0 && (decodeStatus[tid] == Unblocking || decodeStatus[tid] == Running)){
+            if(insts_available != 0 && (decodeStatus[tid] == Idle || decodeStatus[tid] == Unblocking || decodeStatus[tid] == Running)){
                 notBlockedS++;
             }
         }
         if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
             wThreadCount++;
-            if (insts_available != 0 && (decodeStatus[tid] == Unblocking || decodeStatus[tid] == Running)){
+            if (insts_available != 0 && (decodeStatus[tid] == Idle || decodeStatus[tid] == Unblocking || decodeStatus[tid] == Running)){
                 notBlockedW++;
             }
         }

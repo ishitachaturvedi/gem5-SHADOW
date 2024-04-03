@@ -496,15 +496,17 @@ Rename::tick()
         status_change = checkSignalsAndUpdate(tid) || status_change;
 
         // Daniel checking rename blocks
+        int insts_available = renameStatus[tid] == Unblocking ?
+        skidBuffer[tid].size() : insts[tid].size();
         if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
             sThreadCount++;
-            if(renameStatus[tid] == Unblocking || renameStatus[tid] == Running){
+            if(insts_available != 0 && (renameStatus[tid] == Idle || renameStatus[tid] == Unblocking || renameStatus[tid] == Running)){
                 notBlockedS++;
             }
         }
         if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
             wThreadCount++;
-            if (renameStatus[tid] == Unblocking || renameStatus[tid] == Running){
+            if (insts_available != 0 && (renameStatus[tid] == Idle || renameStatus[tid] == Unblocking || renameStatus[tid] == Running)){
                 notBlockedW++;
             }
         }
