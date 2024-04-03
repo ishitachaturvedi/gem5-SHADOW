@@ -678,6 +678,8 @@ CPU::deactivateThread(ThreadID tid)
 
     commit.deactivateThread(tid);
 
+    decode.deactivateThread(tid);
+
     if (thread_it != activeThreads.end()) {
 
         DPRINTF(O3CPU,"[tid:%i] Removing from active threads list\n",

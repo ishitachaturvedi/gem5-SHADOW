@@ -90,6 +90,7 @@ Fetch::Fetch(CPU *_cpu, const BaseO3CPUParams &params)
       commitToFetchDelay(params.commitToFetchDelay),
       fetchWidth(params.fetchWidth),
       decodeWidth(params.decodeWidth),
+      numDecodingThreads(params.smtNumDecodingThreads),
       retryPkt(NULL),
       retryTid(InvalidThreadID),
       cacheBlkSize(cpu->cacheLineSize()),
@@ -941,6 +942,7 @@ Fetch::tick()
 {
     std::list<ThreadID>::iterator threads = activeThreads->begin();
     std::list<ThreadID>::iterator end = activeThreads->end();
+    ToDecodePreference.clear();
     bool status_change = false;
 
     wroteToTimeBuffer = false;
@@ -1041,30 +1043,55 @@ Fetch::tick()
         }
     }
 
+    // fetch->decode queue is filled here.
     // Pick a random thread to start trying to grab instructions from
-    auto tid_itr = activeThreads->begin();
-    std::advance(tid_itr,
-            random_mt.random<uint8_t>(0, activeThreads->size() - 1));
+    //Ishita
+    // auto tid_itr = activeThreads->begin();
+    // std::advance(tid_itr,
+    //         random_mt.random<uint8_t>(0, activeThreads->size() - 1));
 
-    while (available_insts != 0 && insts_to_decode < decodeWidth) {
-        ThreadID tid = *tid_itr;
-        if (!stalls[tid].decode && !fetchQueue[tid].empty()) {
-            const auto& inst = fetchQueue[tid].front();
-            toDecode->insts[toDecode->size++] = inst;
-            DPRINTF(Fetch, "[tid:%i] [sn:%llu] Sending instruction to decode "
+    // while (available_insts != 0 && insts_to_decode < decodeWidth) {
+    //     ThreadID tid = *tid_itr;
+    //     if (!stalls[tid].decode && !fetchQueue[tid].empty()) {
+    //         const auto& inst = fetchQueue[tid].front();
+    //         toDecode->insts[toDecode->size++] = inst;
+    //         DPRINTF(Fetch, "[tid:%i] [sn:%llu] Sending instruction to decode "
+    //                 "from fetch queue. Fetch queue size: %i.\n",
+    //                 tid, inst->seqNum, fetchQueue[tid].size());
+
+    //         wroteToTimeBuffer = true;
+    //         fetchQueue[tid].pop_front();
+    //         insts_to_decode++;
+    //         available_insts--;
+    //     }
+
+    //     tid_itr++;
+    //     // Wrap around if at end of active threads list
+    //     if (tid_itr == activeThreads->end())
+    //         tid_itr = activeThreads->begin();
+    // }
+
+
+    // filling the queue with only 1 thread in a cycle
+    // Prioritizing S thread and then W thread.
+    ToDecodeThreadPriority();
+
+    for(int i = 0; i < numThreads; i++) {
+        ThreadID tid = ToDecodePreference[i];
+        if (!stalls[tid].decode) {
+            int insts_to_decode = 0;
+            while(!fetchQueue[tid].empty() && insts_to_decode < decodeWidth) {
+                const auto& inst = fetchQueue[tid].front();
+                toDecode->insts[toDecode->size++] = inst;
+                DPRINTF(Fetch, "[tid:%i] [sn:%llu] Sending instruction to decode "
                     "from fetch queue. Fetch queue size: %i.\n",
                     tid, inst->seqNum, fetchQueue[tid].size());
-
-            wroteToTimeBuffer = true;
-            fetchQueue[tid].pop_front();
-            insts_to_decode++;
-            available_insts--;
+                wroteToTimeBuffer = true;
+                fetchQueue[tid].pop_front();
+                insts_to_decode++;
+            }
+            break;
         }
-
-        tid_itr++;
-        // Wrap around if at end of active threads list
-        if (tid_itr == activeThreads->end())
-            tid_itr = activeThreads->begin();
     }
 
     // If there was activity this cycle, inform the CPU of it.
@@ -1746,6 +1773,64 @@ Fetch::lsqCount()
     }
 
     return InvalidThreadID;
+}
+
+void
+Fetch::ToDecodeThreadPriority()
+{
+    assert(ToDecodePreference.size() == 0);
+    ToDecodePreference.resize(numThreads,-1);
+    
+    switch (fetchPolicy) {
+        case SMTFetchPolicy::SWIQCount:
+        SWiqCountPriority();
+    }
+}
+
+void 
+Fetch::SWiqCountPriority() { //Ishita
+    std::priority_queue<unsigned, std::vector<unsigned>,
+                        std::greater<unsigned> > SQ;
+    std::priority_queue<unsigned, std::vector<unsigned>,
+                        std::greater<unsigned> > WQ;
+    std::map<unsigned, ThreadID> SthreadMap;
+    std::map<unsigned, ThreadID> WthreadMap;
+
+    std::list<ThreadID>::iterator threads = activeThreads->begin();
+    std::list<ThreadID>::iterator end = activeThreads->end();
+
+    // create 2 lists for S threads and W threads 
+    while (threads != end) {
+        ThreadID tid = *threads++;
+        unsigned iqCount = fetchQueue[tid].size();
+
+        //we can potentially get tid collisions if two threads
+        //have the same iqCount, but this should be rare.
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
+        {
+            SQ.push(iqCount);
+            SthreadMap[iqCount] = tid;
+        }
+        else
+        {
+            WQ.push(iqCount);
+            WthreadMap[iqCount] = tid;
+        }
+    }
+
+    int iter = 0;
+    while (!SQ.empty()) {
+        ThreadID high_pri = SthreadMap[SQ.top()];
+        ToDecodePreference[iter] = high_pri;
+        SQ.pop();
+        iter++;
+    }
+    while (!WQ.empty()) {
+        ThreadID high_pri = WthreadMap[WQ.top()];
+        ToDecodePreference[iter] = high_pri;
+        WQ.pop();
+        iter++;
+    }
 }
 
 ThreadID

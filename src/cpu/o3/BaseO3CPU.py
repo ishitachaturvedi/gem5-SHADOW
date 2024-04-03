@@ -50,11 +50,8 @@ from m5.objects.BranchPredictor import *
 class SMTFetchPolicy(ScopedEnum):
     vals = ["RoundRobin", "Branch", "IQCount", "LSQCount","SWIQCount"]
 
-
 class SMTQueuePolicy(ScopedEnum):
     vals = ["Dynamic", "Partitioned", "Threshold"]
-
-
 class CommitPolicy(ScopedEnum):
     vals = ["RoundRobin", "OldestReady","SWIQCount"]
 
@@ -180,7 +177,9 @@ class BaseO3CPU(BaseCPU):
     numROBEntries = Param.Unsigned(192, "Number of reorder buffer entries")
 
     smtNumFetchingThreads = Param.Unsigned(1, "SMT Number of Fetching Threads")
+    smtNumDecodingThreads = Param.Unsigned(1, "SMT Number of Decoding Threads")
     smtFetchPolicy = Param.SMTFetchPolicy("SWIQCount", "SMT Fetch policy")
+    smtDecodePolicy = Param.SMTFetchPolicy("SWIQCount", "SMT Fetch policy")
     smtLSQPolicy = Param.SMTQueuePolicy(
         "Partitioned", "SMT LSQ Sharing Policy"
     )

@@ -51,6 +51,8 @@
 #include "params/BaseO3CPU.hh"
 #include "sim/full_system.hh"
 #include "debug/IQ.hh"
+#include <algorithm>
+#include <utility>
 
 // clang complains about std::set being overloaded with Packet::set if
 // we open up the entire namespace std
@@ -64,12 +66,14 @@ namespace o3
 
 Decode::Decode(CPU *_cpu, const BaseO3CPUParams &params)
     : cpu(_cpu),
+      decodePolicy(params.smtDecodePolicy),
       renameToDecodeDelay(params.renameToDecodeDelay),
       iewToDecodeDelay(params.iewToDecodeDelay),
       commitToDecodeDelay(params.commitToDecodeDelay),
       fetchToDecodeDelay(params.fetchToDecodeDelay),
       decodeWidth(params.decodeWidth),
       numThreads(params.numThreads),
+      numDecodingThreads(params.smtNumDecodingThreads),
       stats(_cpu)
 {
     if (decodeWidth > MaxWidth)
@@ -102,15 +106,29 @@ Decode::clearStates(ThreadID tid)
 }
 
 void
+Decode::deactivateThread(ThreadID tid)
+{
+    // Update priority list
+    auto thread_it = std::find(priorityList.begin(), priorityList.end(), tid);
+    if (thread_it != priorityList.end()) {
+        priorityList.erase(thread_it);
+    }
+}
+
+void
 Decode::resetStage()
 {
     _status = Inactive;
+
+    priorityList.clear();
 
     // Setup status, make sure stall signals are clear.
     for (ThreadID tid = 0; tid < numThreads; ++tid) {
         decodeStatus[tid] = Idle;
 
         stalls[tid].rename = false;
+
+        priorityList.push_back(tid);
     }
 }
 
@@ -537,6 +555,14 @@ Decode::activateThread(ThreadID tid)
 
     decodeStatus[tid] = Idle;
     stalls[tid].rename = false;
+
+    auto thread_it = std::find(priorityList.begin(),
+            priorityList.end(), tid);
+
+    if(thread_it == priorityList.end())
+    {
+        priorityList.push_back(tid);
+    }
 }
 
 bool
@@ -565,6 +591,8 @@ Decode::checkSignalsAndUpdate(ThreadID tid)
     }
 
     if (checkStall(tid)) {
+        DPRINTF(Decode, "[tid:%i] Blocking because of check stall.\n",
+                tid);
         return block(tid);
     }
 
@@ -615,6 +643,8 @@ Decode::tick()
 
     sortInsts();
 
+    DecodePreference.clear();
+
     //Check stall and squash signals.
     while (threads != end) {
         ThreadID tid = *threads++;
@@ -637,8 +667,49 @@ Decode::tick()
                 notBlockedW++;
             }
         }
-        decode(status_change, tid);
+        // decode(status_change, tid);
     }
+
+    // use a scheduling policy here to only decode 1 thread in 1 cycle
+    // only 1 thread decodes in a cycle
+    getDecodingThread();
+    for(int i = 0; i < DecodePreference.size() ; i++) {
+        ThreadID tid = DecodePreference[i];
+        if (decodeStatus[tid] == Blocked) {
+        ++stats.blockedCycles;
+        } else if (decodeStatus[tid] == Squashing) {
+            ++stats.squashCycles;
+        }
+
+        // Decode should try to decode as many instructions as its bandwidth
+        // will allow, as long as it is not currently blocked.
+        if (decodeStatus[tid] == Running ||
+            decodeStatus[tid] == Idle) {
+            DPRINTF(Decode, "[tid:%i] Not blocked, so attempting to run "
+                    "stage.\n",tid);
+
+            decodeInsts(tid);
+            break;
+        } else if (decodeStatus[tid] == Unblocking) {
+            // Make sure that the skid buffer has something in it if the
+            // status is unblocking.
+            assert(!skidsEmpty());
+
+            // If the status was unblocking, then instructions from the skid
+            // buffer were used.  Remove those instructions and handle
+            // the rest of unblocking.
+            decodeInsts(tid);
+
+            if (fetchInstsValid()) {
+                // Add the current inputs to the skid buffer so they can be
+                // reprocessed when this stage unblocks.
+                skidInsert(tid);
+            }
+            status_change = unblock(tid) || status_change;
+            break;
+        }
+    }
+
 
     if (sThreadCount > 0 && notBlockedS == 0){
         ++stats.stalledS;
@@ -838,6 +909,7 @@ Decode::decodeInsts(ThreadID tid)
     // If we didn't process all instructions, then we will need to block
     // and put all those instructions into the skid buffer.
     if (!insts_to_decode.empty()) {
+        DPRINTF(Decode,"[tid:%d] Blocking but inst not empty\n",tid);
         block(tid);
     }
 
@@ -846,6 +918,250 @@ Decode::decodeInsts(ThreadID tid)
     if (toRenameIndex) {
         wroteToTimeBuffer = true;
     }
+}
+
+///////////////////////////////////////
+//                                   //
+//  SMT FETCH POLICY MAINTAINED HERE //
+//                                   //
+///////////////////////////////////////
+
+bool comparePairs(const std::pair<int, int>& pair1, const std::pair<int, int>& pair2) {
+    return pair1.first > pair2.first; // Sort based on the first element of each pair
+}
+
+void
+Decode::getDecodingThread()
+{
+    switch (decodePolicy) {
+        case SMTFetchPolicy::SWIQCount:
+        SWiqCountPriority();
+    }
+}
+
+
+void 
+Decode::SWiqCountPriority() { 
+    std::priority_queue<unsigned, std::vector<unsigned>,
+                        std::greater<unsigned> > SQ;
+    std::priority_queue<unsigned, std::vector<unsigned>,
+                        std::greater<unsigned> > WQ;
+    std::map<unsigned, ThreadID> SthreadMap;
+    std::map<unsigned, ThreadID> WthreadMap;
+
+    std::list<ThreadID>::iterator threads = activeThreads->begin();
+    std::list<ThreadID>::iterator end = activeThreads->end();
+
+    std::vector<std::pair<int, int>> ThreadAvailICountS;
+    std::vector<std::pair<int, int>> ThreadAvailICountW;
+
+    // create 2 lists for S threads and W threads 
+    while (threads != end) {
+        ThreadID tid = *threads++;
+        unsigned iqCount = decodeStatus[tid] == Unblocking ?
+        skidBuffer[tid].size() : insts[tid].size();
+
+        //we can potentially get tid collisions if two threads
+        //have the same iqCount, but this should be rare.
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
+        {
+            SQ.push(iqCount);
+            SthreadMap[iqCount] = tid;
+            ThreadAvailICountS.push_back(std::make_pair(iqCount,tid));
+        }
+        else
+        {
+            WQ.push(iqCount);
+            WthreadMap[iqCount] = tid;
+            ThreadAvailICountW.push_back(std::make_pair(iqCount,tid));
+        }
+    }
+
+    std::sort(ThreadAvailICountS.begin(), ThreadAvailICountS.end(), comparePairs);
+    std::sort(ThreadAvailICountW.begin(), ThreadAvailICountW.end(), comparePairs);
+
+    // while (!SQ.empty()) {
+    //     ThreadID high_pri = SthreadMap[SQ.top()];
+    //     //DecodePreference[iter] = high_pri;
+    //     DecodePreference.push_back(high_pri);
+    //     SQ.pop();
+    //     
+    //     iter++;
+    // }
+    // while (!WQ.empty()) {
+    //     ThreadID high_pri = WthreadMap[WQ.top()];
+    //     //DecodePreference[iter] = high_pri;
+    //     DecodePreference.push_back(high_pri);
+    //     printf("THREAD CONSIDERED W_thread %d %d\n",DecodePreference[iter],high_pri);
+    //     WQ.pop();
+    //     iter++;
+    // }
+
+    for (const auto& pair : ThreadAvailICountS) {
+        DecodePreference.push_back(pair.second);
+    }
+    for (const auto& pair : ThreadAvailICountW) {
+        DecodePreference.push_back(pair.second);
+    }
+}
+
+
+ThreadID
+Decode::roundRobin()
+{
+    // std::list<ThreadID>::iterator pri_iter = priorityList.begin();
+    // std::list<ThreadID>::iterator end      = priorityList.end();
+
+    std::list<ThreadID>::iterator pri_iter = activeThreads->begin();
+    std::list<ThreadID>::iterator end = activeThreads->end();
+
+    ThreadID high_pri;
+    while (pri_iter != end) {
+        high_pri = *pri_iter;
+        assert(high_pri <= numThreads);
+
+        if (decodeStatus[high_pri] == Running ||
+            decodeStatus[high_pri] == Unblocking ||
+            decodeStatus[high_pri] == Idle) {
+
+            priorityList.erase(pri_iter);
+            priorityList.push_back(high_pri);
+
+            return high_pri;
+        }
+
+        pri_iter++;
+    }
+
+    return InvalidThreadID;
+}
+
+ThreadID
+Decode::SWiqCount()
+{
+    std::priority_queue<unsigned, std::vector<unsigned>,
+                        std::greater<unsigned> > SQ;
+    std::priority_queue<unsigned, std::vector<unsigned>,
+                        std::greater<unsigned> > WQ;
+    std::map<unsigned, ThreadID> SthreadMap;
+    std::map<unsigned, ThreadID> WthreadMap;
+
+    std::list<ThreadID>::iterator threads = activeThreads->begin();
+    std::list<ThreadID>::iterator end = activeThreads->end();
+
+    // create 2 lists for S threads and W threads 
+    while (threads != end) {
+        ThreadID tid = *threads++;
+        unsigned iqCount = decodeStatus[tid] == Unblocking ?
+        skidBuffer[tid].size() : insts[tid].size();
+
+        //we can potentially get tid collisions if two threads
+        //have the same iqCount, but this should be rare.
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
+        {
+            SQ.push(iqCount);
+            SthreadMap[iqCount] = tid;
+        }
+        else
+        {
+            WQ.push(iqCount);
+            WthreadMap[iqCount] = tid;
+        }
+    }
+
+    while (!SQ.empty()) {
+        ThreadID high_pri = SthreadMap[SQ.top()];
+
+        if (decodeStatus[high_pri] == Running ||
+            decodeStatus[high_pri] == Unblocking ||
+            decodeStatus[high_pri] == Idle)
+            return high_pri;
+        else
+            SQ.pop();
+    }
+    while (!WQ.empty()) {
+        ThreadID high_pri = WthreadMap[WQ.top()];
+
+        if (decodeStatus[high_pri] == Running ||
+            decodeStatus[high_pri] == Unblocking ||
+            decodeStatus[high_pri] == Idle)
+            return high_pri;
+        else
+            WQ.pop();
+    }
+
+    return InvalidThreadID;
+}
+
+ThreadID
+Decode::iqCount()
+{
+    //sorted from lowest->highest
+    std::priority_queue<unsigned, std::vector<unsigned>,
+                        std::greater<unsigned> > PQ;
+    std::map<unsigned, ThreadID> threadMap;
+
+    std::list<ThreadID>::iterator threads = activeThreads->begin();
+    std::list<ThreadID>::iterator end = activeThreads->end();
+
+    while (threads != end) {
+        ThreadID tid = *threads++;
+        unsigned iqCount = fromIEW->iewInfo[tid].iqCount;
+
+        //we can potentially get tid collisions if two threads
+        //have the same iqCount, but this should be rare.
+        PQ.push(iqCount);
+        threadMap[iqCount] = tid;
+    }
+
+    while (!PQ.empty()) {
+        ThreadID high_pri = threadMap[PQ.top()];
+
+        if (decodeStatus[high_pri] == Running ||
+            decodeStatus[high_pri] == Unblocking ||
+            decodeStatus[high_pri] == Idle)
+            return high_pri;
+        else
+            PQ.pop();
+
+    }
+
+    return InvalidThreadID;
+}
+
+ThreadID
+Decode::lsqCount()
+{
+    //sorted from lowest->highest
+    std::priority_queue<unsigned, std::vector<unsigned>,
+                        std::greater<unsigned> > PQ;
+    std::map<unsigned, ThreadID> threadMap;
+
+    std::list<ThreadID>::iterator threads = activeThreads->begin();
+    std::list<ThreadID>::iterator end = activeThreads->end();
+
+    while (threads != end) {
+        ThreadID tid = *threads++;
+        unsigned ldstqCount = fromIEW->iewInfo[tid].ldstqCount;
+
+        //we can potentially get tid collisions if two threads
+        //have the same iqCount, but this should be rare.
+        PQ.push(ldstqCount);
+        threadMap[ldstqCount] = tid;
+    }
+
+    while (!PQ.empty()) {
+        ThreadID high_pri = threadMap[PQ.top()];
+
+        if (decodeStatus[high_pri] == Running ||
+            decodeStatus[high_pri] == Unblocking ||
+            decodeStatus[high_pri] == Idle)
+            return high_pri;
+        else
+            PQ.pop();
+    }
+
+    return InvalidThreadID;
 }
 
 } // namespace o3

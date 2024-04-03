@@ -56,6 +56,7 @@
 #include "mem/port.hh"
 #include "sim/eventq.hh"
 #include "sim/probe/probe.hh"
+#include <vector>
 
 namespace gem5
 {
@@ -275,6 +276,16 @@ class Fetch
     void deactivateThread(ThreadID tid);
 
     void activateThread(ThreadID tid);
+
+    /* Vector to hold tids in order of preference to place insts in fetch to decode queue */
+    std::vector<ThreadID> ToDecodePreference;
+
+    /* Function to create priority list of threads by populating ToDecodePreference vector */
+    void ToDecodeThreadPriority();
+
+    /* Prioritizes S threads followed by W threads */
+    void SWiqCountPriority();
+
   private:
     /** Reset this pipeline stage */
     void resetStage();
@@ -477,6 +488,9 @@ class Fetch
 
     /** The width of decode in instructions. */
     unsigned decodeWidth;
+
+    /** Number of threads that are actively decodng. */
+    ThreadID numDecodingThreads;
 
     /** Is the cache blocked?  If so no threads can access it. */
     bool cacheBlocked;
