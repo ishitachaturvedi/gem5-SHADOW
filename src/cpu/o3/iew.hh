@@ -493,6 +493,7 @@ class IEW
         statistics::Scalar stalledSNotW;
         statistics::Scalar stalledSAndW;
         statistics::Scalar notStalled;
+        statistics::Scalar blockingS;
 
         struct ExecutedInstStats : public statistics::Group
         {

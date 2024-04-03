@@ -202,7 +202,9 @@ IEW::IEWStats::IEWStats(CPU *cpu)
     ADD_STAT(stalledSAndW, statistics::units::Count::get(),
             "Number of cycles all S and W threads are stalled"),
     ADD_STAT(notStalled, statistics::units::Count::get(),
-            "Number of cycles iew is not stalled")  
+            "Number of cycles iew is not stalled"),
+    ADD_STAT(blockingS, statistics::units::Count::get(),
+            "Number of cycles iew is blocking an S thread")  
 {
     instsToCommit
         .init(cpu->numThreads)
@@ -233,6 +235,7 @@ IEW::IEWStats::IEWStats(CPU *cpu)
     stalledSNotW.prereq(stalledSNotW);
     stalledSAndW.prereq(stalledSAndW);
     notStalled.prereq(notStalled);
+    blockingS.prereq(blockingS);
 }
 
 IEW::IEWStats::ExecutedInstStats::ExecutedInstStats(CPU *cpu)
@@ -1764,6 +1767,9 @@ IEW::tick()
             sThreadCount++;
             if(insts_available != 0 && (dispatchStatus[tid] == Idle || dispatchStatus[tid] == Unblocking || dispatchStatus[tid] == Running)){
                 notBlockedS++;
+            }
+            if(dispatchStatus[tid] == Blocked){
+                ++iewStats.blockingS;
             }
         }
         if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {

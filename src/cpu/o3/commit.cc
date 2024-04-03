@@ -1196,8 +1196,8 @@ Commit::commitInsts()
                 stats.committedInstType[tid][head_inst->opClass()]++;
                 //committedInstTime[tid][head_inst->opClass()] += cpu->curcycle() - head_inst->cycleAdded;
                 stats.ROBTime[tid][head_inst->opClass()] += head_inst->cycleCommitted - head_inst->cycleReady;
-                stats.IEWTime[tid][head_inst->opClass()] += head_inst->cycleExecuted - head_inst->cycleIssued;
-                stats.IQTime[tid][head_inst->opClass()] += head_inst->cycleIssued - head_inst->cycleInIQ;
+                stats.IEWTime[tid][head_inst->opClass()] += head_inst->cycleReady - head_inst->cycleExecuted;
+                stats.IQTime[tid][head_inst->opClass()] += head_inst->cycleExecuted - head_inst->cycleInIQ;
                 stats.totalTransitTime[tid][head_inst->opClass()] += head_inst->cycleCommitted - head_inst->cycleInROB;
                 ppCommit->notify(head_inst);
 
