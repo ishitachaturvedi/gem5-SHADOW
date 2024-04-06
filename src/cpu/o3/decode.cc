@@ -154,7 +154,11 @@ Decode::DecodeStats::DecodeStats(CPU *cpu)
       ADD_STAT(notStalled, statistics::units::Count::get(),
                "Number of cycles decode is not stalled"),
       ADD_STAT(multipleRunning, statistics::units::Count::get(),
-               "Multiple threads running together")                                             
+               "Multiple threads running together"),
+      ADD_STAT(blocking, statistics::units::Count::get(),
+               "Decode causes a block"),
+      ADD_STAT(blockingS, statistics::units::Count::get(),
+               "Decode causes a block in an s thread")                                             
 {
     idleCycles.prereq(idleCycles);
     blockedCycles.prereq(blockedCycles);
@@ -172,6 +176,8 @@ Decode::DecodeStats::DecodeStats(CPU *cpu)
     stalledSAndW.prereq(stalledSAndW);
     notStalled.prereq(notStalled);
     multipleRunning.prereq(multipleRunning);
+    blocking.prereq(blocking);
+    blockingS.prereq(blockingS);
 }
 
 void
@@ -780,6 +786,7 @@ Decode::decodeInsts(ThreadID tid)
         // This current instruction is valid, so add it into the decode
         // queue.  The next instruction may not be valid, so check to
         // see if branches were predicted correctly.
+        inst->cycleDecoded = cpu->curCycle();
         toRename->insts[toRenameIndex] = inst;
 
         ++(toRename->size);
@@ -838,6 +845,10 @@ Decode::decodeInsts(ThreadID tid)
     // If we didn't process all instructions, then we will need to block
     // and put all those instructions into the skid buffer.
     if (!insts_to_decode.empty()) {
+        ++stats.blocking;
+        if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
+            ++stats.blockingS;
+        }
         block(tid);
     }
 

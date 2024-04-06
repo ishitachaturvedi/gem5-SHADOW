@@ -190,7 +190,15 @@ Commit::CommitStats::CommitStats(CPU *cpu, Commit *commit)
       ADD_STAT(IQTime, statistics::units::Count::get(),
                "Time spent waiting in IQ"),
       ADD_STAT(ROBTime, statistics::units::Count::get(),
-               "Time spent waiting in ROB")
+               "Time spent waiting in ROB"),
+      ADD_STAT(totalReadyTime, statistics::units::Count::get(),
+               "Total time spent waiting in ROB"),  
+      ADD_STAT(renameTime, statistics::units::Count::get(),
+               "Time spent waiting in rename"),  
+      ADD_STAT(decodeTime, statistics::units::Count::get(),
+               "Time spent waiting to decode"),
+      ADD_STAT(fetchTime, statistics::units::Count::get(),
+               "Time spent waiting to fetch")     
 {
     using namespace statistics;
 
@@ -199,7 +207,7 @@ Commit::CommitStats::CommitStats(CPU *cpu, Commit *commit)
     branchMispredicts.prereq(branchMispredicts);
 
     numCommittedDist
-        .init(0,commit->commitWidth,1)
+        .init(0,(commit->commitWidth*cpu->numThreads),1)
         .flags(statistics::pdf);
 
     instsCommitted
@@ -273,6 +281,26 @@ Commit::CommitStats::CommitStats(CPU *cpu, Commit *commit)
         .init(commit->numThreads,enums::Num_OpClass)
         .flags(total);
     ROBTime.ysubnames(enums::OpClassStrings);
+
+    totalReadyTime
+        .init(commit->numThreads,enums::Num_OpClass)
+        .flags(total);
+    totalReadyTime.ysubnames(enums::OpClassStrings);
+
+    renameTime
+        .init(commit->numThreads,enums::Num_OpClass)
+        .flags(total);
+    renameTime.ysubnames(enums::OpClassStrings);
+
+    decodeTime
+        .init(commit->numThreads,enums::Num_OpClass)
+        .flags(total);
+    decodeTime.ysubnames(enums::OpClassStrings);
+
+    fetchTime
+        .init(commit->numThreads,enums::Num_OpClass)
+        .flags(total);
+    fetchTime.ysubnames(enums::OpClassStrings);
 }
 
 void
@@ -1195,9 +1223,14 @@ Commit::commitInsts()
                 ++num_committed;
                 stats.committedInstType[tid][head_inst->opClass()]++;
                 //committedInstTime[tid][head_inst->opClass()] += cpu->curcycle() - head_inst->cycleAdded;
-                stats.ROBTime[tid][head_inst->opClass()] += head_inst->cycleCommitted - head_inst->cycleReady;
-                stats.IEWTime[tid][head_inst->opClass()] += head_inst->cycleReady - head_inst->cycleExecuted;
-                stats.IQTime[tid][head_inst->opClass()] += head_inst->cycleExecuted - head_inst->cycleInIQ;
+                stats.ROBTime[tid][head_inst->opClass()] += head_inst->cycleCommitted - head_inst->cycleExecuted;
+                stats.totalReadyTime[tid][head_inst->opClass()] += head_inst->cycleCommitted - head_inst->cycleReady;
+                stats.IEWTime[tid][head_inst->opClass()] += head_inst->cycleExecuted - head_inst->cycleIssued;
+                stats.IQTime[tid][head_inst->opClass()] += head_inst->cycleIssued - head_inst->cycleInIQ;
+                stats.renameTime[tid][head_inst->opClass()] += head_inst->cycleRenamed - head_inst->cycleDecoded;
+                stats.decodeTime[tid][head_inst->opClass()] += head_inst->cycleDecoded - head_inst->cycleFetched;
+                stats.fetchTime[tid][head_inst->opClass()] += head_inst->cycleFetched - head_inst->cycleInFetch;
+
                 stats.totalTransitTime[tid][head_inst->opClass()] += head_inst->cycleCommitted - head_inst->cycleInROB;
                 ppCommit->notify(head_inst);
 

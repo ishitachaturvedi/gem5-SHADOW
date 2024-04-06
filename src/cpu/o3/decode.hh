@@ -364,6 +364,8 @@ class Decode
         statistics::Scalar stalledSAndW;
         statistics::Scalar notStalled;
         statistics::Scalar multipleRunning;
+        statistics::Scalar blocking;
+        statistics::Scalar blockingS;
     } stats;
 };
 

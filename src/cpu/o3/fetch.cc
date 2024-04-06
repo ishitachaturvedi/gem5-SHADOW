@@ -1051,6 +1051,7 @@ Fetch::tick()
         if (!stalls[tid].decode && !fetchQueue[tid].empty()) {
             const auto& inst = fetchQueue[tid].front();
             toDecode->insts[toDecode->size++] = inst;
+            inst->cycleFetched = cpu->curCycle();
             DPRINTF(Fetch, "[tid:%i] [sn:%llu] Sending instruction to decode "
                     "from fetch queue. Fetch queue size: %i.\n",
                     tid, inst->seqNum, fetchQueue[tid].size());
@@ -1228,6 +1229,7 @@ Fetch::buildInst(ThreadID tid, StaticInstPtr staticInst,
     // Write the instruction to the first slot in the queue
     // that heads to decode.
     assert(numInst < fetchWidth);
+    instruction->cycleInFetch = cpu->curCycle();
     fetchQueue[tid].push_back(instruction);
     assert(fetchQueue[tid].size() <= fetchQueueSize);
     DPRINTF(Fetch, "[tid:%i] Fetch queue entry created (%i/%i).\n",

@@ -204,7 +204,19 @@ IEW::IEWStats::IEWStats(CPU *cpu)
     ADD_STAT(notStalled, statistics::units::Count::get(),
             "Number of cycles iew is not stalled"),
     ADD_STAT(blockingS, statistics::units::Count::get(),
-            "Number of cycles iew is blocking an S thread")  
+            "Number of cycles iew is blocking an S thread"),
+    ADD_STAT(blockingIQFull, statistics::units::Count::get(),
+               "Blocking from IQ Full"),
+    ADD_STAT(blockingIQFullS, statistics::units::Count::get(),
+            "Blocking from IQ Full S"),
+    ADD_STAT(blockingLSQFull, statistics::units::Count::get(),
+            "Blocking from LSQ Full"),
+    ADD_STAT(blockingLSQFullS, statistics::units::Count::get(),
+            "Blocking from LSQ Full S"),
+    ADD_STAT(blockingBandwidthFull, statistics::units::Count::get(),
+            "Blocking from bandwidth Full"),
+    ADD_STAT(blockingBandwidthFullS, statistics::units::Count::get(),
+            "Blocking from bandwidth Full S")  
 {
     instsToCommit
         .init(cpu->numThreads)
@@ -236,6 +248,12 @@ IEW::IEWStats::IEWStats(CPU *cpu)
     stalledSAndW.prereq(stalledSAndW);
     notStalled.prereq(notStalled);
     blockingS.prereq(blockingS);
+    blockingIQFull.prereq(blockingIQFull);
+    blockingIQFullS.prereq(blockingIQFullS);
+    blockingLSQFull.prereq(blockingLSQFull);
+    blockingLSQFullS.prereq(blockingLSQFullS);
+    blockingBandwidthFull.prereq(blockingBandwidthFull);
+    blockingBandwidthFullS.prereq(blockingBandwidthFullS);
 }
 
 IEW::IEWStats::ExecutedInstStats::ExecutedInstStats(CPU *cpu)
@@ -764,6 +782,10 @@ IEW::checkStall(ThreadID tid)
     } else if (instQueue.isFull(tid)) {
         DPRINTF(IEW,"[tid:%i] block_reason Stall: IQ  is full.\n",tid);
         ret_val = true;
+        ++iewStats.blockingIQFull;
+        if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
+            ++iewStats.blockingIQFullS;
+        }
     }
 
     return ret_val;
@@ -1105,6 +1127,10 @@ IEW::dispatchInsts(ThreadID tid)
             DPRINTF(IEW, "[tid:%i] block_reason Issue: IQ has become full.\n", tid);
 
             // Call function to start blocking.
+            ++iewStats.blockingIQFull;
+            if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
+                ++iewStats.blockingIQFullS;
+            }
             block(tid);
 
             // Set unblock to false. Special case where we are using
@@ -1127,6 +1153,10 @@ IEW::dispatchInsts(ThreadID tid)
                     inst->isLoad() ? "LQ" : "SQ");
 
             // Call function to start blocking.
+            ++iewStats.blockingLSQFull;
+            if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
+                ++iewStats.blockingLSQFullS;
+            }
             block(tid);
 
             // Set unblock to false. Special case where we are using
@@ -1278,6 +1308,10 @@ IEW::dispatchInsts(ThreadID tid)
 
     if (!insts_to_dispatch.empty()) {
         DPRINTF(IEW,"[tid:%i] block_reason Issue: Bandwidth Full. Blocking.\n", tid);
+        ++iewStats.blockingBandwidthFull;
+        if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
+            ++iewStats.blockingBandwidthFullS;
+        }
         block(tid);
         toRename->iewUnblock[tid] = false;
     }

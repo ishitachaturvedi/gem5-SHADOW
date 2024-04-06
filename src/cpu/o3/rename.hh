@@ -606,6 +606,17 @@ class Rename
         statistics::Scalar stalledSNotW;
         statistics::Scalar stalledSAndW;
         statistics::Scalar notStalled;
+
+        statistics::Scalar blockingIQFull;
+        statistics::Scalar blockingIQFullS;
+        statistics::Scalar blockingROBFull;
+        statistics::Scalar blockingROBFullS;
+        statistics::Scalar blockingBandwidthFull;
+        statistics::Scalar blockingBandwidthFullS;
+        statistics::Scalar blockingRegFull;
+        statistics::Scalar blockingRegFullS;
+        statistics::Scalar blockingSerialized;
+        statistics::Scalar blockingSerializedS;
     } stats;
 };
 

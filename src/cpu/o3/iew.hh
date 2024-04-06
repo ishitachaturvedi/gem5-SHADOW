@@ -494,6 +494,12 @@ class IEW
         statistics::Scalar stalledSAndW;
         statistics::Scalar notStalled;
         statistics::Scalar blockingS;
+        statistics::Scalar blockingIQFull;
+        statistics::Scalar blockingIQFullS;
+        statistics::Scalar blockingLSQFull;
+        statistics::Scalar blockingLSQFullS;
+        statistics::Scalar blockingBandwidthFull;
+        statistics::Scalar blockingBandwidthFullS;
 
         struct ExecutedInstStats : public statistics::Group
         {

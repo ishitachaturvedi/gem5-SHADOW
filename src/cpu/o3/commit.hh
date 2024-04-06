@@ -558,6 +558,10 @@ class Commit
         statistics::Vector2d IQTime;
         statistics::Vector2d ROBTime;
         statistics::Vector2d IEWTime;
+        statistics::Vector2d totalReadyTime;
+        statistics::Vector2d renameTime;
+        statistics::Vector2d decodeTime;
+        statistics::Vector2d fetchTime;
     } stats;
 };
 

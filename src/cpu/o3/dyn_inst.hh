@@ -140,6 +140,10 @@ class DynInst : public ExecContext, public RefCounted
     trace::InstRecord *traceData = nullptr;
 
     /* Cycle instruciton entered the ROB */
+    int cycleInFetch = 0;
+    int cycleFetched = 0;
+    int cycleDecoded = 0;
+    int cycleRenamed = 0;
     int cycleInIQ = 0;
     int cycleInROB = 0;
     int cycleReady = 0;
