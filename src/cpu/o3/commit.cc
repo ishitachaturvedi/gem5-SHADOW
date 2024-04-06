@@ -1501,8 +1501,8 @@ Commit::getInsts()
     // }
 
     // Read any renamed instructions and place them into the ROB.
-    int insts_to_process_S = std::min((int)renameWidth, fromRename_S->size);
-
+    //int insts_to_process_S = std::min((int)renameWidth, fromRename_S->size);
+    int insts_to_process_S = fromRename_S->size;
     int issued_inst_num = 0;
 
     for (int inst_num = 0; inst_num < insts_to_process_S; ++inst_num) {
@@ -1530,12 +1530,16 @@ Commit::getInsts()
                         tid, inst->seqNum, inst->pcState());
             }
         }
+        if(issued_inst_num >=renameWidth){
+            break;
+        }
     }
 
     // Read any renamed instructions and place them into the ROB.
     //int insts_to_process_W = std::min((int)(renameWidth)-issued_inst_num, fromRename_W->size);
 
-    int insts_to_process_W = std::min((int)renameWidth, fromRename_W->size);
+    //int insts_to_process_W = std::min((int)renameWidth, fromRename_W->size);
+    int insts_to_process_W = fromRename_W->size;
     for (int inst_num = 0; inst_num < insts_to_process_W; ++inst_num) {
         const DynInstPtr &inst = fromRename_W->insts[inst_num];
         ThreadID tid = inst->threadNumber;

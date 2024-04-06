@@ -672,6 +672,7 @@ Decode::tick()
 
     // use a scheduling policy here to only decode 1 thread in 1 cycle
     // only 1 thread decodes in a cycle
+    bool thread_decoded = false;
     getDecodingThread();
     for(int i = 0; i < DecodePreference.size() ; i++) {
         ThreadID tid = DecodePreference[i];
@@ -680,17 +681,23 @@ Decode::tick()
         } else if (decodeStatus[tid] == Squashing) {
             ++stats.squashCycles;
         }
+        if(thread_decoded){
+            block(tid);
+        }
 
         // Decode should try to decode as many instructions as its bandwidth
         // will allow, as long as it is not currently blocked.
-        if (decodeStatus[tid] == Running ||
-            decodeStatus[tid] == Idle) {
+
+        int insts_available = decodeStatus[tid] == Unblocking ?
+        skidBuffer[tid].size() : insts[tid].size();
+        if (insts_available != 0 && (decodeStatus[tid] == Running ||
+            decodeStatus[tid] == Idle)) {
             DPRINTF(Decode, "[tid:%i] Not blocked, so attempting to run "
                     "stage.\n",tid);
 
             decodeInsts(tid);
-            break;
-        } else if (decodeStatus[tid] == Unblocking) {
+            thread_decoded = true;
+        } else if (insts_available != 0 && decodeStatus[tid] == Unblocking) {
             // Make sure that the skid buffer has something in it if the
             // status is unblocking.
             assert(!skidsEmpty());
@@ -706,7 +713,7 @@ Decode::tick()
                 skidInsert(tid);
             }
             status_change = unblock(tid) || status_change;
-            break;
+            thread_decoded = true;
         }
     }
 
@@ -926,7 +933,8 @@ Decode::decodeInsts(ThreadID tid)
 //                                   //
 ///////////////////////////////////////
 
-bool comparePairs(const std::pair<int, int>& pair1, const std::pair<int, int>& pair2) {
+bool
+comparePairs(const std::pair<int, int>& pair1, const std::pair<int, int>& pair2) {
     return pair1.first > pair2.first; // Sort based on the first element of each pair
 }
 
