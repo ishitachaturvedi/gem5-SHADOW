@@ -713,8 +713,8 @@ Commit::tick()
             maxNonCommitTid = tid;
         }
 
-        if(lastCommitedCycle[tid]!=-1 && (curTick() - lastCommitedCycle[tid]) > 1000000000) {
-            panic("This program has deadlocked!!!! Not making forward progress. Last commit at lastCommitedCycle %d for thread %d\n",lastCommitedCycle[tid],tid);
+        if(lastCommitedCycle[tid]!=-1 && (curTick() - lastCommitedCycle[tid]) == 1000000000) {
+            warn("This program has deadlocked!!!! Not making forward progress. Last commit at lastCommitedCycle %d for thread %d\n",lastCommitedCycle[tid],tid);
         }
 
         // Clear the bit saying if the thread has committed stores
@@ -735,8 +735,8 @@ Commit::tick()
         }
     }
 
-    if(maxNonCommitTid!=-1 && ((curTick() - maxNonCommitCycle) > 10000000)) {
-        panic("This program has deadlocked! Not making forward progress. Last commit at lastCommitedCycle %llu for thread %d curentTick %d\n",lastCommitedCycle[maxNonCommitTid],maxNonCommitTid,curTick());
+    if(maxNonCommitTid!=-1 && ((curTick() - maxNonCommitCycle) == 10000000)) {
+        warn("This program has deadlocked! Not making forward progress. Last commit at lastCommitedCycle %llu for thread %d curentTick %d\n",lastCommitedCycle[maxNonCommitTid],maxNonCommitTid,curTick());
     }
 
     commit();

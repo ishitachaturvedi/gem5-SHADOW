@@ -82,6 +82,7 @@ Fetch::IcachePort::IcachePort(Fetch *_fetch, CPU *_cpu) :
 
 Fetch::Fetch(CPU *_cpu, const BaseO3CPUParams &params)
     : fetchPolicy(params.smtFetchPolicy),
+      policyWeighting(params.smtPolicyWeight),
       cpu(_cpu),
       branchPred(nullptr),
       decodeToFetchDelay(params.decodeToFetchDelay),
@@ -1655,11 +1656,16 @@ Fetch::SWiqCount()
                         std::greater<unsigned> > SQ;
     std::priority_queue<unsigned, std::vector<unsigned>,
                         std::greater<unsigned> > WQ;
+    std::priority_queue<float, std::vector<float>,
+                        std::greater<float> > SWQ;
     std::map<unsigned, ThreadID> SthreadMap;
     std::map<unsigned, ThreadID> WthreadMap;
+    std::map<float, ThreadID> SWthreadMap;
 
     std::list<ThreadID>::iterator threads = activeThreads->begin();
     std::list<ThreadID>::iterator end = activeThreads->end();
+
+    float weight = policyWeighting;
 
     // create 2 lists for S threads and W threads 
     while (threads != end) {
@@ -1672,35 +1678,51 @@ Fetch::SWiqCount()
         {
             SQ.push(iqCount);
             SthreadMap[iqCount] = tid;
+            SWQ.push((iqCount+1)*(1-weight));
+            SWthreadMap[(iqCount+1)*(1-weight)] = tid;
         }
         else
         {
             WQ.push(iqCount);
             WthreadMap[iqCount] = tid;
+            SWQ.push((iqCount+1)*weight);
+            SWthreadMap[(iqCount+1)*weight] = tid;
         }
     }
+    if(weight >= 1 || weight <= 0){
+        while (!SQ.empty()) {
+            ThreadID high_pri = SthreadMap[SQ.top()];
 
-    while (!SQ.empty()) {
-        ThreadID high_pri = SthreadMap[SQ.top()];
+            if (fetchStatus[high_pri] == Running ||
+                fetchStatus[high_pri] == IcacheAccessComplete ||
+                fetchStatus[high_pri] == Idle)
+                return high_pri;
+            else
+                SQ.pop();
+        }
+        while (!WQ.empty()) {
+            ThreadID high_pri = WthreadMap[WQ.top()];
 
-        if (fetchStatus[high_pri] == Running ||
-            fetchStatus[high_pri] == IcacheAccessComplete ||
-            fetchStatus[high_pri] == Idle)
-            return high_pri;
-        else
-            SQ.pop();
+            if (fetchStatus[high_pri] == Running ||
+                fetchStatus[high_pri] == IcacheAccessComplete ||
+                fetchStatus[high_pri] == Idle)
+                return high_pri;
+            else
+                WQ.pop();
+        }
     }
-    while (!WQ.empty()) {
-        ThreadID high_pri = WthreadMap[WQ.top()];
+    if(weight < 1 && weight > 0){
+        while (!SWQ.empty()) {
+            ThreadID high_pri = SWthreadMap[SWQ.top()];
 
-        if (fetchStatus[high_pri] == Running ||
-            fetchStatus[high_pri] == IcacheAccessComplete ||
-            fetchStatus[high_pri] == Idle)
-            return high_pri;
-        else
-            WQ.pop();
+            if (fetchStatus[high_pri] == Running ||
+                fetchStatus[high_pri] == IcacheAccessComplete ||
+                fetchStatus[high_pri] == Idle)
+                return high_pri;
+            else
+                SWQ.pop();
+        }
     }
-
     return InvalidThreadID;
 }
 

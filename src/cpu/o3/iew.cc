@@ -59,6 +59,8 @@
 #include "debug/O3PipeView.hh"
 #include "params/BaseO3CPU.hh"
 #include "debug/IQ.hh"
+#include <algorithm>
+#include <utility>
 
 namespace gem5
 {
@@ -69,6 +71,7 @@ namespace o3
 IEW::IEW(CPU *_cpu, const BaseO3CPUParams &params)
     : issueToExecQueue(params.backComSize, params.forwardComSize),
       cpu(_cpu),
+      dispatchPolicy(params.smtDispatchPolicy),
       instQueue(_cpu, this, params),
       ldstQueue(_cpu, this, params),
       fuPool(params.fuPool),
@@ -81,6 +84,7 @@ IEW::IEW(CPU *_cpu, const BaseO3CPUParams &params)
       wbCycle(0),
       wbWidth(params.wbWidth),
       numThreads(params.numThreads),
+      numDispatchingThreads(params.smtNumDispatchingThreads),
       iewStats(cpu)
 {
     if (dispatchWidth > MaxWidth)
@@ -288,6 +292,8 @@ IEW::IEWStats::ExecutedInstStats::ExecutedInstStats(CPU *cpu)
 void
 IEW::startupStage()
 {
+
+    priorityList.clear();
     for (ThreadID tid = 0; tid < numThreads; tid++) {
         toRename->iewInfo[tid].usedIQ = true;
         toRename->iewInfo[tid].freeIQEntries =
@@ -298,6 +304,8 @@ IEW::startupStage()
             ldstQueue.numFreeLoadEntries(tid);
         toRename->iewInfo[tid].freeSQEntries =
             ldstQueue.numFreeStoreEntries(tid);
+
+        priorityList.push_back(tid);
     }
 
     // Initialize the checker's dcache port here
@@ -437,6 +445,24 @@ void
 IEW::activateThread(ThreadID tid)
 {
     dispatchStatus[tid] = Running;
+
+    auto thread_it = std::find(priorityList.begin(),
+            priorityList.end(), tid);
+
+    if(thread_it == priorityList.end())
+    {
+        priorityList.push_back(tid);
+    }
+}
+
+void
+IEW::deactivateThread(ThreadID tid)
+{
+    // Update priority list
+    auto thread_it = std::find(priorityList.begin(), priorityList.end(), tid);
+    if (thread_it != priorityList.end()) {
+        priorityList.erase(thread_it);
+    }
 }
 
 void
@@ -1743,6 +1769,8 @@ IEW::tick()
 
     sortInsts();
 
+    DispatchPreference.clear();
+
     DPRINTF(IEW,"Freeing up process units\n");
 
     // Free function units marked as being freed this cycle.
@@ -1758,22 +1786,91 @@ IEW::tick()
         DPRINTF(IEW,"Issue: Processing [tid:%i] queue size %d\n",tid, instQueue.getCount(tid));
 
         checkSignalsAndUpdate(tid);
-        // Daniel checking decode blocks
+        // Daniel checking iew blocks
+        int insts_available = dispatchStatus[tid] == Unblocking ?
+        skidBuffer[tid].size() : insts[tid].size();
         if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
             sThreadCount++;
-            if(dispatchStatus[tid] == Unblocking || dispatchStatus[tid] == Running){
+            if(insts_available != 0 && (dispatchStatus[tid] == Unblocking || dispatchStatus[tid] == Running)){
                 notBlockedS++;
             }
         }
         if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
             wThreadCount++;
-            if (dispatchStatus[tid] == Unblocking || dispatchStatus[tid] == Running){
+            if (insts_available != 0 && (dispatchStatus[tid] == Unblocking || dispatchStatus[tid] == Running)){
                 notBlockedW++;
             }
         }
         dispatch(tid);
     }
 
+    // use a scheduling policy here to only dispatch 1 thread in 1 cycle
+    // only 1 thread dispatches in a cycle
+    bool thread_dispatched = false;
+    getDispatchingThread();
+    for(int i = 0; i < DispatchPreference.size() ; i++) {
+        ThreadID tid = DispatchPreference[i];
+        if (dispatchStatus[tid] == Blocked) {
+            ++iewStats.blockCycles;
+
+        } else if (dispatchStatus[tid] == Squashing) {
+            ++iewStats.squashCycles;
+        }
+
+        if(thread_dispatched){
+            block(tid);
+            toRename->iewUnblock[tid] = false;
+            toRename->iewBlock[tid] = true;
+        }
+        // Dispatch should try to dispatch as many instructions as its bandwidth
+        // will allow, as long as it is not currently blocked.
+        int insts_available = dispatchStatus[tid] == Unblocking ?
+                skidBuffer[tid].size() : insts[tid].size();
+
+        if (insts_available &&(dispatchStatus[tid] == Running ||
+            dispatchStatus[tid] == Idle)) {
+            DPRINTF(IEW, "[tid:%i] Not blocked, so attempting to run "
+                    "dispatch.\n", tid);
+
+            dispatchInsts(tid);
+            thread_dispatched = true;
+            ++iewStats.runningCycles;
+        } else if (insts_available && dispatchStatus[tid] == Unblocking) {
+            // Make sure that the skid buffer has something in it if the
+            // status is unblocking.
+            assert(!skidsEmpty());
+
+            // If the status was unblocking, then instructions from the skid
+            // buffer were used.  Remove those instructions and handle
+            // the rest of unblocking.
+            dispatchInsts(tid);
+            thread_dispatched = true;
+
+            ++iewStats.unblockCycles;
+
+            // if (fromRename->size != 0) {
+            //     // Add the current inputs to the skid buffer so they can be
+            //     // reprocessed when this stage unblocks.
+            //     skidInsert(tid);
+            // }
+
+            if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+                if (fromRename_S->size != 0) {
+                    // Add the current inputs to the skid buffer so they can be
+                    // reprocessed when this stage unblocks.
+                    skidInsert(tid);
+                }
+            } else {
+                if (fromRename_W->size != 0) {
+                // Add the current inputs to the skid buffer so they can be
+                // reprocessed when this stage unblocks.
+                    skidInsert(tid);
+                }
+            }   
+
+            unblock(tid);
+        }
+    }
     if (sThreadCount > 0 && notBlockedS == 0){
         ++iewStats.stalledS;
     }
@@ -1966,6 +2063,250 @@ IEW::checkMisprediction(const DynInstPtr& inst)
             }
         }
     }
+}
+
+///////////////////////////////////////
+//                                   //
+//  SMT FETCH POLICY MAINTAINED HERE //
+//                                   //
+///////////////////////////////////////
+
+bool comparePairsIEW(const std::pair<int, int>& pair1, const std::pair<int, int>& pair2) {
+    return pair1.first < pair2.first; // Sort based on the first element of each pair
+}
+
+void
+IEW::getDispatchingThread()
+{
+    switch (dispatchPolicy) {
+        case SMTFetchPolicy::SWIQCount:
+        SWiqCountPriority();
+    }
+}
+
+
+void 
+IEW::SWiqCountPriority() { 
+    std::priority_queue<unsigned, std::vector<unsigned>,
+                        std::less<unsigned> > SQ;
+    std::priority_queue<unsigned, std::vector<unsigned>,
+                        std::less<unsigned> > WQ;
+    std::map<unsigned, ThreadID> SthreadMap;
+    std::map<unsigned, ThreadID> WthreadMap;
+
+    std::list<ThreadID>::iterator threads = activeThreads->begin();
+    std::list<ThreadID>::iterator end = activeThreads->end();
+
+    std::vector<std::pair<int, int>> ThreadAvailICountS;
+    std::vector<std::pair<int, int>> ThreadAvailICountW;
+
+    // create 2 lists for S threads and W threads 
+    while (threads != end) {
+        ThreadID tid = *threads++;
+        unsigned iqCount = dispatchStatus[tid] == Unblocking ?
+        skidBuffer[tid].size() : insts[tid].size();
+
+        //we can potentially get tid collisions if two threads
+        //have the same iqCount, but this should be rare.
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
+        {
+            SQ.push(iqCount);
+            SthreadMap[iqCount] = tid;
+            ThreadAvailICountS.push_back(std::make_pair(iqCount,tid));
+        }
+        else
+        {
+            WQ.push(iqCount);
+            WthreadMap[iqCount] = tid;
+            ThreadAvailICountW.push_back(std::make_pair(iqCount,tid));
+        }
+    }
+
+    std::sort(ThreadAvailICountS.begin(), ThreadAvailICountS.end(), comparePairsIEW);
+    std::sort(ThreadAvailICountW.begin(), ThreadAvailICountW.end(), comparePairsIEW);
+
+    // while (!SQ.empty()) {
+    //     ThreadID high_pri = SthreadMap[SQ.top()];
+    //     //DecodePreference[iter] = high_pri;
+    //     DecodePreference.push_back(high_pri);
+    //     SQ.pop();
+    //     
+    //     iter++;
+    // }
+    // while (!WQ.empty()) {
+    //     ThreadID high_pri = WthreadMap[WQ.top()];
+    //     //DecodePreference[iter] = high_pri;
+    //     DecodePreference.push_back(high_pri);
+    //     printf("THREAD CONSIDERED W_thread %d %d\n",DecodePreference[iter],high_pri);
+    //     WQ.pop();
+    //     iter++;
+    // }
+
+    for (const auto& pair : ThreadAvailICountS) {
+        DispatchPreference.push_back(pair.second);
+    }
+    for (const auto& pair : ThreadAvailICountW) {
+        DispatchPreference.push_back(pair.second);
+    }
+}
+
+
+ThreadID
+IEW::roundRobin()
+{
+    // std::list<ThreadID>::iterator pri_iter = priorityList.begin();
+    // std::list<ThreadID>::iterator end      = priorityList.end();
+
+    std::list<ThreadID>::iterator pri_iter = activeThreads->begin();
+    std::list<ThreadID>::iterator end = activeThreads->end();
+
+    ThreadID high_pri;
+    while (pri_iter != end) {
+        high_pri = *pri_iter;
+        assert(high_pri <= numThreads);
+
+        if (dispatchStatus[high_pri] == Running ||
+            dispatchStatus[high_pri] == Unblocking ||
+            dispatchStatus[high_pri] == Idle) {
+
+            priorityList.erase(pri_iter);
+            priorityList.push_back(high_pri);
+
+            return high_pri;
+        }
+
+        pri_iter++;
+    }
+
+    return InvalidThreadID;
+}
+
+ThreadID
+IEW::SWiqCount()
+{
+    std::priority_queue<unsigned, std::vector<unsigned>,
+                        std::less<unsigned> > SQ;
+    std::priority_queue<unsigned, std::vector<unsigned>,
+                        std::less<unsigned> > WQ;
+    std::map<unsigned, ThreadID> SthreadMap;
+    std::map<unsigned, ThreadID> WthreadMap;
+
+    std::list<ThreadID>::iterator threads = activeThreads->begin();
+    std::list<ThreadID>::iterator end = activeThreads->end();
+
+    // create 2 lists for S threads and W threads 
+    while (threads != end) {
+        ThreadID tid = *threads++;
+        unsigned iqCount = dispatchStatus[tid] == Unblocking ?
+        skidBuffer[tid].size() : insts[tid].size();
+
+        //we can potentially get tid collisions if two threads
+        //have the same iqCount, but this should be rare.
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
+        {
+            SQ.push(iqCount);
+            SthreadMap[iqCount] = tid;
+        }
+        else
+        {
+            WQ.push(iqCount);
+            WthreadMap[iqCount] = tid;
+        }
+    }
+
+    while (!SQ.empty()) {
+        ThreadID high_pri = SthreadMap[SQ.top()];
+
+        if (dispatchStatus[high_pri] == Running ||
+            dispatchStatus[high_pri] == Unblocking ||
+            dispatchStatus[high_pri] == Idle)
+            return high_pri;
+        else
+            SQ.pop();
+    }
+    while (!WQ.empty()) {
+        ThreadID high_pri = WthreadMap[WQ.top()];
+
+        if (dispatchStatus[high_pri] == Running ||
+            dispatchStatus[high_pri] == Unblocking ||
+            dispatchStatus[high_pri] == Idle)
+            return high_pri;
+        else
+            WQ.pop();
+    }
+
+    return InvalidThreadID;
+}
+
+ThreadID
+IEW::iqCount()
+{
+    //sorted from lowest->highest
+    std::priority_queue<unsigned, std::vector<unsigned>,
+                        std::greater<unsigned> > PQ;
+    std::map<unsigned, ThreadID> threadMap;
+
+    std::list<ThreadID>::iterator threads = activeThreads->begin();
+    std::list<ThreadID>::iterator end = activeThreads->end();
+
+    while (threads != end) {
+        ThreadID tid = *threads++;
+        unsigned iqCount = toRename->iewInfo[tid].iqCount;
+
+        //we can potentially get tid collisions if two threads
+        //have the same iqCount, but this should be rare.
+        PQ.push(iqCount);
+        threadMap[iqCount] = tid;
+    }
+
+    while (!PQ.empty()) {
+        ThreadID high_pri = threadMap[PQ.top()];
+
+        if (dispatchStatus[high_pri] == Running ||
+            dispatchStatus[high_pri] == Unblocking ||
+            dispatchStatus[high_pri] == Idle)
+            return high_pri;
+        else
+            PQ.pop();
+
+    }
+
+    return InvalidThreadID;
+}
+
+ThreadID
+IEW::lsqCount()
+{
+    //sorted from lowest->highest
+    std::priority_queue<unsigned, std::vector<unsigned>,
+                        std::greater<unsigned> > PQ;
+    std::map<unsigned, ThreadID> threadMap;
+
+    std::list<ThreadID>::iterator threads = activeThreads->begin();
+    std::list<ThreadID>::iterator end = activeThreads->end();
+
+    while (threads != end) {
+        ThreadID tid = *threads++;
+        unsigned ldstqCount = toRename->iewInfo[tid].ldstqCount;
+
+        //we can potentially get tid collisions if two threads
+        //have the same iqCount, but this should be rare.
+        PQ.push(ldstqCount);
+        threadMap[ldstqCount] = tid;
+    }
+
+    while (!PQ.empty()) {
+        ThreadID high_pri = threadMap[PQ.top()];
+
+        if (dispatchStatus[high_pri] == Running ||
+            dispatchStatus[high_pri] == Unblocking ||
+            dispatchStatus[high_pri] == Idle)
+            return high_pri;
+        else
+            PQ.pop();
+    }
+
+    return InvalidThreadID;
 }
 
 } // namespace o3

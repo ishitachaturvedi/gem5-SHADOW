@@ -523,15 +523,17 @@ Rename::tick()
         status_change = checkSignalsAndUpdate(tid) || status_change;
 
         // Daniel checking rename blocks
+        int insts_available = renameStatus[tid] == Unblocking ?
+        skidBuffer[tid].size() : insts[tid].size();
         if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
             sThreadCount++;
-            if(renameStatus[tid] == Unblocking || renameStatus[tid] == Running){
+            if(insts_available != 0 && (renameStatus[tid] == Unblocking || renameStatus[tid] == Running)){
                 notBlockedS++;
             }
         }
         if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
             wThreadCount++;
-            if (renameStatus[tid] == Unblocking || renameStatus[tid] == Running){
+            if (insts_available != 0 && (renameStatus[tid] == Unblocking || renameStatus[tid] == Running)){
                 notBlockedW++;
             }
             // Always rename W threads
@@ -1723,7 +1725,7 @@ Rename::dumpHistory()
 ///////////////////////////////////////
 
 bool comparePairsRename(const std::pair<int, int>& pair1, const std::pair<int, int>& pair2) {
-    return pair1.first > pair2.first; // Sort based on the first element of each pair
+    return pair1.first < pair2.first; // Sort based on the first element of each pair
 }
 
 void
@@ -1739,9 +1741,9 @@ Rename::getRenamingThread()
 void 
 Rename::SWiqCountPriority() { 
     std::priority_queue<unsigned, std::vector<unsigned>,
-                        std::greater<unsigned> > SQ;
+                        std::less<unsigned> > SQ;
     std::priority_queue<unsigned, std::vector<unsigned>,
-                        std::greater<unsigned> > WQ;
+                        std::less<unsigned> > WQ;
     std::map<unsigned, ThreadID> SthreadMap;
     std::map<unsigned, ThreadID> WthreadMap;
 

@@ -935,7 +935,7 @@ Decode::decodeInsts(ThreadID tid)
 
 bool
 comparePairs(const std::pair<int, int>& pair1, const std::pair<int, int>& pair2) {
-    return pair1.first > pair2.first; // Sort based on the first element of each pair
+    return pair1.first < pair2.first; // Sort based on the first element of each pair
 }
 
 void
@@ -951,9 +951,9 @@ Decode::getDecodingThread()
 void 
 Decode::SWiqCountPriority() { 
     std::priority_queue<unsigned, std::vector<unsigned>,
-                        std::greater<unsigned> > SQ;
+                        std::less<unsigned> > SQ;
     std::priority_queue<unsigned, std::vector<unsigned>,
-                        std::greater<unsigned> > WQ;
+                        std::less<unsigned> > WQ;
     std::map<unsigned, ThreadID> SthreadMap;
     std::map<unsigned, ThreadID> WthreadMap;
 

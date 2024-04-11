@@ -193,6 +193,8 @@ class Fetch
     /** Fetch policy. */
     SMTFetchPolicy fetchPolicy;
 
+    float policyWeighting;
+
     /** List that has the threads organized by priority. */
     std::list<ThreadID> priorityList;
 
