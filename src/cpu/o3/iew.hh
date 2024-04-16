@@ -54,6 +54,8 @@
 #include "cpu/timebuf.hh"
 #include "debug/IEW.hh"
 #include "sim/probe/probe.hh"
+#include "enums/SMTFetchPolicy.hh"
+#include <vector>
 
 namespace gem5
 {
@@ -237,6 +239,36 @@ class IEW
 
     void activateThread(ThreadID tid);
 
+    /** Returns the appropriate thread to fetch, given the fetch policy. */
+    void getDispatchingThread();
+
+    /** Returns the appropriate thread to fetch using a round robin policy. */
+    ThreadID roundRobin();
+
+    /** Returns the appropriate thread to fetch using the IQ count policy. */
+    ThreadID iqCount();
+
+    /** Returns the appropriate thread to fetch using the LSQ count policy. */
+    ThreadID lsqCount();
+
+    /** Returns the approporiate thread to fetch by prioritizing S threads over W threads and using the IQ count policy internally for and W threads **/
+    ThreadID SWiqCount();
+
+    /** List that has the threads organized by priority. */
+    std::list<ThreadID> priorityList;
+
+    /** For priority-based fetch policies, need to keep update priorityList */
+    void deactivateThread(ThreadID tid);
+
+    /* Function to create priority list of threads by populating ToDecodePreference vector */
+    void DispatchThreadPriority();
+
+    /* Prioritizes S threads followed by W threads */
+    void SWiqCountPriority();
+
+    /* Vector to hold tids in order of preference to place insts in fetch to decode queue */
+    std::vector<ThreadID> DispatchPreference;
+
     /** Returns if the LSQ has any stores to writeback. */
     bool hasStoresToWB() { return ldstQueue.hasStoresToWB(); }
 
@@ -410,6 +442,12 @@ class IEW
 
     /** Width of dispatch, in instructions. */
     unsigned dispatchWidth;
+
+     /** Number of threads that are actively decodng. */
+    ThreadID numDispatchingThreads;
+
+    /** Fetch policy. */
+    SMTFetchPolicy dispatchPolicy;
 
     /** Width of issue, in instructions. */
     unsigned issueWidth;

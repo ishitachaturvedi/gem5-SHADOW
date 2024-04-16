@@ -54,6 +54,8 @@
 #include "cpu/o3/limits.hh"
 #include "cpu/timebuf.hh"
 #include "sim/probe/probe.hh"
+#include "enums/SMTFetchPolicy.hh"
+#include <vector>
 
 namespace gem5
 {
@@ -173,6 +175,36 @@ class Rename
 
     /** Activate thread after startup */
     void activateThread(ThreadID tid);
+
+    /** Returns the appropriate thread to fetch, given the fetch policy. */
+    void getRenamingThread();
+
+    /** Returns the appropriate thread to fetch using a round robin policy. */
+    ThreadID roundRobin();
+
+    /** Returns the appropriate thread to fetch using the IQ count policy. */
+    ThreadID iqCount();
+
+    /** Returns the appropriate thread to fetch using the LSQ count policy. */
+    ThreadID lsqCount();
+
+    /** Returns the approporiate thread to fetch by prioritizing S threads over W threads and using the IQ count policy internally for and W threads **/
+    ThreadID SWiqCount();
+
+    /** List that has the threads organized by priority. */
+    std::list<ThreadID> priorityList;
+
+    /** For priority-based fetch policies, need to keep update priorityList */
+    void deactivateThread(ThreadID tid);
+
+    /* Function to create priority list of threads by populating ToRenamePreference vector */
+    void RenameThreadPriority();
+
+    /* Prioritizes S threads followed by W threads */
+    void SWiqCountPriority();
+
+    /* Vector to hold tids in order of preference to place insts in fetch to rename queue */
+    std::vector<ThreadID> RenamePreference;
 
     /** Clear all thread-specific states */
     void clearStates(ThreadID tid);
@@ -475,6 +507,12 @@ class Rename
 
     /** Rename width, in instructions. */
     unsigned renameWidth;
+
+    /** Number of threads that are actively renaming. */
+    ThreadID numRenamingThreads;
+
+    /** Fetch policy. */
+    SMTFetchPolicy renamePolicy;
 
     /** The index of the instruction in the time buffer to IEW that rename is
      * currently using.

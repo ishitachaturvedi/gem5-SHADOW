@@ -771,8 +771,8 @@ Commit::tick()
             maxNonCommitTid = tid;
         }
 
-        if(lastCommitedCycle[tid]!=-1 && (curTick() - lastCommitedCycle[tid]) > 1000000000) {
-            panic("This program has deadlocked!!!! Not making forward progress. Last commit at lastCommitedCycle %d for thread %d\n",lastCommitedCycle[tid],tid);
+        if(lastCommitedCycle[tid]!=-1 && (curTick() - lastCommitedCycle[tid]) == 1000000000) {
+            warn("This program has deadlocked!!!! Not making forward progress. Last commit at lastCommitedCycle %d for thread %d\n",lastCommitedCycle[tid],tid);
         }
 
         // Clear the bit saying if the thread has committed stores
@@ -793,8 +793,8 @@ Commit::tick()
         }
     }
 
-    if(maxNonCommitTid!=-1 && ((curTick() - maxNonCommitCycle) > 10000000)) {
-        panic("This program has deadlocked! Not making forward progress. Last commit at lastCommitedCycle %llu for thread %d curentTick %d\n",lastCommitedCycle[maxNonCommitTid],maxNonCommitTid,curTick());
+    if(maxNonCommitTid!=-1 && ((curTick() - maxNonCommitCycle) == 10000000)) {
+        warn("This program has deadlocked! Not making forward progress. Last commit at lastCommitedCycle %llu for thread %d curentTick %d\n",lastCommitedCycle[maxNonCommitTid],maxNonCommitTid,curTick());
     }
 
     commit();
@@ -1577,8 +1577,8 @@ Commit::getInsts()
     // }
 
     // Read any renamed instructions and place them into the ROB.
-    int insts_to_process_S = std::min((int)renameWidth, fromRename_S->size);
-
+    //int insts_to_process_S = std::min((int)renameWidth, fromRename_S->size);
+    int insts_to_process_S = fromRename_S->size;
     int issued_inst_num = 0;
 
     for (int inst_num = 0; inst_num < insts_to_process_S; ++inst_num) {
@@ -1606,12 +1606,16 @@ Commit::getInsts()
                         tid, inst->seqNum, inst->pcState());
             }
         }
+        if(issued_inst_num >=renameWidth){
+            break;
+        }
     }
 
     // Read any renamed instructions and place them into the ROB.
     //int insts_to_process_W = std::min((int)(renameWidth)-issued_inst_num, fromRename_W->size);
 
-    int insts_to_process_W = std::min((int)renameWidth, fromRename_W->size);
+    //int insts_to_process_W = std::min((int)renameWidth, fromRename_W->size);
+    int insts_to_process_W = fromRename_W->size;
     for (int inst_num = 0; inst_num < insts_to_process_W; ++inst_num) {
         const DynInstPtr &inst = fromRename_W->insts[inst_num];
         ThreadID tid = inst->threadNumber;

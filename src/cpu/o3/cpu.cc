@@ -676,6 +676,12 @@ CPU::deactivateThread(ThreadID tid)
 
     fetch.deactivateThread(tid);
 
+    decode.deactivateThread(tid);
+
+    rename.deactivateThread(tid);
+
+    iew.deactivateThread(tid);
+
     commit.deactivateThread(tid);
 
     if (thread_it != activeThreads.end()) {

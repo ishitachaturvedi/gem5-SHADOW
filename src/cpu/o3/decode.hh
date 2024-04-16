@@ -48,6 +48,8 @@
 #include "cpu/o3/dyn_inst_ptr.hh"
 #include "cpu/o3/limits.hh"
 #include "cpu/timebuf.hh"
+#include "enums/SMTFetchPolicy.hh"
+#include <vector>
 
 namespace gem5
 {
@@ -169,6 +171,36 @@ class Decode
     void decodeInsts(ThreadID tid);
 
     void activateThread(ThreadID tid);
+
+    /** Returns the appropriate thread to fetch, given the fetch policy. */
+    void getDecodingThread();
+
+    /** Returns the appropriate thread to fetch using a round robin policy. */
+    ThreadID roundRobin();
+
+    /** Returns the appropriate thread to fetch using the IQ count policy. */
+    ThreadID iqCount();
+
+    /** Returns the appropriate thread to fetch using the LSQ count policy. */
+    ThreadID lsqCount();
+
+    /** Returns the approporiate thread to fetch by prioritizing S threads over W threads and using the IQ count policy internally for and W threads **/
+    ThreadID SWiqCount();
+
+    /** List that has the threads organized by priority. */
+    std::list<ThreadID> priorityList;
+
+    /** For priority-based fetch policies, need to keep update priorityList */
+    void deactivateThread(ThreadID tid);
+
+    /* Function to create priority list of threads by populating ToDecodePreference vector */
+    void DecodeThreadPriority();
+
+    /* Prioritizes S threads followed by W threads */
+    void SWiqCountPriority();
+
+    /* Vector to hold tids in order of preference to place insts in fetch to decode queue */
+    std::vector<ThreadID> DecodePreference;
 
   private:
     /** Inserts a thread's instructions into the skid buffer, to be decoded
@@ -293,6 +325,12 @@ class Decode
 
     /** The width of decode, in instructions. */
     unsigned decodeWidth;
+
+    /** Number of threads that are actively decodng. */
+    ThreadID numDecodingThreads;
+
+    /** Fetch policy. */
+    SMTFetchPolicy decodePolicy;
 
     /** Index of instructions being sent to rename. */
     unsigned toRenameIndex;

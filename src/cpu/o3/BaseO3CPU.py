@@ -50,11 +50,8 @@ from m5.objects.BranchPredictor import *
 class SMTFetchPolicy(ScopedEnum):
     vals = ["RoundRobin", "Branch", "IQCount", "LSQCount","SWIQCount"]
 
-
 class SMTQueuePolicy(ScopedEnum):
     vals = ["Dynamic", "Partitioned", "Threshold"]
-
-
 class CommitPolicy(ScopedEnum):
     vals = ["RoundRobin", "OldestReady","SWIQCount"]
 
@@ -180,7 +177,13 @@ class BaseO3CPU(BaseCPU):
     numROBEntries = Param.Unsigned(192, "Number of reorder buffer entries")
 
     smtNumFetchingThreads = Param.Unsigned(1, "SMT Number of Fetching Threads")
+    smtNumDecodingThreads = Param.Unsigned(1, "SMT Number of Decoding Threads")
+    smtNumRenamingThreads = Param.Unsigned(1, "SMT Number of Renaming Threads")
+    smtNumDispatchingThreads = Param.Unsigned(1, "SMT Number of Dispatching Threads")
     smtFetchPolicy = Param.SMTFetchPolicy("SWIQCount", "SMT Fetch policy")
+    smtDecodePolicy = Param.SMTFetchPolicy("SWIQCount", "SMT Decode policy")
+    smtRenamePolicy = Param.SMTFetchPolicy("SWIQCount", "SMT Rename policy")
+    smtDispatchPolicy = Param.SMTFetchPolicy("SWIQCount", "SMT Dispatch policy")
     smtLSQPolicy = Param.SMTQueuePolicy(
         "Partitioned", "SMT LSQ Sharing Policy"
     )
@@ -192,6 +195,8 @@ class BaseO3CPU(BaseCPU):
     )
     smtROBThreshold = Param.Int(100, "SMT ROB Threshold Sharing Parameter")
     smtCommitPolicy = Param.CommitPolicy("SWIQCount", "SMT Commit Policy")
+
+    smtPolicyWeight = Param.Float(1, "Weighting between S and W threads, between 0 and 1")
 
     branchPred = Param.BranchPredictor(
         TournamentBP(numThreads=Parent.numThreads), "Branch Predictor"

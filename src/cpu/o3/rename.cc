@@ -52,6 +52,8 @@
 #include "debug/Rename.hh"
 #include "params/BaseO3CPU.hh"
 #include "debug/IQ.hh"
+#include <algorithm>
+#include <utility>
 
 namespace gem5
 {
@@ -61,11 +63,13 @@ namespace o3
 
 Rename::Rename(CPU *_cpu, const BaseO3CPUParams &params)
     : cpu(_cpu),
+      renamePolicy(params.smtRenamePolicy),
       iewToRenameDelay(params.iewToRenameDelay),
       decodeToRenameDelay(params.decodeToRenameDelay),
       commitToRenameDelay(params.commitToRenameDelay),
       renameWidth(params.renameWidth),
       numThreads(params.numThreads),
+      numRenamingThreads(params.smtNumRenamingThreads),
       stats(_cpu)
 {
     if (renameWidth > MaxWidth)
@@ -330,6 +334,8 @@ Rename::resetStage()
     resumeSerialize = false;
     resumeUnblocking = false;
 
+    priorityList.clear();
+
     // Grab the number of free entries directly from the stages.
     for (ThreadID tid = 0; tid < numThreads; tid++) {
         renameStatus[tid] = Idle;
@@ -350,6 +356,8 @@ Rename::resetStage()
         storesInProgress[tid] = 0;
 
         serializeOnNextInst[tid] = false;
+
+        priorityList.push_back(tid);
     }
 }
 
@@ -388,6 +396,24 @@ Rename::activateThread(ThreadID tid)
 {
     //renameStatus[tid] = Running;
     renameStatus[tid] = Idle;
+
+    auto thread_it = std::find(priorityList.begin(),
+            priorityList.end(), tid);
+
+    if(thread_it == priorityList.end())
+    {
+        priorityList.push_back(tid);
+    }
+}
+
+void
+Rename::deactivateThread(ThreadID tid)
+{
+    // Update priority list
+    auto thread_it = std::find(priorityList.begin(), priorityList.end(), tid);
+    if (thread_it != priorityList.end()) {
+        priorityList.erase(thread_it);
+    }
 }
 
 void
@@ -517,6 +543,7 @@ Rename::tick()
     std::list<ThreadID>::iterator threads = activeThreads->begin();
     std::list<ThreadID>::iterator end = activeThreads->end();
 
+    RenamePreference.clear();
     // Check stall and squash signals.
     while (threads != end) {
         ThreadID tid = *threads++;
@@ -530,19 +557,83 @@ Rename::tick()
         skidBuffer[tid].size() : insts[tid].size();
         if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
             sThreadCount++;
-            if(insts_available != 0 && (renameStatus[tid] == Idle || renameStatus[tid] == Unblocking || renameStatus[tid] == Running)){
+            if(insts_available != 0 && (renameStatus[tid] == Unblocking || renameStatus[tid] == Running)){
                 notBlockedS++;
             }
         }
         if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
             wThreadCount++;
-            if (insts_available != 0 && (renameStatus[tid] == Idle || renameStatus[tid] == Unblocking || renameStatus[tid] == Running)){
+            if (insts_available != 0 && (renameStatus[tid] == Unblocking || renameStatus[tid] == Running)){
                 notBlockedW++;
             }
+            // Always rename W threads
+            rename(status_change, tid);
         }
-
-        rename(status_change, tid);
     }
+
+    // use a scheduling policy here to only rename 1 thread in 1 cycle
+    // only 1 thread renames in a cycle
+    bool thread_renamed = false;
+    getRenamingThread();
+    for(int i = 0; i < RenamePreference.size() ; i++) {
+        ThreadID tid = RenamePreference[i];
+        if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+            continue;
+        }else if(thread_renamed){
+            blockThisCycle = true;
+            block(tid);
+        }
+        if (renameStatus[tid] == Blocked) {
+            ++stats.blockCycles;
+        } else if (renameStatus[tid] == Squashing) {
+            ++stats.squashCycles;
+        } else if (renameStatus[tid] == SerializeStall) {
+            ++stats.serializeStallCycles;
+        // If we are currently in SerializeStall and resumeSerialize
+        // was set, then that means that we are resuming serializing
+        // this cycle.  Tell the previous stages to block.
+            if (resumeSerialize) {
+                resumeSerialize = false;
+                block(tid);
+                DPRINTF(Rename, "[tid:%i] Unblocking_at_4\n", tid);
+                toDecode->renameUnblock[tid] = false;
+            }
+        } else if (renameStatus[tid] == Unblocking) {
+            if (resumeUnblocking) {
+                block(tid);
+                resumeUnblocking = false;
+                DPRINTF(Rename, "[tid:%i] Unblocking_at_5\n", tid);
+                toDecode->renameUnblock[tid] = false;
+            }
+        }
+        int insts_available = renameStatus[tid] == Unblocking ?
+        skidBuffer[tid].size() : insts[tid].size();
+
+        if (insts_available != 0 && (renameStatus[tid] == Running ||
+            renameStatus[tid] == Idle)) {
+            DPRINTF(Rename,
+                    "[tid:%i] "
+                    "Not blocked, so attempting to run stage.\n",
+                    tid);
+
+            renameInsts(tid);
+            thread_renamed = true;
+        } else if (insts_available != 0 && renameStatus[tid] == Unblocking) {
+            renameInsts(tid);
+
+            if (validInsts()) {
+                // Add the current inputs to the skid buffer so they can be
+                // reprocessed when this stage unblocks.
+                skidInsert(tid);
+            }
+
+            // If we switched over to blocking, then there's a potential for
+            // an overall status change.
+            status_change = unblock(tid) || status_change || blockThisCycle;
+            thread_renamed = true;
+        }
+    }
+
     if (sThreadCount > 0 && notBlockedS == 0){
         ++stats.stalledS;
     }
@@ -767,8 +858,9 @@ Rename::renameInsts(ThreadID tid)
     }
 
     int renamed_insts = 0;
+    int renamed_insts_s = 0;
 
-    while (insts_available > 0 &&  toIEWIndex < renameWidth) {
+    while (insts_available > 0 &&  renamed_insts_s < renameWidth) {
         DPRINTF(Rename, "[tid:%i] Sending instructions to IEW.\n", tid);
 
         assert(!insts_to_rename.empty());
@@ -915,6 +1007,9 @@ Rename::renameInsts(ThreadID tid)
                 tid, inst->seqNum, inst->pcState());
 
         ++renamed_insts;
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
+            ++renamed_insts_s;
+        }
         // Notify potential listeners that source and destination registers for
         // this instruction have been renamed.
         ppRename->notify(inst);
@@ -1684,6 +1779,251 @@ Rename::dumpHistory()
             buf_it++;
         }
     }
+}
+
+
+///////////////////////////////////////
+//                                   //
+//  SMT FETCH POLICY MAINTAINED HERE //
+//                                   //
+///////////////////////////////////////
+
+bool comparePairsRename(const std::pair<int, int>& pair1, const std::pair<int, int>& pair2) {
+    return pair1.first < pair2.first; // Sort based on the first element of each pair
+}
+
+void
+Rename::getRenamingThread()
+{
+    switch (renamePolicy) {
+        case SMTFetchPolicy::SWIQCount:
+        SWiqCountPriority();
+    }
+}
+
+
+void 
+Rename::SWiqCountPriority() { 
+    std::priority_queue<unsigned, std::vector<unsigned>,
+                        std::less<unsigned> > SQ;
+    std::priority_queue<unsigned, std::vector<unsigned>,
+                        std::less<unsigned> > WQ;
+    std::map<unsigned, ThreadID> SthreadMap;
+    std::map<unsigned, ThreadID> WthreadMap;
+
+    std::list<ThreadID>::iterator threads = activeThreads->begin();
+    std::list<ThreadID>::iterator end = activeThreads->end();
+
+    std::vector<std::pair<int, int>> ThreadAvailICountS;
+    std::vector<std::pair<int, int>> ThreadAvailICountW;
+
+    // create 2 lists for S threads and W threads 
+    while (threads != end) {
+        ThreadID tid = *threads++;
+        unsigned iqCount = renameStatus[tid] == Unblocking ?
+        skidBuffer[tid].size() : insts[tid].size();
+
+        //we can potentially get tid collisions if two threads
+        //have the same iqCount, but this should be rare.
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
+        {
+            SQ.push(iqCount);
+            SthreadMap[iqCount] = tid;
+            ThreadAvailICountS.push_back(std::make_pair(iqCount,tid));
+        }
+        else
+        {
+            WQ.push(iqCount);
+            WthreadMap[iqCount] = tid;
+            ThreadAvailICountW.push_back(std::make_pair(iqCount,tid));
+        }
+    }
+
+    std::sort(ThreadAvailICountS.begin(), ThreadAvailICountS.end(), comparePairsRename);
+    std::sort(ThreadAvailICountW.begin(), ThreadAvailICountW.end(), comparePairsRename);
+
+    // while (!SQ.empty()) {
+    //     ThreadID high_pri = SthreadMap[SQ.top()];
+    //     //DecodePreference[iter] = high_pri;
+    //     DecodePreference.push_back(high_pri);
+    //     SQ.pop();
+    //     
+    //     iter++;
+    // }
+    // while (!WQ.empty()) {
+    //     ThreadID high_pri = WthreadMap[WQ.top()];
+    //     //DecodePreference[iter] = high_pri;
+    //     DecodePreference.push_back(high_pri);
+    //     printf("THREAD CONSIDERED W_thread %d %d\n",DecodePreference[iter],high_pri);
+    //     WQ.pop();
+    //     iter++;
+    // }
+
+    for (const auto& pair : ThreadAvailICountS) {
+        RenamePreference.push_back(pair.second);
+    }
+    for (const auto& pair : ThreadAvailICountW) {
+        RenamePreference.push_back(pair.second);
+    }
+}
+
+
+ThreadID
+Rename::roundRobin()
+{
+    // std::list<ThreadID>::iterator pri_iter = priorityList.begin();
+    // std::list<ThreadID>::iterator end      = priorityList.end();
+
+    std::list<ThreadID>::iterator pri_iter = activeThreads->begin();
+    std::list<ThreadID>::iterator end = activeThreads->end();
+
+    ThreadID high_pri;
+    while (pri_iter != end) {
+        high_pri = *pri_iter;
+        assert(high_pri <= numThreads);
+
+        if (renameStatus[high_pri] == Running ||
+            renameStatus[high_pri] == Unblocking ||
+            renameStatus[high_pri] == Idle) {
+
+            priorityList.erase(pri_iter);
+            priorityList.push_back(high_pri);
+
+            return high_pri;
+        }
+
+        pri_iter++;
+    }
+
+    return InvalidThreadID;
+}
+
+ThreadID
+Rename::SWiqCount()
+{
+    std::priority_queue<unsigned, std::vector<unsigned>,
+                        std::greater<unsigned> > SQ;
+    std::priority_queue<unsigned, std::vector<unsigned>,
+                        std::greater<unsigned> > WQ;
+    std::map<unsigned, ThreadID> SthreadMap;
+    std::map<unsigned, ThreadID> WthreadMap;
+
+    std::list<ThreadID>::iterator threads = activeThreads->begin();
+    std::list<ThreadID>::iterator end = activeThreads->end();
+
+    // create 2 lists for S threads and W threads 
+    while (threads != end) {
+        ThreadID tid = *threads++;
+        unsigned iqCount = renameStatus[tid] == Unblocking ?
+        skidBuffer[tid].size() : insts[tid].size();
+
+        //we can potentially get tid collisions if two threads
+        //have the same iqCount, but this should be rare.
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
+        {
+            SQ.push(iqCount);
+            SthreadMap[iqCount] = tid;
+        }
+        else
+        {
+            WQ.push(iqCount);
+            WthreadMap[iqCount] = tid;
+        }
+    }
+
+    while (!SQ.empty()) {
+        ThreadID high_pri = SthreadMap[SQ.top()];
+
+        if (renameStatus[high_pri] == Running ||
+            renameStatus[high_pri] == Unblocking ||
+            renameStatus[high_pri] == Idle)
+            return high_pri;
+        else
+            SQ.pop();
+    }
+    while (!WQ.empty()) {
+        ThreadID high_pri = WthreadMap[WQ.top()];
+
+        if (renameStatus[high_pri] == Running ||
+            renameStatus[high_pri] == Unblocking ||
+            renameStatus[high_pri] == Idle)
+            return high_pri;
+        else
+            WQ.pop();
+    }
+
+    return InvalidThreadID;
+}
+
+ThreadID
+Rename::iqCount()
+{
+    //sorted from lowest->highest
+    std::priority_queue<unsigned, std::vector<unsigned>,
+                        std::greater<unsigned> > PQ;
+    std::map<unsigned, ThreadID> threadMap;
+
+    std::list<ThreadID>::iterator threads = activeThreads->begin();
+    std::list<ThreadID>::iterator end = activeThreads->end();
+
+    while (threads != end) {
+        ThreadID tid = *threads++;
+        unsigned iqCount = fromIEW->iewInfo[tid].iqCount;
+
+        //we can potentially get tid collisions if two threads
+        //have the same iqCount, but this should be rare.
+        PQ.push(iqCount);
+        threadMap[iqCount] = tid;
+    }
+
+    while (!PQ.empty()) {
+        ThreadID high_pri = threadMap[PQ.top()];
+
+        if (renameStatus[high_pri] == Running ||
+            renameStatus[high_pri] == Unblocking ||
+            renameStatus[high_pri] == Idle)
+            return high_pri;
+        else
+            PQ.pop();
+
+    }
+
+    return InvalidThreadID;
+}
+
+ThreadID
+Rename::lsqCount()
+{
+    //sorted from lowest->highest
+    std::priority_queue<unsigned, std::vector<unsigned>,
+                        std::greater<unsigned> > PQ;
+    std::map<unsigned, ThreadID> threadMap;
+
+    std::list<ThreadID>::iterator threads = activeThreads->begin();
+    std::list<ThreadID>::iterator end = activeThreads->end();
+
+    while (threads != end) {
+        ThreadID tid = *threads++;
+        unsigned ldstqCount = fromIEW->iewInfo[tid].ldstqCount;
+
+        //we can potentially get tid collisions if two threads
+        //have the same iqCount, but this should be rare.
+        PQ.push(ldstqCount);
+        threadMap[ldstqCount] = tid;
+    }
+
+    while (!PQ.empty()) {
+        ThreadID high_pri = threadMap[PQ.top()];
+
+        if (renameStatus[high_pri] == Running ||
+            renameStatus[high_pri] == Unblocking ||
+            renameStatus[high_pri] == Idle)
+            return high_pri;
+        else
+            PQ.pop();
+    }
+
+    return InvalidThreadID;
 }
 
 } // namespace o3
