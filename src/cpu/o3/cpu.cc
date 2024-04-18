@@ -79,6 +79,7 @@ CPU::CPU(const BaseO3CPUParams &params)
                 false, Event::CPU_Tick_Pri),
       threadExitEvent([this]{ exitThreads(); }, "O3CPU exit threads",
                 false, Event::CPU_Exit_Pri),
+        runTillSThreads(params.runTillSThreads),
 #ifndef NDEBUG
       instcount(0),
 #endif
@@ -578,6 +579,26 @@ CPU::tick()
         updateThreadPriority();
 
     tryDrain();
+
+    // check if no S thread applications are pending
+    std::list<ThreadID>::iterator it = activeThreads.begin();
+    std::list<ThreadID>::iterator end = activeThreads.end();
+
+    bool SAppFound = false;
+
+    while(it!=end) {
+        ThreadID tid = *it;
+        if(thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+            SAppFound = true;
+            break;
+        }
+        it++;
+    }
+    if(!SAppFound && runTillSThreads) {
+        printf("Exit from here\n");
+        exitSimLoop("Exit Sim Loop all S threads done "); 
+        printf("Exit done\n");
+    }
 }
 
 void
@@ -634,7 +655,6 @@ CPU::activateThread(ThreadID tid)
             WThreadsAvailable++;
         
         fprintf(stderr, "[tid:%d] activateThread Cycle %d Adding new thread Type: %d Strong ActiveThreads: %d TotalThreads: %d Weak ActiveThreads: %d TotalThreads: %d\n",tid,curCycle(),thread[tid]->tc->getProcessPtr()->getprocessThreadType(),SThreadsAvailable,SThreads,WThreadsAvailable,WThreads); 
-
     }
 
     DPRINTF(O3CPU,"[tid:%d] activateThread Adding new thread Type: %d Strong ActiveThreads: %d TotalThreads: %d Weak ActiveThreads: %d TotalThreads: %d\n",tid,thread[tid]->tc->getProcessPtr()->getprocessThreadType(),SThreadsAvailable,SThreads,WThreadsAvailable,WThreads); 
@@ -647,6 +667,10 @@ CPU::activateThread(ThreadID tid)
     rename.activateThread(tid); 
     iew.activateThread(tid); 
     decode.activateThread(tid); 
+
+    if(thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+        rob.changeEntrySizeForWThreads(tid);
+    }
 }
 
 void
@@ -1722,6 +1746,13 @@ CPU::addThreadToExitingList(ThreadID tid)
 {
     DPRINTF(O3CPU, "[tid:%d] EXITTEST Thread %d is inserted to exitingThreads list size %d\n", tid,tid,exitingThreads.size());
 
+    if(thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
+        cpuStats.cycleCountS = curCycle();
+    }
+    if(thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak){
+        cpuStats.cycleCountW = curCycle();
+    }
+
     // the thread trying to exit can't be already halted
     assert(tcBase(tid)->status() != gem5::ThreadContext::Halted);
 
@@ -1823,11 +1854,6 @@ CPU::scheduleThreadExitEvent(ThreadID tid)
 {
     assert(exitingThreads.count(tid) == 1);
     exitingThreads[tid] = true;
-    
-    // fprintf(stderr, "[tid:%d] Thread is exiting\n", tid);
-    // if(thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
-    //     cpuStats.cycleCountS = baseStats.numCycles;
-    // }
 
     int threadIdExists = 0; // Comment_out
     for (ThreadData& data : exitingThreads1) {

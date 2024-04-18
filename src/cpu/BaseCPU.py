@@ -102,7 +102,9 @@ class BaseCPU(ClockedObject):
     socket_id = Param.Unsigned(0, "Physical Socket identifier")
     numThreads = Param.Unsigned(1, "number of HW thread contexts")
     SThreads = Param.Unsigned(1, "number of Strong thread contexts")
+    
     WThreads = Param.Unsigned(0, "number of Strong thread contexts")
+    runTillSThreads = Param.Bool(False, "Run only till S threads finishes execution")
     pwr_gating_latency = Param.Cycles(
         300,
         "Latency to enter power gating state when all contexts are suspended",

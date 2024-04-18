@@ -69,6 +69,7 @@
 #include "cpu/timebuf.hh"
 #include "params/BaseO3CPU.hh"
 #include "sim/process.hh"
+#include "sim/sim_exit.hh"
 
 namespace gem5
 {
@@ -452,6 +453,9 @@ class CPU : public BaseCPU
 
     /** All W-Threads List */
     std::list<ThreadID> allWThreads;
+
+    /** Exit program after S thread finishes **/
+    bool runTillSThreads;
 
     /**
      *  This is a list of threads that are trying to exit. Each thread id

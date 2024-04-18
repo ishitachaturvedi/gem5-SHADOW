@@ -203,6 +203,7 @@ class SimpleSeSystem(System):
             cpu.numThreads = args.t
             cpu.SThreads = args.SThreads
             cpu.WThreads = args.WThreads
+            cpu.runTillSThreads = args.runTillSThreads
 
         # for cpu in self.cpu_cluster.cpus:
         #     cpu.numThreads = numThreads
@@ -354,6 +355,8 @@ def main():
     parser.add_argument('-SThreads', type=int, default = 1)
 
     parser.add_argument('-WThreads', type=int, default = 0)
+
+    parser.add_argument('-runTillSThreads', type=bool, default=False)
 
     parser.add_argument('-env', type=str)
 
