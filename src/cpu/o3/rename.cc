@@ -530,6 +530,8 @@ Rename::tick()
 
     bool status_change = false;
 
+    SThreadsRenamed = 0;
+
     //Daniel checking blockage
     unsigned notBlockedS = 0;
     unsigned sThreadCount = 0;
@@ -579,7 +581,7 @@ Rename::tick()
         ThreadID tid = RenamePreference[i];
         if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
             continue;
-        }else if(thread_renamed){
+        } else if(thread_renamed){
             blockThisCycle = true;
             block(tid);
         }
@@ -617,8 +619,10 @@ Rename::tick()
                     tid);
 
             renameInsts(tid);
+            SThreadsRenamed++;
             thread_renamed = true;
         } else if (insts_available != 0 && renameStatus[tid] == Unblocking) {
+            SThreadsRenamed++;
             renameInsts(tid);
 
             if (validInsts()) {
@@ -688,6 +692,9 @@ Rename::tick()
         assert(storesInProgress[tid] >= 0);
         assert(instsInProgress[tid] >=0);
     }
+
+    /* Upto 1 S thread can rename in a cycle */
+    assert(SThreadsRenamed <= 1);
 }
 
 void

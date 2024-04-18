@@ -62,7 +62,9 @@ ROB::ROB(CPU *_cpu, const BaseO3CPUParams &params)
       squashWidth(params.squashWidth),
       numInstsInROB(0),
       numThreads(params.numThreads),
+      numThreadsS(_cpu->SThreads),
       stats(_cpu)
+
 {
     //Figure out rob policy
     if (robPolicy == SMTQueuePolicy::Dynamic) {
@@ -75,13 +77,20 @@ ROB::ROB(CPU *_cpu, const BaseO3CPUParams &params)
         DPRINTF(Fetch, "ROB sharing policy set to Partitioned\n");
 
         //@todo:make work if part_amt doesnt divide evenly.
-        int part_amt = numEntries / numThreads;
+
+        /* Partition this based on number of S threads. When a thread is worken up and it is a W thread, this number will be changed. 
+        We dont know if a thread is S or W at initilaization time */
+
+        if(numThreadsS == 0) {
+            numThreadsS = 1;
+        }
+        
+        int part_amt = numEntries / numThreadsS;
 
         //Divide ROB up evenly
         for (ThreadID tid = 0; tid < numThreads; tid++) {
             maxEntries[tid] = part_amt;
         }
-
     } else if (robPolicy == SMTQueuePolicy::Threshold) {
         DPRINTF(Fetch, "ROB sharing policy set to Threshold\n");
 
@@ -98,6 +107,11 @@ ROB::ROB(CPU *_cpu, const BaseO3CPUParams &params)
     }
 
     resetState();
+}
+
+void 
+ROB::changeEntrySizeForWThreads(int tid) {
+    maxEntries[tid] = 1000;
 }
 
 void

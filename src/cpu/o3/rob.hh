@@ -215,6 +215,9 @@ class ROB
     /** Updates the tail instruction with the new youngest instruction. */
     void updateTail();
 
+    /* If a thread is a W thread it has a very large ROB because technically W threads dont use the ROB */
+    void changeEntrySizeForWThreads(int tid);
+
     /** Reads the PC of the oldest head instruction. */
 //    uint64_t readHeadPC();
 
@@ -331,6 +334,9 @@ class ROB
 
     /** Number of active threads. */
     ThreadID numThreads;
+
+    /** Number of active S threads. */
+    ThreadID numThreadsS;
 
 
     struct ROBStats : public statistics::Group

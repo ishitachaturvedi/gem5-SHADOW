@@ -253,6 +253,9 @@ class Rename
     /** Debugging function used to dump history buffer of renamings. */
     void dumpHistory();
 
+    /* Hoe many S threads are renamed in a cycle */
+    int SThreadsRenamed;
+
   private:
     /** Reset this pipeline stage */
     void resetStage();

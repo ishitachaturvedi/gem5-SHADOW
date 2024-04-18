@@ -636,6 +636,8 @@ Decode::tick()
 
     bool status_change = false;
 
+    numDecodedThreads = 0;
+
     //Daniel checking blockage
     unsigned notBlockedS = 0;
     unsigned sThreadCount = 0;
@@ -702,6 +704,7 @@ Decode::tick()
                     "stage.\n",tid);
 
             decodeInsts(tid);
+            numDecodedThreads++;
             thread_decoded = true;
         } else if (insts_available != 0 && decodeStatus[tid] == Unblocking) {
             // Make sure that the skid buffer has something in it if the
@@ -712,6 +715,7 @@ Decode::tick()
             // buffer were used.  Remove those instructions and handle
             // the rest of unblocking.
             decodeInsts(tid);
+            numDecodedThreads++;
 
             if (fetchInstsValid()) {
                 // Add the current inputs to the skid buffer so they can be
@@ -752,6 +756,9 @@ Decode::tick()
 
         cpu->activityThisCycle();
     }
+
+    // only 1 thread should try to decode in a cycle
+    assert(numDecodedThreads <= 1);
 }
 
 void
@@ -997,24 +1004,7 @@ Decode::SWiqCountPriority() {
 
     std::sort(ThreadAvailICountS.begin(), ThreadAvailICountS.end(), comparePairs);
     std::sort(ThreadAvailICountW.begin(), ThreadAvailICountW.end(), comparePairs);
-
-    // while (!SQ.empty()) {
-    //     ThreadID high_pri = SthreadMap[SQ.top()];
-    //     //DecodePreference[iter] = high_pri;
-    //     DecodePreference.push_back(high_pri);
-    //     SQ.pop();
-    //     
-    //     iter++;
-    // }
-    // while (!WQ.empty()) {
-    //     ThreadID high_pri = WthreadMap[WQ.top()];
-    //     //DecodePreference[iter] = high_pri;
-    //     DecodePreference.push_back(high_pri);
-    //     printf("THREAD CONSIDERED W_thread %d %d\n",DecodePreference[iter],high_pri);
-    //     WQ.pop();
-    //     iter++;
-    // }
-
+   
     for (const auto& pair : ThreadAvailICountS) {
         DecodePreference.push_back(pair.second);
     }

@@ -202,6 +202,9 @@ class Decode
     /* Vector to hold tids in order of preference to place insts in fetch to decode queue */
     std::vector<ThreadID> DecodePreference;
 
+    /* How many threads were decoded in this cycle */
+    int numDecodedThreads;
+
   private:
     /** Inserts a thread's instructions into the skid buffer, to be decoded
      * once decode unblocks.

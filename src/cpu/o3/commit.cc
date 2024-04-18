@@ -184,7 +184,9 @@ Commit::CommitStats::CommitStats(CPU *cpu, Commit *commit)
       ADD_STAT(commitEligibleSamples, statistics::units::Cycle::get(),
                "number cycles where commit BW limit reached"),
       ADD_STAT(totalTransitTime, statistics::units::Count::get(),
-               "Total time in transit"),
+               "Total time from ROB till commit"),
+      ADD_STAT(totalInstructionTime, statistics::units::Count::get(),
+               "Total time from Fetch till commit"),
       ADD_STAT(IEWTime, statistics::units::Count::get(),
                "Time spent in IEW"),
       ADD_STAT(IQTime, statistics::units::Count::get(),
@@ -264,6 +266,11 @@ Commit::CommitStats::CommitStats(CPU *cpu, Commit *commit)
         .init(commit->numThreads,enums::Num_OpClass)
         .flags(total);
     totalTransitTime.ysubnames(enums::OpClassStrings);
+
+    totalInstructionTime
+        .init(commit->numThreads,enums::Num_OpClass)
+        .flags(total);
+    totalInstructionTime.ysubnames(enums::OpClassStrings);
 
     IEWTime
         .init(commit->numThreads,enums::Num_OpClass)
@@ -838,14 +845,6 @@ Commit::tick()
     }
 
     updateStatus();
-
-    //Update transit time stats
-    // while (threads != end) {
-    //     ThreadID tid = *threads++;
-    //     for(int i = 0; i < enums::Num_OpClass; i++){
-    //         committedInstTime[tid][i] = (float)stats.totalTransitTime[tid][i] / stats.committedInstType[tid][i];
-    //     }
-    // }
 }
 
 void
@@ -1142,15 +1141,70 @@ Commit::commitInsts()
 
     std::vector<int> commitheadSeq(numThreads,-1);
 
+    // remove all squashed instructions
+    // All threads can remove squashed instructions in a cycle.
+    std::list<ThreadID> SThreadList = getActiveSThreads();
+
+    std::list<ThreadID>::iterator pri_iter1 = SThreadList.begin();
+    std::list<ThreadID>::iterator end1      = SThreadList.end();
+
+    while (pri_iter1 != end1) {
+        ThreadID commit_thread = *pri_iter1;
+
+        if(cpu->thread[commit_thread]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+
+            head_inst = rob->readHeadInst(commit_thread);
+
+            if (!rob->isHeadReady(commit_thread))
+                continue;
+
+            ThreadID tid = head_inst->threadNumber;
+
+            DPRINTF(Commit, "[tid:%d] Inside while loop num_committed %d commit_thread %llu.\n",tid,num_committed,commit_thread);
+
+            assert(tid == commit_thread);
+
+            if (head_inst->isSquashed()) {
+                while(rob->isHeadReady(commit_thread) && rob->readHeadInst(commit_thread)->isSquashed()) 
+                {
+                    // if this is not the instruction which started the squash and it is a W thread no other instruction
+                    // should have executed because we have non speculative issue. If not, then we have an issue and panic
+                    if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak && rob->readHeadInst(commit_thread)->seqNum!=commitheadSeq[tid] && rob->readHeadInst(commit_thread)->isExecuted() && !rob->readHeadInst(commit_thread)->isNop()) {
+                        panic("We speculatively issued an instruction which is now being squashed in W threads incorrect squash: [sn:%llu] squash starter: [sn:%llu] Executed %d\n",rob->readHeadInst(commit_thread)->seqNum,commitheadSeq[tid],rob->readHeadInst(commit_thread)->isExecuted());
+                    }
+
+                    DPRINTF(Commit, "[tid:%d] Retiring squashed instruction from "
+                            "ROB.\n",tid);
+
+                    DPRINTF(Commit, "[tid:%d] instruction_squashed "
+                            "ROB [sn:%llu].\n",tid,rob->readHeadInst(commit_thread)->seqNum);
+
+                    rob->retireHead(commit_thread);
+
+                    ++stats.commitSquashedInsts;
+                    // Notify potential listeners that this instruction is squashed
+                    ppSquash->notify(head_inst);
+
+                    // Record that the number of ROB entries has changed.
+                    changedROBNumEntries[tid] = true;
+                }
+            }
+        }
+        pri_iter1++;
+    }
+
     // Commit as many instructions as possible until the commit bandwidth
     // limit is reached, or it becomes impossible to commit any more.
+    // S thread -> only 1 S thread commits in a cycle.
+    // We select 1 S thread and commit instructions for the thread
+    ThreadID commit_thread = getCommittingSThread();
     while (num_committed < commitWidth)
     {
         // hardware transactionally memory
         // If executing within a transaction,
         // need to handle interrupts specially
 
-        ThreadID commit_thread = getCommittingThread();
+        // ThreadID commit_thread = getCommittingSThread();
 
         // Check for any interrupt that we've already squashed for
         // and start processing it.
@@ -1230,9 +1284,10 @@ Commit::commitInsts()
                 stats.renameTime[tid][head_inst->opClass()] += head_inst->cycleRenamed - head_inst->cycleDecoded;
                 stats.decodeTime[tid][head_inst->opClass()] += head_inst->cycleDecoded - head_inst->cycleFetched;
                 stats.fetchTime[tid][head_inst->opClass()] += head_inst->cycleFetched - head_inst->cycleInFetch;
-
+                stats.totalInstructionTime[tid][head_inst->opClass()] += head_inst->cycleCommitted - head_inst->cycleFetched;
                 stats.totalTransitTime[tid][head_inst->opClass()] += head_inst->cycleCommitted - head_inst->cycleInROB;
                 ppCommit->notify(head_inst);
+
 
                 // hardware transactional memory
 
@@ -1346,6 +1401,222 @@ Commit::commitInsts()
                 break;
             }
         }
+    }
+
+    std::list<ThreadID> WThreadList = getActiveWThreads();
+
+    std::list<ThreadID>::iterator pri_iter = WThreadList.begin();
+    std::list<ThreadID>::iterator end      = WThreadList.end();
+
+    // go over all W threads
+    while (pri_iter != end) {
+        ThreadID threadNum = *pri_iter;
+        if(cpu->thread[threadNum]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+            ThreadID commit_thread = threadNum;
+            while(1) {
+                // hardware transactionally memory
+                // If executing within a transaction,
+                // need to handle interrupts specially
+
+                //ThreadID commit_thread = getCommittingThread();
+
+                // Check for any interrupt that we've already squashed for
+                // and start processing it.
+                if (interrupt != NoFault) {
+                    // If inside a transaction, postpone interrupts
+                    if (executingHtmTransaction(commit_thread)) {
+                        cpu->clearInterrupts(0);
+                        toIEW->commitInfo[0].clearInterrupt = true;
+                        interrupt = NoFault;
+                        avoidQuiesceLiveLock = true;
+                    } else {
+                        handleInterrupt();
+                    }
+                }
+
+                if (commit_thread == -1 || !rob->isHeadReady(commit_thread))
+                    break;
+
+
+                head_inst = rob->readHeadInst(commit_thread);
+
+                ThreadID tid = head_inst->threadNumber;
+
+                if(commitheadSeq[tid] == -1) {
+                    commitheadSeq[tid] = head_inst->seqNum;
+                }
+
+                DPRINTF(Commit, "[tid:%d] Inside while loop num_committed %d commit_thread %llu.\n",tid,num_committed,commit_thread);
+
+                assert(tid == commit_thread);
+
+                DPRINTF(Commit,
+                        "[tid:%d] Trying to commit head instruction, [tid:%i] [sn:%llu] is_squashed %d\n",tid,
+                        tid, head_inst->seqNum,head_inst->isSquashed());
+
+                // If the head instruction is squashed, it is ready to retire
+                // (be removed from the ROB) at any time.
+                if (head_inst->isSquashed()) {
+                    while(rob->isHeadReady(commit_thread) && rob->readHeadInst(commit_thread)->isSquashed()) 
+                    {
+                        // if this is not the instruction which started the squash and it is a W thread no other instruction
+                        // should have executed because we have non speculative issue. If not, then we have an issue and panic
+                        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak && rob->readHeadInst(commit_thread)->seqNum!=commitheadSeq[tid] && rob->readHeadInst(commit_thread)->isExecuted() && !rob->readHeadInst(commit_thread)->isNop()) {
+                            panic("We speculatively issued an instruction which is now being squashed in W threads incorrect squash: [sn:%llu] squash starter: [sn:%llu] Executed %d\n",rob->readHeadInst(commit_thread)->seqNum,commitheadSeq[tid],rob->readHeadInst(commit_thread)->isExecuted());
+                        }
+
+                        DPRINTF(Commit, "[tid:%d] Retiring squashed instruction from "
+                                "ROB.\n",tid);
+
+                        DPRINTF(Commit, "[tid:%d] instruction_squashed "
+                                "ROB [sn:%llu].\n",tid,rob->readHeadInst(commit_thread)->seqNum);
+
+                        rob->retireHead(commit_thread);
+
+                        ++stats.commitSquashedInsts;
+                        // Notify potential listeners that this instruction is squashed
+                        ppSquash->notify(head_inst);
+
+                        // Record that the number of ROB entries has changed.
+                        changedROBNumEntries[tid] = true;
+                    }
+                } else {
+                    set(pc[tid], head_inst->pcState());
+
+                    // Try to commit the head instruction.
+
+                    bool commit_success = commitHead(head_inst, num_committed);
+
+                    if (commit_success) {
+                        ++num_committed;
+                        stats.committedInstType[tid][head_inst->opClass()]++;
+                        //committedInstTime[tid][head_inst->opClass()] += cpu->curcycle() - head_inst->cycleAdded;
+                        stats.ROBTime[tid][head_inst->opClass()] += head_inst->cycleCommitted - head_inst->cycleExecuted;
+                        stats.totalReadyTime[tid][head_inst->opClass()] += head_inst->cycleCommitted - head_inst->cycleReady;
+                        stats.IEWTime[tid][head_inst->opClass()] += head_inst->cycleExecuted - head_inst->cycleIssued;
+                        stats.IQTime[tid][head_inst->opClass()] += head_inst->cycleIssued - head_inst->cycleInIQ;
+                        stats.renameTime[tid][head_inst->opClass()] += head_inst->cycleRenamed - head_inst->cycleDecoded;
+                        stats.decodeTime[tid][head_inst->opClass()] += head_inst->cycleDecoded - head_inst->cycleFetched;
+                        stats.fetchTime[tid][head_inst->opClass()] += head_inst->cycleFetched - head_inst->cycleInFetch;
+
+                        stats.totalTransitTime[tid][head_inst->opClass()] += head_inst->cycleCommitted - head_inst->cycleInROB;
+                        ppCommit->notify(head_inst);
+
+                        // hardware transactional memory
+
+                        // update nesting depth
+                        if (head_inst->isHtmStart())
+                            htmStarts[tid]++;
+
+                        // sanity check
+                        if (head_inst->inHtmTransactionalState()) {
+                            assert(executingHtmTransaction(tid));
+                        } else {
+                            assert(!executingHtmTransaction(tid));
+                        }
+
+                        // update nesting depth
+                        if (head_inst->isHtmStop())
+                            htmStops[tid]++;
+
+                        changedROBNumEntries[tid] = true;
+
+                        // Set the doneSeqNum to the youngest committed instruction.
+                        toIEW->commitInfo[tid].doneSeqNum = head_inst->seqNum;
+
+                        if (tid == 0)
+                            canHandleInterrupts = !head_inst->isDelayedCommit();
+
+                        // at this point store conditionals should either have
+                        // been completed or predicated false
+                        assert(!head_inst->isStoreConditional() ||
+                            head_inst->isCompleted() ||
+                            !head_inst->readPredicate());
+
+                        // Updates misc. registers.
+                        head_inst->updateMiscRegs();
+
+                        // Check instruction execution if it successfully commits and
+                        // is not carrying a fault.
+                        if (cpu->checker) {
+                            cpu->checker->verify(head_inst);
+                        }
+
+                        cpu->traceFunctions(pc[tid]->instAddr());
+
+                        head_inst->staticInst->advancePC(*pc[tid]);
+
+                        // Keep track of the last sequence number commited
+                        lastCommitedSeqNum[tid] = head_inst->seqNum;
+
+
+                        lastCommitedCycle[tid] = curTick();
+
+                        DPRINTF(Commit,"[tid:%d] committing instruction1 [sn:%llu] lastCommitedCycle %llu\n",tid,head_inst->seqNum,lastCommitedCycle[tid]);
+
+                        // If this is an instruction that doesn't play nicely with
+                        // others squash everything and restart fetch
+                        if (head_inst->isSquashAfter())
+                            squashAfter(tid, head_inst);
+
+                        if (drainPending) {
+                            if (pc[tid]->microPC() == 0 && interrupt == NoFault &&
+                                !thread[tid]->trapPending) {
+                                // Last architectually committed instruction.
+                                // Squash the pipeline, stall fetch, and use
+                                // drainImminent to disable interrupts
+                                DPRINTF(Drain, "Draining: %i:%s\n", tid, *pc[tid]);
+                                squashAfter(tid, head_inst);
+                                cpu->commitDrained(tid);
+                                drainImminent = true;
+                            }
+                        }
+
+                        bool onInstBoundary = !head_inst->isMicroop() ||
+                                            head_inst->isLastMicroop() ||
+                                            !head_inst->isDelayedCommit();
+
+                        if (onInstBoundary) {
+                            int count = 0;
+                            Addr oldpc;
+                            // Make sure we're not currently updating state while
+                            // handling PC events.
+                            assert(!thread[tid]->noSquashFromTC &&
+                                !thread[tid]->trapPending);
+                            do {
+                                oldpc = pc[tid]->instAddr();
+                                thread[tid]->pcEventQueue.service(
+                                        oldpc, thread[tid]->getTC());
+                                count++;
+                            } while (oldpc != pc[tid]->instAddr());
+                            if (count > 1) {
+                                DPRINTF(Commit,
+                                        "PC skip function event, stopping commit\n");
+                                break;
+                            }
+                        }
+
+                        // Check if an instruction just enabled interrupts and we've
+                        // previously had an interrupt pending that was not handled
+                        // because interrupts were subsequently disabled before the
+                        // pipeline reached a place to handle the interrupt. In that
+                        // case squash now to make sure the interrupt is handled.
+                        //
+                        // If we don't do this, we might end up in a live lock
+                        // situation.
+                        if (!interrupt && avoidQuiesceLiveLock &&
+                            onInstBoundary && cpu->checkInterrupts(0))
+                            squashAfter(tid, head_inst);
+                    } else {
+                        DPRINTF(Commit, "Unable to commit head instruction PC:%s "
+                                "[tid:%i] [sn:%llu].\n",
+                                head_inst->pcState(), tid ,head_inst->seqNum);
+                        break;
+                    }
+                }
+            }
+        }
+        pri_iter++;
     }
 
     DPRINTF(CommitRate, "%i\n", num_committed);
@@ -1777,6 +2048,84 @@ Commit::getCommittingThread()
     }
 }
 
+
+std::list<ThreadID> 
+Commit::getActiveSThreads() {
+    SThreadList.clear();
+    std::list<ThreadID>::iterator pri_iter = priority_list.begin();
+    std::list<ThreadID>::iterator end      = priority_list.end();
+
+    while (pri_iter != end) {
+        ThreadID tid = *pri_iter;
+
+        if ((commitStatus[tid] == Running ||
+            commitStatus[tid] == Idle ||
+            commitStatus[tid] == FetchTrapPending)
+            && (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)) {
+            if (rob->isHeadReady(tid)) {
+                SThreadList.push_back(tid);
+            }
+        }
+        pri_iter++;
+    }
+    return SThreadList;
+}
+
+std::list<ThreadID> 
+Commit::getActiveWThreads() {
+    WThreadList.clear();
+    std::list<ThreadID>::iterator pri_iter = priority_list.begin();
+    std::list<ThreadID>::iterator end      = priority_list.end();
+
+    while (pri_iter != end) {
+        ThreadID tid = *pri_iter;
+
+        if ((commitStatus[tid] == Running ||
+            commitStatus[tid] == Idle ||
+            commitStatus[tid] == FetchTrapPending)
+            && (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak)) {
+            if (rob->isHeadReady(tid)) {
+                WThreadList.push_back(tid);
+            }
+        }
+        pri_iter++;
+    }
+    return WThreadList;
+}
+
+
+ThreadID 
+Commit::getCommittingSThread()
+{
+    if (numThreads > 1) {
+        switch (commitPolicy) {
+            
+          case CommitPolicy::RoundRobin:
+            return roundRobinS();
+
+          case CommitPolicy::OldestReady:
+            return oldestReadyS();
+
+          case CommitPolicy::SWIQCount:
+            return SWiqCountS();
+
+          default:
+            return InvalidThreadID;
+        }
+    } else {
+        assert(!activeThreads->empty());
+        ThreadID tid = activeThreads->front();
+
+        if (commitStatus[tid] == Running ||
+            commitStatus[tid] == Idle ||
+            commitStatus[tid] == FetchTrapPending) {
+            return tid;
+        } else {
+            return InvalidThreadID;
+        }
+    }
+}
+
 ThreadID
 Commit::roundRobin()
 {
@@ -1793,6 +2142,35 @@ Commit::roundRobin()
             commitStatus[tid] == Idle ||
             commitStatus[tid] == FetchTrapPending) {
 
+            if (rob->isHeadReady(tid)) {
+                priority_list.erase(pri_iter);
+                priority_list.push_back(tid);
+                return tid;
+            }
+        }
+
+        pri_iter++;
+    }
+
+    return InvalidThreadID;
+}
+
+ThreadID
+Commit::roundRobinS()
+{
+    DPRINTF(Commit,"ENTERING RR priority_list size %d\n",priority_list.size());
+    std::list<ThreadID>::iterator pri_iter = priority_list.begin();
+    std::list<ThreadID>::iterator end      = priority_list.end();
+
+    while (pri_iter != end) {
+        ThreadID tid = *pri_iter;
+
+        //DPRINTF(Commit,"[tid:%d] Inside RR status %d ready %d list_len %d\n",tid,commitStatus[tid],rob->isHeadReady(tid),priority_list.size());
+
+        if ((commitStatus[tid] == Running ||
+            commitStatus[tid] == Idle ||
+            commitStatus[tid] == FetchTrapPending)
+            && (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)) {
             if (rob->isHeadReady(tid)) {
                 priority_list.erase(pri_iter);
                 priority_list.push_back(tid);
@@ -1857,6 +2235,59 @@ Commit::SWiqCount()
     return InvalidThreadID;
 }
 
+
+ThreadID
+Commit::SWiqCountS()
+{
+    DPRINTF(Commit, "ENTERING RR priority_list size %d\n", priority_list.size());
+    std::list<ThreadID>::iterator pri_iter = priority_list.begin();
+    std::list<ThreadID>::iterator end = priority_list.end();
+
+    ThreadID strongThreadToIssue = InvalidThreadID;
+    ThreadID weakThreadToIssue = InvalidThreadID;
+
+    while (pri_iter != end) {
+        ThreadID tid = *pri_iter;
+
+        // Check if the thread is ready to issue
+        if ((commitStatus[tid] == Running ||
+            commitStatus[tid] == Idle ||
+            commitStatus[tid] == FetchTrapPending)
+            && (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)) {
+
+            if (rob->isHeadReady(tid)) {
+                // Check if the thread is strong or weak
+                if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+                    // If a strong thread is ready to issue, prioritize it
+                    strongThreadToIssue = tid;
+                    break; // Exit the loop since we found a strong thread to issue
+                } else if (weakThreadToIssue == InvalidThreadID) {
+                    // If no strong thread is ready and we haven't found a weak thread yet, store it
+                    weakThreadToIssue = tid;
+                }
+            }
+        }
+
+        pri_iter++;
+    }
+
+    // Issue the strong thread if available, otherwise issue the weak thread if available
+    if (strongThreadToIssue != InvalidThreadID) {
+        // If a strong thread is available, move it to the end of the priority list
+        priority_list.erase(std::find(priority_list.begin(), priority_list.end(), strongThreadToIssue));
+        priority_list.push_back(strongThreadToIssue);
+        return strongThreadToIssue;
+    } else if (weakThreadToIssue != InvalidThreadID) {
+        // If no strong thread is available but a weak thread is, move it to the end of the priority list
+        priority_list.erase(std::find(priority_list.begin(), priority_list.end(), weakThreadToIssue));
+        priority_list.push_back(weakThreadToIssue);
+        return weakThreadToIssue;
+    }
+
+    return InvalidThreadID;
+}
+
+
 ThreadID
 Commit::oldestReady()
 {
@@ -1874,6 +2305,49 @@ Commit::oldestReady()
             (commitStatus[tid] == Running ||
              commitStatus[tid] == Idle ||
              commitStatus[tid] == FetchTrapPending)) {
+
+            if (rob->isHeadReady(tid)) {
+
+                const DynInstPtr &head_inst = rob->readHeadInst(tid);
+
+                if (first) {
+                    oldest = tid;
+                    oldest_seq_num = head_inst->seqNum;
+                    first = false;
+                } else if (head_inst->seqNum < oldest_seq_num) {
+                    oldest = tid;
+                    oldest_seq_num = head_inst->seqNum;
+                }
+            }
+        }
+    }
+
+    if (!first) {
+        return oldest;
+    } else {
+        return InvalidThreadID;
+    }
+}
+
+
+ThreadID
+Commit::oldestReadyS()
+{
+    unsigned oldest = 0;
+    unsigned oldest_seq_num = 0;
+    bool first = true;
+
+    std::list<ThreadID>::iterator threads = activeThreads->begin();
+    std::list<ThreadID>::iterator end = activeThreads->end();
+
+    while (threads != end) {
+        ThreadID tid = *threads++;
+
+        if ((!rob->isEmpty(tid) &&
+            (commitStatus[tid] == Running ||
+             commitStatus[tid] == Idle ||
+             commitStatus[tid] == FetchTrapPending)
+             && (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong))) {
 
             if (rob->isHeadReady(tid)) {
 

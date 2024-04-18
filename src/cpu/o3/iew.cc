@@ -719,8 +719,11 @@ IEW::skidInsert(ThreadID tid)
         skidBuffer[tid].push(inst);
     }
 
-    assert(skidBuffer[tid].size() <= skidBufferMax &&
-           "Skidbuffer Exceeded Max Size");
+    // skid buffer size is only for S threads
+    if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
+        assert(skidBuffer[tid].size() <= skidBufferMax &&
+            "Skidbuffer Exceeded Max Size");
+    }
 }
 
 int
@@ -1805,6 +1808,8 @@ IEW::tick()
 
     sortInsts();
 
+    int dispatchedThreads = 0;
+
     DispatchPreference.clear();
 
     DPRINTF(IEW,"Freeing up process units\n");
@@ -1840,7 +1845,7 @@ IEW::tick()
                 notBlockedW++;
             }
         }
-        dispatch(tid);
+        // dispatch(tid);
     }
 
     // use a scheduling policy here to only dispatch 1 thread in 1 cycle
@@ -1872,6 +1877,7 @@ IEW::tick()
                     "dispatch.\n", tid);
 
             dispatchInsts(tid);
+            dispatchedThreads++;
             thread_dispatched = true;
             ++iewStats.runningCycles;
         } else if (insts_available && dispatchStatus[tid] == Unblocking) {
@@ -1883,6 +1889,7 @@ IEW::tick()
             // buffer were used.  Remove those instructions and handle
             // the rest of unblocking.
             dispatchInsts(tid);
+            dispatchedThreads++;
             thread_dispatched = true;
 
             ++iewStats.unblockCycles;
@@ -2027,6 +2034,9 @@ IEW::tick()
         DPRINTF(Activity, "Activity this cycle.\n");
         cpu->activityThisCycle();
     }
+
+    /* Only 1 thread dispatches in a cycle */
+    assert(dispatchedThreads <= 1);
 
     //DPRINTF(IEW,"[tid:19] endoftickcheck %d dispatchStatus[tid] %d skidBuffer[tid].size() %d insts[tid].size() %d\n",toRename->iewInfo[19].dispatched,dispatchStatus[19],skidBuffer[19].size(),insts[19].size());
 }

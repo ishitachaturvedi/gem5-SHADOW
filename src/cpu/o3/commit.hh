@@ -319,14 +319,28 @@ class Commit
     /** Gets the thread to commit, based on the SMT policy. */
     ThreadID getCommittingThread();
 
+    /** Gets the S thread to commit, based on the SMT policy. */
+    ThreadID getCommittingSThread();
+
+    /** Get the list of active W threads in this cycle */
+    std::list<ThreadID> getActiveWThreads();
+
+    /** Get the list of active S threads in this cycle */
+    std::list<ThreadID> getActiveSThreads();
+
     /** Returns the approporiate thread to fetch by prioritizing S threads over W threads and using the IQ count policy internally for and W threads **/
     ThreadID SWiqCount();
+    ThreadID SWiqCountS();
 
     /** Returns the thread ID to use based on a round robin policy. */
     ThreadID roundRobin();
+    ThreadID roundRobinS();
 
     /** Returns the thread ID to use based on an oldest instruction policy. */
     ThreadID oldestReady();
+    ThreadID oldestReadyS();
+
+    
 
   public:
     /** Reads the PC of a specific thread. */
@@ -369,6 +383,10 @@ class Commit
     /** ROB interface. */
     ROB *rob;
 
+    /** List of active W threads **/
+    std::list<ThreadID> WThreadList;
+    /** List of active S threads **/
+    std::list<ThreadID> SThreadList;
   private:
     /** Pointer to O3CPU. */
     CPU *cpu;
@@ -555,6 +573,7 @@ class Commit
 
         /** Instruciton Transit Time by instruction type (OpClass) */
         statistics::Vector2d totalTransitTime;
+        statistics::Vector2d totalInstructionTime;
         statistics::Vector2d IQTime;
         statistics::Vector2d ROBTime;
         statistics::Vector2d IEWTime;
