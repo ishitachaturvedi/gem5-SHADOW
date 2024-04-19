@@ -103,14 +103,30 @@ Rename::RenameStats::RenameStats(statistics::Group *parent)
     : statistics::Group(parent, "rename"),
       ADD_STAT(squashCycles, statistics::units::Cycle::get(),
                "Number of cycles rename is squashing"),
+      ADD_STAT(squashCyclesSThread, statistics::units::Cycle::get(),
+               "Number of cycles rename is squashing S Thread"),
+      ADD_STAT(squashCyclesWThread, statistics::units::Cycle::get(),
+               "Number of cycles rename is squashing W Thread"),
       ADD_STAT(idleCycles, statistics::units::Cycle::get(),
                "Number of cycles rename is idle"),
+      ADD_STAT(idleCyclesSThread, statistics::units::Cycle::get(),
+               "Number of cycles rename is idle S Thread"),
+      ADD_STAT(idleCyclesWThread, statistics::units::Cycle::get(),
+               "Number of cycles rename is idle W Thread"),
       ADD_STAT(blockCycles, statistics::units::Cycle::get(),
                "Number of cycles rename is blocking"),
+      ADD_STAT(blockCyclesSThread, statistics::units::Cycle::get(),
+               "Number of cycles rename is blocking S Thread"),
+      ADD_STAT(blockCyclesWThread, statistics::units::Cycle::get(),
+               "Number of cycles rename is blocking W Thread"),
       ADD_STAT(serializeStallCycles, statistics::units::Cycle::get(),
                "count of cycles rename stalled for serializing inst"),
       ADD_STAT(runCycles, statistics::units::Cycle::get(),
                "Number of cycles rename is running"),
+      ADD_STAT(runCyclesSThread, statistics::units::Cycle::get(),
+               "Number of cycles rename is running S Thread"),
+      ADD_STAT(runCyclesWThread, statistics::units::Cycle::get(),
+               "Number of cycles rename is running W Thread"),
       ADD_STAT(unblockCycles, statistics::units::Cycle::get(),
                "Number of cycles rename is unblocking"),
       ADD_STAT(renamedInsts, statistics::units::Count::get(),
@@ -184,28 +200,46 @@ Rename::RenameStats::RenameStats(statistics::Group *parent)
                "Blocking from IQ Full"),
     ADD_STAT(blockingIQFullS, statistics::units::Count::get(),
             "Blocking from IQ Full S"),
+    ADD_STAT(blockingIQFullW, statistics::units::Count::get(),
+            "Blocking from IQ Full W"),
     ADD_STAT(blockingROBFull, statistics::units::Count::get(),
             "Blocking from ROB Full"),
     ADD_STAT(blockingROBFullS, statistics::units::Count::get(),
             "Blocking from ROB Full S"),
+    ADD_STAT(blockingROBFullW, statistics::units::Count::get(),
+            "Blocking from ROB Full W"),
     ADD_STAT(blockingBandwidthFull, statistics::units::Count::get(),
             "Blocking from bandwidth Full"),
     ADD_STAT(blockingBandwidthFullS, statistics::units::Count::get(),
             "Blocking from bandwidth Full S"),
+    ADD_STAT(blockingBandwidthFullW, statistics::units::Count::get(),
+            "Blocking from bandwidth Full W"),
     ADD_STAT(blockingRegFull, statistics::units::Count::get(),
                "Blocking from registers Full"),
     ADD_STAT(blockingRegFullS, statistics::units::Count::get(),
             "Blocking from registers Full S"),
+    ADD_STAT(blockingRegFullW, statistics::units::Count::get(),
+            "Blocking from registers Full W"),
     ADD_STAT(blockingSerialized, statistics::units::Count::get(),
             "Blocking from serialized instruction"),
     ADD_STAT(blockingSerializedS, statistics::units::Count::get(),
-            "Blocking from serialized instruction S")
+            "Blocking from serialized instruction S"),
+    ADD_STAT(blockingSerializedW, statistics::units::Count::get(),
+            "Blocking from serialized instruction W")
 {
     squashCycles.prereq(squashCycles);
+    squashCyclesSThread.prereq(squashCyclesSThread);
+    squashCyclesWThread.prereq(squashCyclesWThread);
     idleCycles.prereq(idleCycles);
+    idleCyclesSThread.prereq(idleCyclesSThread);
+    idleCyclesWThread.prereq(idleCyclesWThread);
     blockCycles.prereq(blockCycles);
+    blockCyclesSThread.prereq(blockCyclesSThread);
+    blockCyclesWThread.prereq(blockCyclesWThread);
     serializeStallCycles.flags(statistics::total);
-    runCycles.prereq(idleCycles);
+    runCycles.prereq(runCycles);
+    runCyclesSThread.prereq(runCyclesSThread);
+    runCyclesWThread.prereq(runCyclesWThread);
     unblockCycles.prereq(unblockCycles);
 
     renamedInsts.prereq(renamedInsts);
@@ -247,14 +281,19 @@ Rename::RenameStats::RenameStats(statistics::Group *parent)
     notStalled.prereq(notStalled);
     blockingIQFull.prereq(blockingIQFull);
     blockingIQFullS.prereq(blockingIQFullS);
+    blockingIQFullW.prereq(blockingIQFullW);
     blockingROBFull.prereq(blockingROBFull);
     blockingROBFullS.prereq(blockingROBFullS);
+    blockingROBFullW.prereq(blockingROBFullW);
     blockingBandwidthFull.prereq(blockingBandwidthFull);
     blockingBandwidthFullS.prereq(blockingBandwidthFullS);
+    blockingBandwidthFullW.prereq(blockingBandwidthFullW);
     blockingRegFull.prereq(blockingRegFull);
     blockingRegFullS.prereq(blockingRegFullS);
+    blockingRegFullW.prereq(blockingRegFullW);
     blockingSerialized.prereq(blockingSerialized);
     blockingSerializedS.prereq(blockingSerializedS);
+    blockingSerializedW.prereq(blockingSerializedW);
 }
 
 void
@@ -587,8 +626,18 @@ Rename::tick()
         }
         if (renameStatus[tid] == Blocked) {
             ++stats.blockCycles;
+            if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+                ++stats.blockCyclesSThread;
+            } else {
+                ++stats.blockCyclesWThread;
+            }
         } else if (renameStatus[tid] == Squashing) {
             ++stats.squashCycles;
+            if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+                ++stats.squashCyclesSThread;
+            } else {
+                ++stats.squashCyclesWThread;
+            }
         } else if (renameStatus[tid] == SerializeStall) {
             ++stats.serializeStallCycles;
         // If we are currently in SerializeStall and resumeSerialize
@@ -709,8 +758,18 @@ Rename::rename(bool &status_change, ThreadID tid)
 
     if (renameStatus[tid] == Blocked) {
         ++stats.blockCycles;
+        if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+            ++stats.blockCyclesSThread;
+        } else {
+            ++stats.blockCyclesWThread;
+        }
     } else if (renameStatus[tid] == Squashing) {
         ++stats.squashCycles;
+        if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+            ++stats.squashCyclesSThread;
+        } else {
+            ++stats.squashCyclesWThread;
+        }
     } else if (renameStatus[tid] == SerializeStall) {
         ++stats.serializeStallCycles;
         // If we are currently in SerializeStall and resumeSerialize
@@ -767,13 +826,22 @@ Rename::renameInsts(ThreadID tid)
     if (insts_available == 0) {
         DPRINTF(Rename, "[tid:%i] Nothing to do, breaking out early.\n",
                 tid);
-        // Should I change status to idle?
         ++stats.idleCycles;
+        if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
+            ++stats.idleCyclesSThread;
+        } else {
+            ++stats.idleCyclesWThread;
+        }
         return;
     } else if (renameStatus[tid] == Unblocking) {
         ++stats.unblockCycles;
     } else if (renameStatus[tid] == Running) {
         ++stats.runCycles;
+        if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
+            ++stats.runCyclesSThread;
+        } else {
+            ++stats.runCyclesWThread;
+        }
     }
 
     // Will have to do a different calculation for the number of free
@@ -802,11 +870,15 @@ Rename::renameInsts(ThreadID tid)
             ++stats.blockingROBFull;
             if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
                 ++stats.blockingROBFullS;
+            } else {
+                ++stats.blockingROBFullW;
             }
         }else{
             ++stats.blockingIQFull;
             if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
                 ++stats.blockingIQFullS;
+            } else {
+                ++stats.blockingIQFullW;
             }
         }  
 
@@ -830,11 +902,15 @@ Rename::renameInsts(ThreadID tid)
             ++stats.blockingROBFull;
             if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
                 ++stats.blockingROBFullS;
+            } else {
+                ++stats.blockingROBFullW;
             }
         }else{
             ++stats.blockingIQFull;
             if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
                 ++stats.blockingIQFullS;
+            } else {
+                ++stats.blockingIQFullW;
             }
         }  
         incrFullStat(source,tid);
@@ -939,6 +1015,8 @@ Rename::renameInsts(ThreadID tid)
             ++stats.blockingRegFull;
             if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
                 ++stats.blockingRegFullS;
+            } else {
+                ++stats.blockingRegFullW;
             }
             ++stats.fullRegistersEvents;
             if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
@@ -979,6 +1057,8 @@ Rename::renameInsts(ThreadID tid)
             ++stats.blockingSerialized;
             if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
                 ++stats.blockingSerializedS;
+            } else {
+                ++stats.blockingSerializedW;
             }
 
             break;
@@ -1049,6 +1129,8 @@ Rename::renameInsts(ThreadID tid)
         ++stats.blockingBandwidthFull;
         if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
             ++stats.blockingBandwidthFullS;
+        } else {
+            ++stats.blockingBandwidthFullW;
         }
     }
 

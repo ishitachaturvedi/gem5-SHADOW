@@ -156,6 +156,10 @@ Commit::CommitStats::CommitStats(CPU *cpu, Commit *commit)
                "communicate backwards"),
       ADD_STAT(branchMispredicts, statistics::units::Count::get(),
                "The number of times a branch was mispredicted"),
+      ADD_STAT(branchMispredictsS, statistics::units::Count::get(),
+               "The number of times a branch was mispredicted"),
+      ADD_STAT(branchMispredictsW, statistics::units::Count::get(),
+               "The number of times a branch was mispredicted"),
       ADD_STAT(numCommittedDist, statistics::units::Count::get(),
                "Number of insts commited each cycle"),
       ADD_STAT(instsCommitted, statistics::units::Count::get(),
@@ -185,7 +189,15 @@ Commit::CommitStats::CommitStats(CPU *cpu, Commit *commit)
                "number cycles where commit BW limit reached"),
       ADD_STAT(totalTransitTime, statistics::units::Count::get(),
                "Total time from ROB till commit"),
+      ADD_STAT(totalTransitTimeS, statistics::units::Count::get(),
+               "Total time from ROB till commit"),
+      ADD_STAT(totalTransitTimeW, statistics::units::Count::get(),
+               "Total time from ROB till commit"),
       ADD_STAT(totalInstructionTime, statistics::units::Count::get(),
+               "Total time from Fetch till commit"),
+      ADD_STAT(totalInstructionTimeS, statistics::units::Count::get(),
+               "Total time from Fetch till commit"),
+      ADD_STAT(totalInstructionTimeW, statistics::units::Count::get(),
                "Total time from Fetch till commit"),
       ADD_STAT(IEWTime, statistics::units::Count::get(),
                "Time spent in IEW"),
@@ -200,6 +212,33 @@ Commit::CommitStats::CommitStats(CPU *cpu, Commit *commit)
       ADD_STAT(decodeTime, statistics::units::Count::get(),
                "Time spent waiting to decode"),
       ADD_STAT(fetchTime, statistics::units::Count::get(),
+               "Time spent waiting to fetch"),     
+
+      ADD_STAT(totalTransitTimeTotal, statistics::units::Count::get(),
+               "Total time from ROB till commit"),
+      ADD_STAT(totalTransitTimeSTotal, statistics::units::Count::get(),
+               "Total time from ROB till commit"),
+      ADD_STAT(totalTransitTimeWTotal, statistics::units::Count::get(),
+               "Total time from ROB till commit"),
+      ADD_STAT(totalInstructionTimeTotal, statistics::units::Count::get(),
+               "Total time from Fetch till commit"),
+      ADD_STAT(totalInstructionTimeSTotal, statistics::units::Count::get(),
+               "Total time from Fetch till commit"),
+      ADD_STAT(totalInstructionTimeWTotal, statistics::units::Count::get(),
+               "Total time from Fetch till commit"),
+      ADD_STAT(IEWTimeTotal, statistics::units::Count::get(),
+               "Time spent in IEW"),
+      ADD_STAT(IQTimeTotal, statistics::units::Count::get(),
+               "Time spent waiting in IQ"),
+      ADD_STAT(ROBTimeTotal, statistics::units::Count::get(),
+               "Time spent waiting in ROB"),
+      ADD_STAT(totalReadyTimeTotal, statistics::units::Count::get(),
+               "Total time spent waiting in ROB"),  
+      ADD_STAT(renameTimeTotal, statistics::units::Count::get(),
+               "Time spent waiting in rename"),  
+      ADD_STAT(decodeTimeTotal, statistics::units::Count::get(),
+               "Time spent waiting to decode"),
+      ADD_STAT(fetchTimeTotal, statistics::units::Count::get(),
                "Time spent waiting to fetch")     
 {
     using namespace statistics;
@@ -207,6 +246,8 @@ Commit::CommitStats::CommitStats(CPU *cpu, Commit *commit)
     commitSquashedInsts.prereq(commitSquashedInsts);
     commitNonSpecStalls.prereq(commitNonSpecStalls);
     branchMispredicts.prereq(branchMispredicts);
+    branchMispredictsS.prereq(branchMispredictsS);
+    branchMispredictsW.prereq(branchMispredictsW);
 
     numCommittedDist
         .init(0,(commit->commitWidth*cpu->numThreads),1)
@@ -267,10 +308,30 @@ Commit::CommitStats::CommitStats(CPU *cpu, Commit *commit)
         .flags(total);
     totalTransitTime.ysubnames(enums::OpClassStrings);
 
+    totalTransitTimeS
+        .init(commit->numThreads,enums::Num_OpClass)
+        .flags(total);
+    totalTransitTimeS.ysubnames(enums::OpClassStrings);
+
+    totalTransitTimeW
+        .init(commit->numThreads,enums::Num_OpClass)
+        .flags(total);
+    totalTransitTimeW.ysubnames(enums::OpClassStrings);
+
     totalInstructionTime
         .init(commit->numThreads,enums::Num_OpClass)
         .flags(total);
     totalInstructionTime.ysubnames(enums::OpClassStrings);
+
+    totalInstructionTimeS
+        .init(commit->numThreads,enums::Num_OpClass)
+        .flags(total);
+    totalInstructionTime.ysubnames(enums::OpClassStrings);
+
+    totalInstructionTimeW
+        .init(commit->numThreads,enums::Num_OpClass)
+        .flags(total);
+    totalInstructionTimeW.ysubnames(enums::OpClassStrings);
 
     IEWTime
         .init(commit->numThreads,enums::Num_OpClass)
@@ -1060,6 +1121,11 @@ Commit::commit()
                      toIEW->commitInfo[tid].branchTaken = true;
                 }
                 ++stats.branchMispredicts;
+                if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+                    ++stats.branchMispredictsS;
+                } else {
+                    ++stats.branchMispredictsW;
+                }
             }
 
             set(toIEW->commitInfo[tid].pc, fromIEW->pc[tid]);
@@ -1277,15 +1343,39 @@ Commit::commitInsts()
                 ++num_committed;
                 stats.committedInstType[tid][head_inst->opClass()]++;
                 //committedInstTime[tid][head_inst->opClass()] += cpu->curcycle() - head_inst->cycleAdded;
-                stats.ROBTime[tid][head_inst->opClass()] += head_inst->cycleCommitted - head_inst->cycleExecuted;
-                stats.totalReadyTime[tid][head_inst->opClass()] += head_inst->cycleCommitted - head_inst->cycleReady;
-                stats.IEWTime[tid][head_inst->opClass()] += head_inst->cycleExecuted - head_inst->cycleIssued;
-                stats.IQTime[tid][head_inst->opClass()] += head_inst->cycleIssued - head_inst->cycleInIQ;
-                stats.renameTime[tid][head_inst->opClass()] += head_inst->cycleRenamed - head_inst->cycleDecoded;
-                stats.decodeTime[tid][head_inst->opClass()] += head_inst->cycleDecoded - head_inst->cycleFetched;
-                stats.fetchTime[tid][head_inst->opClass()] += head_inst->cycleFetched - head_inst->cycleInFetch;
                 stats.totalInstructionTime[tid][head_inst->opClass()] += head_inst->cycleCommitted - head_inst->cycleFetched;
+                stats.totalInstructionTimeTotal += head_inst->cycleCommitted - head_inst->cycleFetched;
                 stats.totalTransitTime[tid][head_inst->opClass()] += head_inst->cycleCommitted - head_inst->cycleInROB;
+                stats.totalTransitTimeTotal += head_inst->cycleCommitted - head_inst->cycleInROB;
+                if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+                    stats.totalTransitTimeS[tid][head_inst->opClass()] += head_inst->cycleCommitted - head_inst->cycleInROB;
+                    stats.totalInstructionTimeS[tid][head_inst->opClass()] += head_inst->cycleCommitted - head_inst->cycleFetched;
+                    stats.ROBTime[tid][head_inst->opClass()] += head_inst->cycleCommitted - head_inst->cycleExecuted;
+                    stats.totalReadyTime[tid][head_inst->opClass()] += head_inst->cycleCommitted - head_inst->cycleReady;
+                    stats.IEWTime[tid][head_inst->opClass()] += head_inst->cycleExecuted - head_inst->cycleIssued;
+                    stats.IQTime[tid][head_inst->opClass()] += head_inst->cycleIssued - head_inst->cycleInIQ;
+                    stats.renameTime[tid][head_inst->opClass()] += head_inst->cycleRenamed - head_inst->cycleDecoded;
+                    stats.decodeTime[tid][head_inst->opClass()] += head_inst->cycleDecoded - head_inst->cycleFetched;
+                    stats.fetchTime[tid][head_inst->opClass()] += head_inst->cycleFetched - head_inst->cycleInFetch;
+
+
+                    stats.totalTransitTimeSTotal += head_inst->cycleCommitted - head_inst->cycleInROB;
+                    stats.totalInstructionTimeSTotal += head_inst->cycleCommitted - head_inst->cycleFetched;
+                    stats.ROBTimeTotal += head_inst->cycleCommitted - head_inst->cycleExecuted;
+                    stats.totalReadyTimeTotal += head_inst->cycleCommitted - head_inst->cycleReady;
+                    stats.IEWTimeTotal += head_inst->cycleExecuted - head_inst->cycleIssued;
+                    stats.IQTimeTotal += head_inst->cycleIssued - head_inst->cycleInIQ;
+                    stats.renameTimeTotal += head_inst->cycleRenamed - head_inst->cycleDecoded;
+                    stats.decodeTimeTotal += head_inst->cycleDecoded - head_inst->cycleFetched;
+                    stats.fetchTimeTotal += head_inst->cycleFetched - head_inst->cycleInFetch;
+
+                } else {
+                    stats.totalTransitTimeW[tid][head_inst->opClass()] += head_inst->cycleCommitted - head_inst->cycleInROB;
+                    stats.totalInstructionTimeW[tid][head_inst->opClass()] += head_inst->cycleCommitted - head_inst->cycleFetched;
+
+                    stats.totalTransitTimeWTotal += head_inst->cycleCommitted - head_inst->cycleInROB;
+                    stats.totalInstructionTimeWTotal += head_inst->cycleCommitted - head_inst->cycleFetched;
+                }
                 ppCommit->notify(head_inst);
 
 

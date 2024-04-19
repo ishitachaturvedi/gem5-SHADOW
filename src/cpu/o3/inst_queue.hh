@@ -534,6 +534,9 @@ class InstructionQueue
         statistics::Scalar squashedNonSpecRemoved;
         // Also include number of instructions rescheduled and replayed.
 
+        statistics::Scalar fuBusyS;
+        statistics::Scalar fuBusyW;
+
         /** Distribution of number of instructions in the queue.
          * @todo: Need to create struct to track the entry time for each
          * instruction. */
@@ -549,6 +552,7 @@ class InstructionQueue
          * FU was busy.
          */
         statistics::Vector statFuBusy;
+        statistics::Vector statFuNoFree;
         statistics::Vector statFuBusyPerThreadCollective;
         // statistics::Vector dist_unissued;
         /** Stat for total number issued for each instruction type. */

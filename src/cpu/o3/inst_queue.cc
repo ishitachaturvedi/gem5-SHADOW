@@ -197,6 +197,10 @@ InstructionQueue::IQStats::IQStats(CPU *cpu, const unsigned &total_width)
              "Number of branch instructions issued"),
     ADD_STAT(memInstsIssued, statistics::units::Count::get(),
              "Number of memory instructions issued"),
+    ADD_STAT(fuBusyS, statistics::units::Count::get(),
+             "FU busy when requested"),
+    ADD_STAT(fuBusyW, statistics::units::Count::get(),
+             "FU busy when requested"),
     ADD_STAT(miscInstsIssued, statistics::units::Count::get(),
              "Number of miscellaneous instructions issued"),
     ADD_STAT(squashedInstsIssued, statistics::units::Count::get(),
@@ -212,6 +216,8 @@ InstructionQueue::IQStats::IQStats(CPU *cpu, const unsigned &total_width)
     ADD_STAT(numIssuedDist, statistics::units::Count::get(),
              "Number of insts issued each cycle"),
     ADD_STAT(statFuBusy, statistics::units::Count::get(),
+             "attempts to use FU when none available"),
+    ADD_STAT(statFuNoFree, statistics::units::Count::get(),
              "attempts to use FU when none available"),
     ADD_STAT(statIssuedInstType, statistics::units::Count::get(),
              "Number of instructions issued per FU type, per thread"),
@@ -282,6 +288,9 @@ InstructionQueue::IQStats::IQStats(CPU *cpu, const unsigned &total_width)
 
     squashedNonSpecRemoved
         .prereq(squashedNonSpecRemoved);
+    
+    fuBusyS.prereq(fuBusyS);
+    fuBusyW.prereq(fuBusyW);
 /*
     queueResDist
         .init(Num_OpClasses, 0, 99, 2)
@@ -345,6 +354,13 @@ InstructionQueue::IQStats::IQStats(CPU *cpu, const unsigned &total_width)
         ;
     for (int i=0; i < Num_OpClasses; ++i) {
         statFuBusy.subname(i, enums::OpClassStrings[i]);
+    }
+    statFuNoFree
+        .init(Num_OpClasses)
+        .flags(statistics::pdf | statistics::dist)
+        ;
+    for (int i=0; i < Num_OpClasses; ++i) {
+        statFuNoFree.subname(i, enums::OpClassStrings[i]);
     }
 
     statFuBusyPerThreadCollective
@@ -1106,6 +1122,12 @@ InstructionQueue::scheduleReadyInsts()
             iqStats.statNumIssueNotPossiblePerThread[tid]++;
 
             if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() != Strong) {
+                iqStats.fuBusyS++;
+            } else {
+                iqStats.fuBusyW++;
+            }
+
+            if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() != Strong) {
                 if(cpu->thread[tid]->ControlInstIssued)
                     iqStats.statStalledOnControlInstructionPerThread[tid]++;
                 else if(cpu->thread[tid]->MemInstIssued && cpu->thread[tid]->MemInstIssued!= issuing_inst->seqNum)
@@ -1142,6 +1164,16 @@ InstructionQueue::scheduleReadyInsts()
         cpu->activityThisCycle();
     } else {
         DPRINTF(IQ, "Not able to schedule any instructions.\n");
+    }
+
+    // check if op is free -> Backend utilization check
+    for(int i = 0; i < OpClass::Num_OpClass; i++) {
+        int idx = FUPool::NoCapableFU;
+        OpClass op_class1 = OpClass(i);
+        idx = fuPool->getUnit(op_class1);
+        if(idx == FUPool::NoFreeFU) {
+            iqStats.statFuNoFree[op_class1]++;
+        }
     }
 }
 

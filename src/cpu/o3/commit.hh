@@ -540,6 +540,8 @@ class Commit
          * squash.
          */
         statistics::Scalar branchMispredicts;
+        statistics::Scalar branchMispredictsS;
+        statistics::Scalar branchMispredictsW;
         /** Distribution of the number of committed instructions each cycle. */
         statistics::Distribution numCommittedDist;
 
@@ -573,7 +575,11 @@ class Commit
 
         /** Instruciton Transit Time by instruction type (OpClass) */
         statistics::Vector2d totalTransitTime;
+        statistics::Vector2d totalTransitTimeS;
+        statistics::Vector2d totalTransitTimeW;
         statistics::Vector2d totalInstructionTime;
+        statistics::Vector2d totalInstructionTimeS;
+        statistics::Vector2d totalInstructionTimeW;
         statistics::Vector2d IQTime;
         statistics::Vector2d ROBTime;
         statistics::Vector2d IEWTime;
@@ -581,6 +587,23 @@ class Commit
         statistics::Vector2d renameTime;
         statistics::Vector2d decodeTime;
         statistics::Vector2d fetchTime;
+
+        statistics::Scalar totalTransitTimeTotal;
+        statistics::Scalar totalTransitTimeSTotal;
+        statistics::Scalar totalTransitTimeWTotal;
+        statistics::Scalar totalInstructionTimeTotal;
+        statistics::Scalar totalInstructionTimeSTotal;
+        statistics::Scalar totalInstructionTimeWTotal;
+        statistics::Scalar IQTimeTotal;
+        statistics::Scalar ROBTimeTotal;
+        statistics::Scalar IEWTimeTotal;
+        statistics::Scalar totalReadyTimeTotal;
+        statistics::Scalar renameTimeTotal;
+        statistics::Scalar decodeTimeTotal;
+        statistics::Scalar fetchTimeTotal;
+
+
+
     } stats;
 };
 

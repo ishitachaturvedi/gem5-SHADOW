@@ -155,13 +155,25 @@ IEW::IEWStats::IEWStats(CPU *cpu)
              "Number of cycles IEW is idle"),
     ADD_STAT(squashCycles, statistics::units::Cycle::get(),
              "Number of cycles IEW is squashing"),
+    ADD_STAT(squashCyclesS, statistics::units::Cycle::get(),
+             "Number of cycles IEW is squashing"),
+    ADD_STAT(squashCyclesW, statistics::units::Cycle::get(),
+             "Number of cycles IEW is squashing"),
     ADD_STAT(blockCycles, statistics::units::Cycle::get(),
+             "Number of cycles IEW is blocking"),
+    ADD_STAT(blockCyclesS, statistics::units::Cycle::get(),
+             "Number of cycles IEW is blocking"),
+    ADD_STAT(blockCyclesW, statistics::units::Cycle::get(),
              "Number of cycles IEW is blocking"),
     ADD_STAT(unblockCycles, statistics::units::Cycle::get(),
              "Number of cycles IEW is unblocking"),
     ADD_STAT(dispatchedInsts, statistics::units::Count::get(),
              "Number of instructions dispatched to IQ"),
     ADD_STAT(dispSquashedInsts, statistics::units::Count::get(),
+             "Number of squashed instructions skipped by dispatch"),
+    ADD_STAT(dispSquashedInstsS, statistics::units::Count::get(),
+             "Number of squashed instructions skipped by dispatch"),
+    ADD_STAT(dispSquashedInstsW, statistics::units::Count::get(),
              "Number of squashed instructions skipped by dispatch"),
     ADD_STAT(dispLoadInsts, statistics::units::Count::get(),
              "Number of dispatched load instructions"),
@@ -171,7 +183,15 @@ IEW::IEWStats::IEWStats(CPU *cpu)
              "Number of dispatched non-speculative instructions"),
     ADD_STAT(iqFullEvents, statistics::units::Count::get(),
              "Number of times the IQ has become full, causing a stall"),
+    ADD_STAT(iqFullEventsS, statistics::units::Count::get(),
+             "Number of times the IQ has become full, causing a stall"),
+    ADD_STAT(iqFullEventsW, statistics::units::Count::get(),
+             "Number of times the IQ has become full, causing a stall"),
     ADD_STAT(lsqFullEvents, statistics::units::Count::get(),
+             "Number of times the LSQ has become full, causing a stall"),
+    ADD_STAT(lsqFullEventsS, statistics::units::Count::get(),
+             "Number of times the LSQ has become full, causing a stall"),
+    ADD_STAT(lsqFullEventsW, statistics::units::Count::get(),
              "Number of times the LSQ has become full, causing a stall"),
     ADD_STAT(memOrderViolationEvents, statistics::units::Count::get(),
              "Number of memory order violations"),
@@ -187,12 +207,34 @@ IEW::IEWStats::IEWStats(CPU *cpu)
              "Cumulative count of insts sent to commit"),
     ADD_STAT(writebackCount, statistics::units::Count::get(),
              "Cumulative count of insts written-back"),
+    ADD_STAT(writebackCountS, statistics::units::Count::get(),
+             "Cumulative count of insts written-back"),
+    ADD_STAT(writebackCountW, statistics::units::Count::get(),
+             "Cumulative count of insts written-back"),
+    ADD_STAT(writebackCountTotal, statistics::units::Count::get(),
+             "Cumulative count of insts written-back"),
+    ADD_STAT(writebackCountSTotal, statistics::units::Count::get(),
+             "Cumulative count of insts written-back"),
+    ADD_STAT(writebackCountWTotal, statistics::units::Count::get(),
+             "Cumulative count of insts written-back"),
     ADD_STAT(producerInst, statistics::units::Count::get(),
              "Number of instructions producing a value"),
     ADD_STAT(consumerInst, statistics::units::Count::get(),
              "Number of instructions consuming a value"),
     ADD_STAT(wbRate, statistics::units::Rate<
                 statistics::units::Count, statistics::units::Cycle>::get(),
+             "Insts written-back per cycle"),
+    ADD_STAT(wbRateS, statistics::units::Rate<
+                statistics::units::Count, statistics::units::Cycle>::get(),
+             "Insts written-back per cycle"),
+    ADD_STAT(wbRateW, statistics::units::Rate<
+                statistics::units::Count, statistics::units::Cycle>::get(),
+             "Insts written-back per cycle"),
+    ADD_STAT(wbRateTotal, statistics::units::Count::get(),
+             "Insts written-back per cycle"),
+    ADD_STAT(wbRateSTotal, statistics::units::Count::get(),
+             "Insts written-back per cycle"),
+    ADD_STAT(wbRateWTotal, statistics::units::Count::get(),
              "Insts written-back per cycle"),
     ADD_STAT(wbFanout, statistics::units::Rate<
                 statistics::units::Count, statistics::units::Count>::get(),
@@ -208,6 +250,8 @@ IEW::IEWStats::IEWStats(CPU *cpu)
     ADD_STAT(notStalled, statistics::units::Count::get(),
             "Number of cycles iew is not stalled"),
     ADD_STAT(blockingS, statistics::units::Count::get(),
+            "Number of cycles iew is blocking an S thread"),
+    ADD_STAT(blockingW, statistics::units::Count::get(),
             "Number of cycles iew is blocking an S thread"),
     ADD_STAT(blockingIQFull, statistics::units::Count::get(),
                "Blocking from IQ Full"),
@@ -229,6 +273,12 @@ IEW::IEWStats::IEWStats(CPU *cpu)
     writebackCount
         .init(cpu->numThreads)
         .flags(statistics::total);
+    writebackCountS
+        .init(cpu->numThreads)
+        .flags(statistics::total);
+    writebackCountW
+        .init(cpu->numThreads)
+        .flags(statistics::total);
 
     producerInst
         .init(cpu->numThreads)
@@ -241,6 +291,16 @@ IEW::IEWStats::IEWStats(CPU *cpu)
     wbRate
         .flags(statistics::total);
     wbRate = writebackCount / cpu->baseStats.numCycles;
+    wbRateS
+        .flags(statistics::total);
+    wbRateS = writebackCountS / cpu->baseStats.numCycles;
+    wbRateW
+        .flags(statistics::total);
+    wbRateW = writebackCountW / cpu->baseStats.numCycles;
+
+    wbRateTotal = writebackCountTotal / cpu->baseStats.numCycles;
+    wbRateSTotal = writebackCountSTotal / cpu->baseStats.numCycles;
+    wbRateWTotal = writebackCountWTotal / cpu->baseStats.numCycles;
 
     wbFanout
         .flags(statistics::total);
@@ -252,12 +312,16 @@ IEW::IEWStats::IEWStats(CPU *cpu)
     stalledSAndW.prereq(stalledSAndW);
     notStalled.prereq(notStalled);
     blockingS.prereq(blockingS);
+    blockingW.prereq(blockingW);
     blockingIQFull.prereq(blockingIQFull);
     blockingIQFullS.prereq(blockingIQFullS);
     blockingLSQFull.prereq(blockingLSQFull);
     blockingLSQFullS.prereq(blockingLSQFullS);
     blockingBandwidthFull.prereq(blockingBandwidthFull);
     blockingBandwidthFullS.prereq(blockingBandwidthFullS);
+    writebackCountTotal.prereq(writebackCountTotal);
+    writebackCountSTotal.prereq(writebackCountSTotal);
+    writebackCountWTotal.prereq(writebackCountWTotal);
 }
 
 IEW::IEWStats::ExecutedInstStats::ExecutedInstStats(CPU *cpu)
@@ -979,64 +1043,21 @@ IEW::dispatch(ThreadID tid)
     // //     continue trying to empty skid buffer
     // //     check if stall conditions have passed
 
-    // if (dispatchStatus[tid] == Blocked) {
-    //     ++iewStats.blockCycles;
-
-    // } else if (dispatchStatus[tid] == Squashing) {
-    //     ++iewStats.squashCycles;
-    // }
-
-    // // Dispatch should try to dispatch as many instructions as its bandwidth
-    // // will allow, as long as it is not currently blocked.
-    // if (dispatchStatus[tid] == Running ||
-    //     dispatchStatus[tid] == Idle) {
-    //     DPRINTF(IEW, "[tid:%i] Not blocked, so attempting to run "
-    //             "dispatch.\n", tid);
-
-    //     dispatchInsts(tid);
-    //     ++iewStats.runningCycles;
-    // } else if (dispatchStatus[tid] == Unblocking) {
-    //     // Make sure that the skid buffer has something in it if the
-    //     // status is unblocking.
-    //     assert(!skidsEmpty());
-
-    //     // If the status was unblocking, then instructions from the skid
-    //     // buffer were used.  Remove those instructions and handle
-    //     // the rest of unblocking.
-    //     dispatchInsts(tid);
-
-    //     ++iewStats.unblockCycles;
-
-    //         if (fromRename->size != 0) {
-    //             // Add the current inputs to the skid buffer so they can be
-    //             // reprocessed when this stage unblocks.
-    //             skidInsert(tid);
-    //         }
-
-    //         // if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
-    //         //     if (fromRename_S->size != 0) {
-    //         //         // Add the current inputs to the skid buffer so they can be
-    //         //         // reprocessed when this stage unblocks.
-    //         //         skidInsert(tid);
-    //         //     }
-    //         // } else {
-    //         //     if (fromRename_W->size != 0) {
-    //         //     // Add the current inputs to the skid buffer so they can be
-    //         //     // reprocessed when this stage unblocks.
-    //         //     skidInsert(tid);
-    //         // }
-    //     }
-
-    //     unblock(tid);
-    // }
-
-
     if (dispatchStatus[tid] == Blocked) {
         ++iewStats.blockCycles;
-
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+            ++iewStats.blockCyclesS;
+        } else {
+            ++iewStats.blockCyclesW;
+        }
     } else if (dispatchStatus[tid] == Squashing) {
         ++iewStats.squashCycles;
-    }
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+            ++iewStats.squashCyclesS;
+        } else {
+            ++iewStats.squashCyclesW;
+        }
+    } 
 
     // Dispatch should try to dispatch as many instructions as its bandwidth
     // will allow, as long as it is not currently blocked.
@@ -1128,7 +1149,11 @@ IEW::dispatchInsts(ThreadID tid)
                     "not adding to IQ.\n", tid);
 
             ++iewStats.dispSquashedInsts;
-
+            if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
+                ++iewStats.dispSquashedInstsS;
+            } else {
+                ++iewStats.dispSquashedInstsW;
+            }
 
             DPRINTF(IEW,"[tid:%d] isSquashed %d dispatchStatus[tid] %d insts_to_dispatch.size() %d\n",tid,toRename->iewInfo[tid].dispatched,dispatchStatus[tid],insts_to_dispatch.size());
 
@@ -1168,6 +1193,11 @@ IEW::dispatchInsts(ThreadID tid)
             toRename->iewUnblock[tid] = false;
 
             ++iewStats.iqFullEvents;
+            if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
+                ++iewStats.iqFullEventsS;
+            } else {
+                ++iewStats.iqFullEventsW;
+            }
             break;
         }
 
@@ -1194,6 +1224,12 @@ IEW::dispatchInsts(ThreadID tid)
             toRename->iewUnblock[tid] = false;
 
             ++iewStats.lsqFullEvents;
+            if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
+                ++iewStats.lsqFullEventsS;
+            } else {
+                ++iewStats.lsqFullEventsW;
+            }
+
             break;
         }
 
@@ -1785,6 +1821,14 @@ IEW::writebackInsts()
                 iewStats.consumerInst[tid]+= dependents;
             }
             iewStats.writebackCount[tid]++;
+            iewStats.writebackCountTotal++;
+            if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+                iewStats.writebackCountS[tid]++;
+                iewStats.writebackCountSTotal++;
+            } else {
+                iewStats.writebackCountW[tid]++;
+                iewStats.writebackCountWTotal++;
+            }
         }
     }
 }
@@ -1844,6 +1888,9 @@ IEW::tick()
             if (insts_available != 0 && (dispatchStatus[tid] == Unblocking || dispatchStatus[tid] == Running)){
                 notBlockedW++;
             }
+            if(dispatchStatus[tid] == Blocked){
+                ++iewStats.blockingW;
+            }
         }
         // dispatch(tid);
     }
@@ -1856,9 +1903,18 @@ IEW::tick()
         ThreadID tid = DispatchPreference[i];
         if (dispatchStatus[tid] == Blocked) {
             ++iewStats.blockCycles;
-
+            if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+                ++iewStats.blockCyclesS;
+            } else {
+                ++iewStats.blockCyclesW;
+            }
         } else if (dispatchStatus[tid] == Squashing) {
             ++iewStats.squashCycles;
+            if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+                ++iewStats.squashCyclesS;
+            } else {
+                ++iewStats.squashCyclesW;
+            }
         }
 
         if(thread_dispatched){

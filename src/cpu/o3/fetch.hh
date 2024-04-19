@@ -581,8 +581,12 @@ class Fetch
         // vectors and tracking on a per thread basis.
         /** Stat for total number of cycles stalled due to an icache miss. */
         statistics::Scalar icacheStallCycles;
+        statistics::Scalar icacheStallCyclesSThread;
+        statistics::Scalar icacheStallCyclesWThread;
         /** Stat for total number of fetched instructions. */
         statistics::Scalar insts;
+        statistics::Scalar instsSThread;
+        statistics::Scalar instsWThread;
         /** Total number of fetched branches. */
         statistics::Scalar branches;
         /** Stat for total number of predicted branches. */
@@ -613,6 +617,8 @@ class Fetch
         statistics::Scalar pendingQuiesceStallCycles;
         /** Total number of stall cycles caused by I-cache wait retrys. */
         statistics::Scalar icacheWaitRetryStallCycles;
+        statistics::Scalar icacheWaitRetryStallCyclesSThread;
+        statistics::Scalar icacheWaitRetryStallCyclesWThread;
         /** Stat for total number of fetched cache lines. */
         statistics::Scalar cacheLines;
         /** Total number of outstanding icache accesses that were dropped

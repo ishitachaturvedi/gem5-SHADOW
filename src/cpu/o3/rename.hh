@@ -562,15 +562,23 @@ class Rename
 
         /** Stat for total number of cycles spent squashing. */
         statistics::Scalar squashCycles;
+        statistics::Scalar squashCyclesSThread;
+        statistics::Scalar squashCyclesWThread;
         /** Stat for total number of cycles spent idle. */
         statistics::Scalar idleCycles;
+        statistics::Scalar idleCyclesSThread;
+        statistics::Scalar idleCyclesWThread;
         /** Stat for total number of cycles spent blocking. */
         statistics::Scalar blockCycles;
+        statistics::Scalar blockCyclesSThread;
+        statistics::Scalar blockCyclesWThread;
         /** Stat for total number of cycles spent stalling for a serializing
          *  inst. */
         statistics::Scalar serializeStallCycles;
         /** Stat for total number of cycles spent running normally. */
         statistics::Scalar runCycles;
+        statistics::Scalar runCyclesSThread;
+        statistics::Scalar runCyclesWThread;
         /** Stat for total number of cycles spent unblocking. */
         statistics::Scalar unblockCycles;
         /** Stat for total number of renamed instructions. */
@@ -650,14 +658,19 @@ class Rename
 
         statistics::Scalar blockingIQFull;
         statistics::Scalar blockingIQFullS;
+        statistics::Scalar blockingIQFullW;
         statistics::Scalar blockingROBFull;
         statistics::Scalar blockingROBFullS;
+        statistics::Scalar blockingROBFullW;
         statistics::Scalar blockingBandwidthFull;
         statistics::Scalar blockingBandwidthFullS;
+        statistics::Scalar blockingBandwidthFullW;
         statistics::Scalar blockingRegFull;
         statistics::Scalar blockingRegFullS;
+        statistics::Scalar blockingRegFullW;
         statistics::Scalar blockingSerialized;
         statistics::Scalar blockingSerializedS;
+        statistics::Scalar blockingSerializedW;
     } stats;
 };
 

@@ -493,10 +493,16 @@ class IEW
 
         /** Stat for total number of idle cycles. */
         statistics::Scalar idleCycles;
+        statistics::Scalar idleCyclesS;
+        statistics::Scalar idleCyclesW;
         /** Stat for total number of squashing cycles. */
         statistics::Scalar squashCycles;
+        statistics::Scalar squashCyclesS;
+        statistics::Scalar squashCyclesW;
         /** Stat for total number of blocking cycles. */
         statistics::Scalar blockCycles;
+        statistics::Scalar blockCyclesS;
+        statistics::Scalar blockCyclesW;
         /** Stat for total number of unblocking cycles. */
         statistics::Scalar unblockCycles;
         /** Stat for total number of running cycles. */
@@ -505,6 +511,8 @@ class IEW
         statistics::Scalar dispatchedInsts;
         /** Stat for total number of squashed instructions dispatch skips. */
         statistics::Scalar dispSquashedInsts;
+        statistics::Scalar dispSquashedInstsS;
+        statistics::Scalar dispSquashedInstsW;
         /** Stat for total number of dispatched load instructions. */
         statistics::Scalar dispLoadInsts;
         /** Stat for total number of dispatched store instructions. */
@@ -513,8 +521,12 @@ class IEW
         statistics::Scalar dispNonSpecInsts;
         /** Stat for number of times the IQ becomes full. */
         statistics::Scalar iqFullEvents;
+        statistics::Scalar iqFullEventsS;
+        statistics::Scalar iqFullEventsW;
         /** Stat for number of times the LSQ becomes full. */
         statistics::Scalar lsqFullEvents;
+        statistics::Scalar lsqFullEventsS;
+        statistics::Scalar lsqFullEventsW;
         /** Stat for total number of memory ordering violation events. */
         statistics::Scalar memOrderViolationEvents;
         /** Stat for total number of incorrect predicted taken branches. */
@@ -532,6 +544,7 @@ class IEW
         statistics::Scalar stalledSAndW;
         statistics::Scalar notStalled;
         statistics::Scalar blockingS;
+        statistics::Scalar blockingW;
         statistics::Scalar blockingIQFull;
         statistics::Scalar blockingIQFullS;
         statistics::Scalar blockingLSQFull;
@@ -568,12 +581,22 @@ class IEW
         statistics::Vector instsToCommit;
         /** Number of instructions that writeback. */
         statistics::Vector writebackCount;
+        statistics::Vector writebackCountS;
+        statistics::Vector writebackCountW;
+        statistics::Scalar writebackCountTotal;
+        statistics::Scalar writebackCountSTotal;
+        statistics::Scalar writebackCountWTotal;
         /** Number of instructions that wake consumers. */
         statistics::Vector producerInst;
         /** Number of instructions that wake up from producers. */
         statistics::Vector consumerInst;
         /** Number of instructions per cycle written back. */
         statistics::Formula wbRate;
+        statistics::Formula wbRateS;
+        statistics::Formula wbRateW;
+        statistics::Formula wbRateTotal;
+        statistics::Formula wbRateSTotal;
+        statistics::Formula wbRateWTotal;
         /** Average number of woken instructions per writeback. */
         statistics::Formula wbFanout;
     } iewStats;

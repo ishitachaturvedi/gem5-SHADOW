@@ -163,7 +163,15 @@ Fetch::FetchStatGroup::FetchStatGroup(CPU *cpu, Fetch *fetch)
     : statistics::Group(cpu, "fetch"),
     ADD_STAT(icacheStallCycles, statistics::units::Cycle::get(),
              "Number of cycles fetch is stalled on an Icache miss"),
+    ADD_STAT(icacheStallCyclesSThread, statistics::units::Cycle::get(),
+             "Number of cycles S threads fetch is stalled on an Icache miss"),
+    ADD_STAT(icacheStallCyclesWThread, statistics::units::Cycle::get(),
+             "Number of cycles W threads fetch is stalled on an Icache miss"),
     ADD_STAT(insts, statistics::units::Count::get(),
+             "Number of instructions fetch has processed"),
+    ADD_STAT(instsSThread, statistics::units::Count::get(),
+             "Number of instructions fetch has processed"),
+    ADD_STAT(instsWThread, statistics::units::Count::get(),
              "Number of instructions fetch has processed"),
     ADD_STAT(branches, statistics::units::Count::get(),
              "Number of branches that fetch encountered"),
@@ -192,6 +200,10 @@ Fetch::FetchStatGroup::FetchStatGroup(CPU *cpu, Fetch *fetch)
     ADD_STAT(pendingQuiesceStallCycles, statistics::units::Cycle::get(),
              "Number of stall cycles due to pending quiesce instructions"),
     ADD_STAT(icacheWaitRetryStallCycles, statistics::units::Cycle::get(),
+             "Number of stall cycles due to full MSHR"),
+    ADD_STAT(icacheWaitRetryStallCyclesSThread, statistics::units::Cycle::get(),
+             "Number of stall cycles due to full MSHR"),
+    ADD_STAT(icacheWaitRetryStallCyclesWThread, statistics::units::Cycle::get(),
              "Number of stall cycles due to full MSHR"),
     ADD_STAT(cacheLines, statistics::units::Count::get(),
              "Number of cache lines fetched"),
@@ -226,8 +238,16 @@ Fetch::FetchStatGroup::FetchStatGroup(CPU *cpu, Fetch *fetch)
 {
         icacheStallCycles
             .prereq(icacheStallCycles);
+        icacheStallCyclesSThread
+            .prereq(icacheStallCyclesSThread);
+        icacheStallCyclesWThread
+            .prereq(icacheStallCyclesWThread);
         insts
             .prereq(insts);
+        instsSThread
+            .prereq(instsSThread);
+        instsWThread
+            .prereq(instsWThread);
         branches
             .prereq(branches);
         predictedBranches
@@ -256,6 +276,10 @@ Fetch::FetchStatGroup::FetchStatGroup(CPU *cpu, Fetch *fetch)
             .prereq(pendingQuiesceStallCycles);
         icacheWaitRetryStallCycles
             .prereq(icacheWaitRetryStallCycles);
+        icacheWaitRetryStallCyclesSThread
+            .prereq(icacheWaitRetryStallCyclesSThread);
+        icacheWaitRetryStallCyclesWThread
+            .prereq(icacheWaitRetryStallCyclesWThread);
         icacheSquashes
             .prereq(icacheSquashes);
         tlbSquashes
@@ -1327,6 +1351,10 @@ Fetch::fetch(bool &status_change)
 
             if (fetchStatus[tid] == IcacheWaitResponse)
                 ++fetchStats.icacheStallCycles;
+            if (fetchStatus[tid] == IcacheWaitResponse && cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
+                ++fetchStats.icacheStallCyclesSThread;
+            if (fetchStatus[tid] == IcacheWaitResponse && cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak)
+                ++fetchStats.icacheStallCyclesWThread;
             else if (fetchStatus[tid] == ItlbWait)
                 ++fetchStats.tlbCycles;
             else
@@ -1434,7 +1462,10 @@ Fetch::fetch(bool &status_change)
                     staticInst = dec_ptr->decode(this_pc);
                     // Increment stat of fetched instructions.
                     ++fetchStats.insts;
-
+                    if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
+                        ++fetchStats.instsSThread;
+                    if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak)
+                        ++fetchStats.instsWThread;
                     if (staticInst->isMacroop()) {
                         curMacroop = staticInst;
                     } else {
@@ -1915,6 +1946,12 @@ Fetch::profileStall(ThreadID tid)
         ++fetchStats.icacheStallCycles;
         DPRINTF(Fetch, "[tid:%i] Fetch is waiting cache response!\n",
                 tid);
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+            ++fetchStats.icacheStallCyclesSThread;
+        }
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+            ++fetchStats.icacheStallCyclesWThread;
+        }
     } else if (fetchStatus[tid] == ItlbWait) {
         ++fetchStats.tlbCycles;
         DPRINTF(Fetch, "[tid:%i] Fetch is waiting ITLB walk to "
@@ -1931,6 +1968,12 @@ Fetch::profileStall(ThreadID tid)
         ++fetchStats.icacheWaitRetryStallCycles;
         DPRINTF(Fetch, "[tid:%i] Fetch is waiting for an I-cache retry!\n",
                 tid);
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+            ++fetchStats.icacheWaitRetryStallCyclesSThread;
+        }
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+            ++fetchStats.icacheWaitRetryStallCyclesWThread;
+        }
     } else if (fetchStatus[tid] == NoGoodAddr) {
             DPRINTF(Fetch, "[tid:%i] Fetch predicted non-executable address\n",
                     tid);
