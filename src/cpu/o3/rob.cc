@@ -85,7 +85,8 @@ ROB::ROB(CPU *_cpu, const BaseO3CPUParams &params)
             numThreadsS = 1;
         }
         
-        int part_amt = numEntries / numThreadsS;
+        // int part_amt = numEntries / numThreadsS;
+        int part_amt = numEntries / numThreads;
 
         //Divide ROB up evenly
         for (ThreadID tid = 0; tid < numThreads; tid++) {

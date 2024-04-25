@@ -51,6 +51,7 @@
 #include "params/BaseO3CPU.hh"
 #include "sim/full_system.hh"
 #include "debug/IQ.hh"
+#include "debug/pipelineView.hh"
 #include <algorithm>
 #include <utility>
 
@@ -74,6 +75,7 @@ Decode::Decode(CPU *_cpu, const BaseO3CPUParams &params)
       decodeWidth(params.decodeWidth),
       numThreads(params.numThreads),
       numDecodingThreads(params.smtNumDecodingThreads),
+      SingleThreadFetchiew(params.SingleThreadFetchIEW),
       stats(_cpu)
 {
     if (decodeWidth > MaxWidth)
@@ -90,6 +92,8 @@ Decode::Decode(CPU *_cpu, const BaseO3CPUParams &params)
         squashInst[tid] = nullptr;
         squashAfterDelaySlot[tid] = 0;
     }
+
+    printf("Decode SingleThreadFetchiew %d\n",SingleThreadFetchiew);
 }
 
 void
@@ -312,6 +316,7 @@ Decode::block(ThreadID tid)
 
     // Add the current inputs to the skid buffer so they can be
     // reprocessed when this stage unblocks.
+    // printf("PLACE3\n");
     skidInsert(tid);
 
     // If the decode status is blocked or unblocking then decode has not yet
@@ -327,6 +332,8 @@ Decode::block(ThreadID tid)
             toFetch->decodeBlock[tid] = true;
             wroteToTimeBuffer = true;
         }
+
+        //printf("SkidInset tid %d stall %d toFetch->decodeUnblock[tid] %d\n",tid,toFetch->decodeBlock[tid],toFetch->decodeUnblock[tid]);
 
         return true;
     }
@@ -478,6 +485,11 @@ Decode::skidInsert(ThreadID tid)
 
     // @todo: Eventually need to enforce this by not letting a thread
     // fetch past its skidbuffer
+    // printf("tid %d size %d MaxSize %d\n",tid,skidBuffer[tid].size(),skidBufferMax);
+    // if(skidBuffer[tid].size() > skidBufferMax) {
+    //     int a = a + 1;
+    //     printf("SOMETHING IS WRONG\n");
+    // }
     assert(skidBuffer[tid].size() <= skidBufferMax);
 }
 
@@ -537,10 +549,12 @@ Decode::updateStatus()
 void
 Decode::sortInsts()
 {
+    //printf("pre sort thread0 entries %d\n",insts[0].size());
     int insts_from_fetch = fromFetch->size;
     for (int i = 0; i < insts_from_fetch; ++i) {
         insts[fromFetch->insts[i]->threadNumber].push(fromFetch->insts[i]);
     }
+    //printf("post sort thread0 entries %d\n",insts[0].size());
 }
 
 void
@@ -605,6 +619,7 @@ Decode::checkSignalsAndUpdate(ThreadID tid)
     if (checkStall(tid)) {
         DPRINTF(Decode, "[tid:%i] Blocking because of check stall.\n",
                 tid);
+        //printf("STEP1\n");
         return block(tid);
     }
 
@@ -659,13 +674,17 @@ Decode::tick()
 
     DecodePreference.clear();
 
+    decode_vals_sent = 0;
+    decode_vals_0_sent = 0;
+    decode_vals_1_sent = 0;
+
     //Check stall and squash signals.
     while (threads != end) {
         ThreadID tid = *threads++;
 
         DPRINTF(Decode,"Processing [tid:%i]\n",tid);
         status_change =  checkSignalsAndUpdate(tid) || status_change;
-        
+
         // Daniel checking decode blocks
         int insts_available = decodeStatus[tid] == Unblocking ?
         skidBuffer[tid].size() : insts[tid].size();
@@ -680,59 +699,68 @@ Decode::tick()
             if (insts_available != 0 && (decodeStatus[tid] == Idle || decodeStatus[tid] == Unblocking || decodeStatus[tid] == Running)){
                 notBlockedW++;
             }
+        } 
+        if(!SingleThreadFetchiew) {
+            decode(status_change, tid);
         }
-        // decode(status_change, tid);
     }
 
     // use a scheduling policy here to only decode 1 thread in 1 cycle
     // only 1 thread decodes in a cycle
-    bool thread_decoded = false;
-    getDecodingThread();
-    for(int i = 0; i < DecodePreference.size() ; i++) {
-        ThreadID tid = DecodePreference[i];
-        if (decodeStatus[tid] == Blocked) {
-        ++stats.blockedCycles;
-        } else if (decodeStatus[tid] == Squashing) {
-            ++stats.squashCycles;
-        }
-        if(thread_decoded){
-            block(tid);
-        }
-
-        // Decode should try to decode as many instructions as its bandwidth
-        // will allow, as long as it is not currently blocked.
-
-        int insts_available = decodeStatus[tid] == Unblocking ?
-        skidBuffer[tid].size() : insts[tid].size();
-        if (insts_available != 0 && (decodeStatus[tid] == Running ||
-            decodeStatus[tid] == Idle)) {
-            DPRINTF(Decode, "[tid:%i] Not blocked, so attempting to run "
-                    "stage.\n",tid);
-
-            decodeInsts(tid);
-            numDecodedThreads++;
-            thread_decoded = true;
-        } else if (insts_available != 0 && decodeStatus[tid] == Unblocking) {
-            // Make sure that the skid buffer has something in it if the
-            // status is unblocking.
-            assert(!skidsEmpty());
-
-            // If the status was unblocking, then instructions from the skid
-            // buffer were used.  Remove those instructions and handle
-            // the rest of unblocking.
-            decodeInsts(tid);
-            numDecodedThreads++;
-
-            if (fetchInstsValid()) {
-                // Add the current inputs to the skid buffer so they can be
-                // reprocessed when this stage unblocks.
-                skidInsert(tid);
+    if(SingleThreadFetchiew) {
+        bool thread_decoded = false;
+        getDecodingThread();
+        for(int i = 0; i < DecodePreference.size() ; i++) {
+            ThreadID tid = DecodePreference[i];
+            if (decodeStatus[tid] == Blocked) {
+            ++stats.blockedCycles;
+            } else if (decodeStatus[tid] == Squashing) {
+                ++stats.squashCycles;
             }
-            status_change = unblock(tid) || status_change;
-            thread_decoded = true;
+            
+            // have only 1 thread issue in a cycle
+            if(thread_decoded){
+                block(tid);
+            }
+
+            // Decode should try to decode as many instructions as its bandwidth
+            // will allow, as long as it is not currently blocked.
+
+            int insts_available = decodeStatus[tid] == Unblocking ?
+            skidBuffer[tid].size() : insts[tid].size();
+            if (insts_available != 0 && (decodeStatus[tid] == Running ||
+                decodeStatus[tid] == Idle)) {
+                DPRINTF(Decode, "[tid:%i] Not blocked, so attempting to run "
+                        "stage.\n",tid);
+
+                decodeInsts(tid);
+                numDecodedThreads++;
+                thread_decoded = true;
+            } else if (insts_available != 0 && decodeStatus[tid] == Unblocking) {
+                // Make sure that the skid buffer has something in it if the
+                // status is unblocking.
+                assert(!skidsEmpty());
+
+                // If the status was unblocking, then instructions from the skid
+                // buffer were used.  Remove those instructions and handle
+                // the rest of unblocking.
+                decodeInsts(tid);
+                numDecodedThreads++;
+
+                if (fetchInstsValid()) {
+                    // Add the current inputs to the skid buffer so they can be
+                    // reprocessed when this stage unblocks.
+                    skidInsert(tid);
+                }
+                status_change = unblock(tid) || status_change;
+                thread_decoded = true;
+            }
         }
     }
 
+    DPRINTF(pipelineView,"decode_vals_sent %d\n",decode_vals_sent);
+    DPRINTF(pipelineView,"decode_vals_0_sent %d\n",decode_vals_0_sent);
+    DPRINTF(pipelineView,"decode_vals_1_sent %d\n",decode_vals_1_sent);
 
     if (sThreadCount > 0 && notBlockedS == 0){
         ++stats.stalledS;
@@ -764,7 +792,11 @@ Decode::tick()
     }
 
     // only 1 thread should try to decode in a cycle
-    assert(numDecodedThreads <= 1);
+    if(SingleThreadFetchiew) {
+        assert(numDecodedThreads <= 1);
+    }
+
+    // printf("exiting thread0 entries %d\n",insts[0].size());
 }
 
 void
@@ -804,6 +836,7 @@ Decode::decode(bool &status_change, ThreadID tid)
         if (fetchInstsValid()) {
             // Add the current inputs to the skid buffer so they can be
             // reprocessed when this stage unblocks.
+            // printf("PLACE2\n");
             skidInsert(tid);
         }
 
@@ -883,6 +916,12 @@ Decode::decodeInsts(ThreadID tid)
         ++(toRename->size);
         ++toRenameIndex;
         ++stats.decodedInsts;
+        decode_vals_sent++;
+        if(tid == 0) {
+            ++decode_vals_0_sent;
+        } else {
+            ++decode_vals_1_sent;
+        }
         --insts_available;
 
 #if TRACING_ON
@@ -945,6 +984,7 @@ Decode::decodeInsts(ThreadID tid)
         if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
             ++stats.blockingS;
         }        DPRINTF(Decode,"[tid:%d] Blocking but inst not empty\n",tid);
+        // printf("STEP3\n");
         block(tid);
     }
 

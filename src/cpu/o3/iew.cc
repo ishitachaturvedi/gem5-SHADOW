@@ -59,6 +59,7 @@
 #include "debug/O3PipeView.hh"
 #include "params/BaseO3CPU.hh"
 #include "debug/IQ.hh"
+#include "debug/pipelineView.hh"
 #include <algorithm>
 #include <utility>
 
@@ -84,8 +85,11 @@ IEW::IEW(CPU *_cpu, const BaseO3CPUParams &params)
       wbCycle(0),
       wbWidth(params.wbWidth),
       numThreads(params.numThreads),
+      numThreadsS(params.SThreads),
+      numThreadsW(params.WThreads),
       numDispatchingThreads(params.smtNumDispatchingThreads),
-      iewStats(cpu)
+      iewStats(cpu),
+      SingleThreadFetchiew(params.SingleThreadFetchIEW)
 {
     if (dispatchWidth > MaxWidth)
         fatal("dispatchWidth (%d) is larger than compiled limit (%d),\n"
@@ -107,7 +111,7 @@ IEW::IEW(CPU *_cpu, const BaseO3CPUParams &params)
     // Setup wire to read instructions coming from issue.
     fromIssue = issueToExecQueue.getWire(-issueToExecuteDelay);
     // fromIssue_S = issueToExecQueue.getWire(-issueToExecuteDelay);
-    // fromIssue_W = issueToExecQueue.getWire(-issueToExecuteDelay); // Ishita
+    // fromIssue_W = issueToExecQueue.getWire(-issueToExecuteDelay); 
 
     // Instruction queue needs the queue between issue and execute.
     instQueue.setIssueToExecuteQueue(&issueToExecQueue);
@@ -120,6 +124,8 @@ IEW::IEW(CPU *_cpu, const BaseO3CPUParams &params)
     updateLSQNextCycle = false;
 
     skidBufferMax = (renameToIEWDelay + 1) * params.renameWidth;
+
+    printf("iew SingleThreadFetchiew %d\n",SingleThreadFetchiew);
 }
 
 std::string
@@ -605,6 +611,13 @@ IEW::squash(ThreadID tid)
         }
 
         toRename->iewInfo[tid].dispatched++;
+        ++issue_vals_sent;
+        if(tid == 0) {
+            ++issue_vals_0_sent;
+        }
+        else {
+            ++issue_vals_1_sent;
+        }
         DPRINTF(IEW,"[tid:%d] dispatch add 1\n",tid);
         skidBuffer[tid].pop();
     }
@@ -976,12 +989,10 @@ IEW::sortInsts()
     for (int i = 0; i < insts_from_rename_W; ++i) {
         int tid = fromRename_W->insts[i]->threadNumber;
         if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
-        insts[fromRename_W->insts[i]->threadNumber].push(fromRename_W->insts[i]);
+            insts[fromRename_W->insts[i]->threadNumber].push(fromRename_W->insts[i]);
             DPRINTF(IEW, "[tid:%d] Inserting inst in instqueue\n",tid);
         }
     }
-
-
 }
 
 void
@@ -1000,6 +1011,12 @@ IEW::emptyRenameInsts(ThreadID tid)
         }
 
         toRename->iewInfo[tid].dispatched++;
+        ++issue_vals_sent;
+        if(tid == 0) {
+            ++issue_vals_0_sent;
+        } else {
+            ++issue_vals_1_sent;
+        }
         DPRINTF(IEW,"[tid:%d] dispatch add 4\n",tid);
 
         insts[tid].pop();
@@ -1120,10 +1137,16 @@ IEW::dispatchInsts(ThreadID tid)
     bool add_to_iq = false;
     int dis_num_inst = 0;
 
+
+    int dispatchWidthUse = dispatchWidth; // Ishita
+    // for W threads, we allow all w threads to use dispatchwidth/(num W threads)
+    // if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+    //     int dispatchWidthUse = dispatchWidth / numThreadsW;
+    // }
     // Loop through the instructions, putting them in the instruction
     // queue.
     for ( ; dis_num_inst < insts_to_add &&
-              dis_num_inst < dispatchWidth;
+              dis_num_inst < dispatchWidthUse;
           ++dis_num_inst)
     {
         inst = insts_to_dispatch.front();
@@ -1169,6 +1192,12 @@ IEW::dispatchInsts(ThreadID tid)
             }
 
             toRename->iewInfo[tid].dispatched++;
+            ++issue_vals_sent;
+            if(tid == 0) {
+                ++issue_vals_0_sent;
+            } else {
+                ++issue_vals_1_sent;
+            }
             DPRINTF(IEW,"[tid:%d] dispatch add 2\n",tid);
 
             continue;
@@ -1360,6 +1389,12 @@ IEW::dispatchInsts(ThreadID tid)
         }
 
         insts_to_dispatch.pop();
+        ++issue_vals_sent;
+        if(tid == 0) {
+            ++issue_vals_0_sent;
+        } else {
+            ++issue_vals_1_sent;
+        }
 
         toRename->iewInfo[tid].dispatched++;
 
@@ -1512,6 +1547,12 @@ IEW::executeInsts()
             // Consider this instruction executed so that commit can go
             // ahead and retire the instruction.
             inst->setExecuted();
+            ++execute_vals_sent;
+            if(tid == 0) {
+                ++execute_vals_0_sent;
+            } else {
+                ++execute_vals_1_sent;
+            }
 
             // Not sure if I should set this here or just let commit try to
             // commit any squashed instructions.  I like the latter a bit more.
@@ -1548,6 +1589,12 @@ IEW::executeInsts()
 
                 if(inst->fault == NoFault) {
                     inst->setNoFault();
+                    ++execute_vals_sent;
+                    if(tid == 0) {
+                        ++execute_vals_0_sent;
+                    } else {
+                        ++execute_vals_1_sent;
+                    }
                     if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
                         //assert(cpu->thread[tid]->MemInstIssued); //  test
                         cpu->thread[tid]->MemInstIssued = false;
@@ -1582,6 +1629,12 @@ IEW::executeInsts()
                 }
 
                 if(inst->fault == NoFault) {
+                    ++execute_vals_sent;
+                    if(tid == 0) {
+                        ++execute_vals_0_sent;
+                    } else {
+                        ++execute_vals_1_sent;
+                    }
                     inst->setNoFault();
                     if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
                         // assert(cpu->thread[tid]->MemInstIssued); // test
@@ -1622,6 +1675,12 @@ IEW::executeInsts()
                 }
 
                 if(inst->fault == NoFault) {
+                    ++execute_vals_sent;
+                    if(tid == 0) {
+                        ++execute_vals_0_sent;
+                    } else {
+                        ++execute_vals_1_sent;
+                    }
                     inst->setNoFault();
                     if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
                         //assert(cpu->thread[tid]->MemInstIssued); // test
@@ -1648,6 +1707,12 @@ IEW::executeInsts()
             // will be replaced and we will lose it.
             if (inst->getFault() == NoFault) {
                 inst->execute();
+                ++execute_vals_sent;
+                if(tid == 0) {
+                    ++execute_vals_0_sent;
+                } else {
+                    ++execute_vals_1_sent;
+                }
                 if (!inst->readPredicate())
                     inst->forwardOldRegs();
             }
@@ -1822,6 +1887,12 @@ IEW::writebackInsts()
             }
             iewStats.writebackCount[tid]++;
             iewStats.writebackCountTotal++;
+            writeback_vals_sent++;
+            if(tid == 0) {
+                ++writeback_vals_0_sent;
+            } else {
+                ++writeback_vals_1_sent;
+            }
             if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
                 iewStats.writebackCountS[tid]++;
                 iewStats.writebackCountSTotal++;
@@ -1849,6 +1920,18 @@ IEW::tick()
     unsigned wThreadCount = 0;
 
     ldstQueue.tick();
+
+    issue_vals_sent = 0;
+    execute_vals_sent = 0;
+    writeback_vals_sent = 0;
+
+    issue_vals_0_sent = 0;
+    execute_vals_0_sent = 0;
+    writeback_vals_0_sent = 0;
+
+    issue_vals_1_sent = 0;
+    execute_vals_1_sent = 0;
+    writeback_vals_1_sent = 0;
 
     sortInsts();
 
@@ -1892,85 +1975,103 @@ IEW::tick()
                 ++iewStats.blockingW;
             }
         }
-        // dispatch(tid);
+        if(!SingleThreadFetchiew) {
+            dispatch(tid);
+        }
     }
 
-    // use a scheduling policy here to only dispatch 1 thread in 1 cycle
-    // only 1 thread dispatches in a cycle
-    bool thread_dispatched = false;
-    getDispatchingThread();
-    for(int i = 0; i < DispatchPreference.size() ; i++) {
-        ThreadID tid = DispatchPreference[i];
-        if (dispatchStatus[tid] == Blocked) {
-            ++iewStats.blockCycles;
-            if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
-                ++iewStats.blockCyclesS;
-            } else {
-                ++iewStats.blockCyclesW;
+    bool SThreadSent = false;
+
+    if(SingleThreadFetchiew) 
+    {
+        // use a scheduling policy here to only dispatch 1 thread in 1 cycle
+        // only 1 thread dispatches in a cycle
+        bool thread_dispatched = false;
+        getDispatchingThread();
+
+        bool WThreadSent = false;
+
+        for(int i = 0; i < DispatchPreference.size() ; i++) {
+            ThreadID tid = DispatchPreference[i];
+            if (dispatchStatus[tid] == Blocked) {
+                ++iewStats.blockCycles;
+                if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+                    ++iewStats.blockCyclesS;
+                } else {
+                    ++iewStats.blockCyclesW;
+                }
+            } else if (dispatchStatus[tid] == Squashing) {
+                ++iewStats.squashCycles;
+                if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+                    ++iewStats.squashCyclesS;
+                } else {
+                    ++iewStats.squashCyclesW;
+                }
             }
-        } else if (dispatchStatus[tid] == Squashing) {
-            ++iewStats.squashCycles;
-            if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
-                ++iewStats.squashCyclesS;
-            } else {
-                ++iewStats.squashCyclesW;
+
+            // top have only 1 thread issue in a cycle
+            if(thread_dispatched && SingleThreadFetchiew){
+                block(tid);
+                toRename->iewUnblock[tid] = false;
+                toRename->iewBlock[tid] = true;
             }
-        }
+            // Dispatch should try to dispatch as many instructions as its bandwidth
+            // will allow, as long as it is not currently blocked.
+            int insts_available = dispatchStatus[tid] == Unblocking ?
+                    skidBuffer[tid].size() : insts[tid].size();
 
-        if(thread_dispatched){
-            block(tid);
-            toRename->iewUnblock[tid] = false;
-            toRename->iewBlock[tid] = true;
-        }
-        // Dispatch should try to dispatch as many instructions as its bandwidth
-        // will allow, as long as it is not currently blocked.
-        int insts_available = dispatchStatus[tid] == Unblocking ?
-                skidBuffer[tid].size() : insts[tid].size();
+            if ((insts_available &&(dispatchStatus[tid] == Running ||
+                dispatchStatus[tid] == Idle)) && !SThreadSent && !(WThreadSent && cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)) {
+                DPRINTF(IEW, "[tid:%i] Not blocked, so attempting to run "
+                        "dispatch.\n", tid);
 
-        if (insts_available &&(dispatchStatus[tid] == Running ||
-            dispatchStatus[tid] == Idle)) {
-            DPRINTF(IEW, "[tid:%i] Not blocked, so attempting to run "
-                    "dispatch.\n", tid);
+                dispatchInsts(tid);
+                dispatchedThreads++;
+                thread_dispatched = true;
+                ++iewStats.runningCycles;
+                if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+                    SThreadSent =  true;
+                    break;
+                } else   {
+                    WThreadSent =  true;
+                }
+            } else if (insts_available && dispatchStatus[tid] == Unblocking && !SThreadSent && !(WThreadSent && cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)) {
+                // Make sure that the skid buffer has something in it if the
+                // status is unblocking.
+                assert(!skidsEmpty());
 
-            dispatchInsts(tid);
-            dispatchedThreads++;
-            thread_dispatched = true;
-            ++iewStats.runningCycles;
-        } else if (insts_available && dispatchStatus[tid] == Unblocking) {
-            // Make sure that the skid buffer has something in it if the
-            // status is unblocking.
-            assert(!skidsEmpty());
+                // If the status was unblocking, then instructions from the skid
+                // buffer were used.  Remove those instructions and handle
+                // the rest of unblocking.
+                dispatchInsts(tid);
+                dispatchedThreads++;
+                thread_dispatched = true;
 
-            // If the status was unblocking, then instructions from the skid
-            // buffer were used.  Remove those instructions and handle
-            // the rest of unblocking.
-            dispatchInsts(tid);
-            dispatchedThreads++;
-            thread_dispatched = true;
+                ++iewStats.unblockCycles;
 
-            ++iewStats.unblockCycles;
-
-            // if (fromRename->size != 0) {
-            //     // Add the current inputs to the skid buffer so they can be
-            //     // reprocessed when this stage unblocks.
-            //     skidInsert(tid);
-            // }
-
-            if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
-                if (fromRename_S->size != 0) {
+                if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+                    if (fromRename_S->size != 0) {
+                        // Add the current inputs to the skid buffer so they can be
+                        // reprocessed when this stage unblocks.
+                        skidInsert(tid);
+                    }
+                } else {
+                    if (fromRename_W->size != 0) {
                     // Add the current inputs to the skid buffer so they can be
                     // reprocessed when this stage unblocks.
-                    skidInsert(tid);
-                }
-            } else {
-                if (fromRename_W->size != 0) {
-                // Add the current inputs to the skid buffer so they can be
-                // reprocessed when this stage unblocks.
-                    skidInsert(tid);
-                }
-            }   
+                        skidInsert(tid);
+                    }
+                }   
 
-            unblock(tid);
+                unblock(tid);
+
+                if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+                    SThreadSent =  true;
+                    break;
+                } else   {
+                    WThreadSent =  true;
+                }
+            }
         }
     }
     if (sThreadCount > 0 && notBlockedS == 0){
@@ -2092,7 +2193,22 @@ IEW::tick()
     }
 
     /* Only 1 thread dispatches in a cycle */
-    assert(dispatchedThreads <= 1);
+    if(SingleThreadFetchiew) {
+        assert(!(SThreadSent && dispatchedThreads > 1));
+    }
+    
+    DPRINTF(pipelineView,"issue_vals_sent %d\n",issue_vals_sent);
+    DPRINTF(pipelineView,"execute_vals_sent %d\n",execute_vals_sent);
+    DPRINTF(pipelineView,"writeback_vals_sent %d\n",writeback_vals_sent);
+
+    DPRINTF(pipelineView,"issue_vals_0_sent %d\n",issue_vals_0_sent);
+    DPRINTF(pipelineView,"execute_vals_0_sent %d\n",execute_vals_0_sent);
+    DPRINTF(pipelineView,"writeback_vals_0_sent %d\n",writeback_vals_0_sent);
+
+    DPRINTF(pipelineView,"issue_vals_1_sent %d\n",issue_vals_1_sent);
+    DPRINTF(pipelineView,"execute_vals_1_sent %d\n",execute_vals_1_sent);
+    DPRINTF(pipelineView,"writeback_vals_1_sent %d\n",writeback_vals_1_sent);
+
 
     //DPRINTF(IEW,"[tid:19] endoftickcheck %d dispatchStatus[tid] %d skidBuffer[tid].size() %d insts[tid].size() %d\n",toRename->iewInfo[19].dispatched,dispatchStatus[19],skidBuffer[19].size(),insts[19].size());
 }
@@ -2229,23 +2345,6 @@ IEW::SWiqCountPriority() {
 
     std::sort(ThreadAvailICountS.begin(), ThreadAvailICountS.end(), comparePairsIEW);
     std::sort(ThreadAvailICountW.begin(), ThreadAvailICountW.end(), comparePairsIEW);
-
-    // while (!SQ.empty()) {
-    //     ThreadID high_pri = SthreadMap[SQ.top()];
-    //     //DecodePreference[iter] = high_pri;
-    //     DecodePreference.push_back(high_pri);
-    //     SQ.pop();
-    //     
-    //     iter++;
-    // }
-    // while (!WQ.empty()) {
-    //     ThreadID high_pri = WthreadMap[WQ.top()];
-    //     //DecodePreference[iter] = high_pri;
-    //     DecodePreference.push_back(high_pri);
-    //     printf("THREAD CONSIDERED W_thread %d %d\n",DecodePreference[iter],high_pri);
-    //     WQ.pop();
-    //     iter++;
-    // }
 
     for (const auto& pair : ThreadAvailICountS) {
         DispatchPreference.push_back(pair.second);

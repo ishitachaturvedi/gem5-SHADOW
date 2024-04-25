@@ -143,6 +143,10 @@ class Rename
     /** Registers probes. */
     void regProbePoints();
 
+    int rename_vals_sent;
+    int rename_vals_0_sent;
+    int rename_vals_1_sent;
+
     /** Sets the main backwards communication time buffer pointer. */
     void setTimeBuffer(TimeBuffer<TimeStruct> *tb_ptr);
 
@@ -255,6 +259,8 @@ class Rename
 
     /* Hoe many S threads are renamed in a cycle */
     int SThreadsRenamed;
+
+    bool SingleThreadFetchiew;
 
   private:
     /** Reset this pipeline stage */
@@ -603,6 +609,41 @@ class Rename
         statistics::Scalar fullRegistersEvents;
         /** Stat for total number of renamed destination registers. */
         statistics::Scalar renamedOperands;
+
+        statistics::Scalar iewStallS;
+        statistics::Scalar iewStallW;
+        statistics::Scalar NoROBFreeS;
+        statistics::Scalar NoROBFreeW;
+        statistics::Scalar NoIQFreeS;
+        statistics::Scalar NoIQFreeW;
+        statistics::Scalar NoLSQFreeS;
+        statistics::Scalar NoLSQFreeW;
+        statistics::Scalar NoRenameFreeS;
+        statistics::Scalar NoRenameFreeW;
+        statistics::Scalar SerializeROBFullS;
+        statistics::Scalar SerializeROBFullW;
+        statistics::Scalar renameDeactivate;
+        statistics::Scalar BlockedBecauseOneThread;
+        statistics::Scalar resumeSerializeS;
+        statistics::Scalar resumeSerializeW;
+        statistics::Scalar resumeUnblockingS;
+        statistics::Scalar resumeUnblockingW;
+
+        statistics::Scalar RunningS;
+        statistics::Scalar RunningW;
+        statistics::Scalar IdleS;
+        statistics::Scalar IdleW;
+        statistics::Scalar StartSquashS;
+        statistics::Scalar StartSquashW;
+        statistics::Scalar SquashingS;
+        statistics::Scalar SquashingW;
+        statistics::Scalar BlockedS;
+        statistics::Scalar BlockedW;
+        statistics::Scalar UnblockingS;
+        statistics::Scalar UnblockingW;
+        statistics::Scalar SerializeStallS;
+        statistics::Scalar SerializeStallW;
+        statistics::Scalar unknownStallS;
 
 
         /** S and W thread information **/

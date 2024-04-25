@@ -102,6 +102,7 @@ class BaseCPU(ClockedObject):
     socket_id = Param.Unsigned(0, "Physical Socket identifier")
     numThreads = Param.Unsigned(1, "number of HW thread contexts")
     SThreads = Param.Unsigned(1, "number of Strong thread contexts")
+    SingleThreadFetchIEW  = Param.Bool(False, "Only 1 thread Fetches/decodes/issues in a cycle")
     
     WThreads = Param.Unsigned(0, "number of Strong thread contexts")
     runTillSThreads = Param.Bool(False, "Run only till S threads finishes execution")

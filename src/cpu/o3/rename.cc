@@ -52,6 +52,7 @@
 #include "debug/Rename.hh"
 #include "params/BaseO3CPU.hh"
 #include "debug/IQ.hh"
+#include "debug/pipelineView.hh"
 #include <algorithm>
 #include <utility>
 
@@ -70,6 +71,7 @@ Rename::Rename(CPU *_cpu, const BaseO3CPUParams &params)
       renameWidth(params.renameWidth),
       numThreads(params.numThreads),
       numRenamingThreads(params.smtNumRenamingThreads),
+      SingleThreadFetchiew(params.SingleThreadFetchIEW),
       stats(_cpu)
 {
     if (renameWidth > MaxWidth)
@@ -91,6 +93,8 @@ Rename::Rename(CPU *_cpu, const BaseO3CPUParams &params)
         serializeInst[tid] = nullptr;
         serializeOnNextInst[tid] = false;
     }
+
+    printf("rename SingleThreadFetchiew %d %d\n",SingleThreadFetchiew,params.SingleThreadFetchiew);
 }
 
 std::string
@@ -139,6 +143,70 @@ Rename::RenameStats::RenameStats(statistics::Group *parent)
                "Number of times rename has blocked due to ROB full for S threads"),
       ADD_STAT(ROBFullEventsW, statistics::units::Count::get(),
                "Number of times rename has blocked due to ROB full for W threads"),
+
+      ADD_STAT(iewStallS, statistics::units::Count::get(),
+               "Number of times rename has blocked due to IEW full for S threads"),
+      ADD_STAT(iewStallW, statistics::units::Count::get(),
+               "Number of times rename has blocked due to IEW full for W threads"),
+      ADD_STAT(NoROBFreeS, statistics::units::Count::get(),
+               "Number of times rename has blocked due to ROB full for S threads"),
+      ADD_STAT(NoROBFreeW, statistics::units::Count::get(),
+               "Number of times rename has blocked due to ROB full for W threads"),
+      ADD_STAT(NoIQFreeS, statistics::units::Count::get(),
+               "Number of times rename has blocked due to IQ full for S threads"),
+      ADD_STAT(NoIQFreeW, statistics::units::Count::get(),
+               "Number of times rename has blocked due to IQ full for W threads"),
+      ADD_STAT(NoLSQFreeS, statistics::units::Count::get(),
+               "Number of times rename has blocked due to LSQ full for S threads"),
+      ADD_STAT(NoLSQFreeW, statistics::units::Count::get(),
+               "Number of times rename has blocked due to LSQ full for W threads"),
+      ADD_STAT(NoRenameFreeS, statistics::units::Count::get(),
+               "Number of times rename has blocked due to Rename full for S threads"),
+      ADD_STAT(NoRenameFreeW, statistics::units::Count::get(),
+               "Number of times rename has blocked due to Rename full for W threads"),
+      ADD_STAT(SerializeROBFullS, statistics::units::Count::get(),
+               "Number of times rename has blocked due to SerializeROBFull full for S threads"),
+      ADD_STAT(SerializeROBFullW, statistics::units::Count::get(),
+               "Number of times rename has blocked due to SerializeROBFull full for W threads"),
+      ADD_STAT(renameDeactivate, statistics::units::Count::get(),
+               "Rename Deactivated"),
+      ADD_STAT(BlockedBecauseOneThread, statistics::units::Count::get(),
+                "Blocked because only 1 thread could go"),
+      ADD_STAT(resumeSerializeS, statistics::units::Count::get(),
+               "Serialize Resumed"),
+      ADD_STAT(resumeSerializeW, statistics::units::Count::get(),
+                "Serialize Resumed"),
+      ADD_STAT(resumeUnblockingS, statistics::units::Count::get(),
+                "Unblocking Resumed"),
+      ADD_STAT(resumeUnblockingW, statistics::units::Count::get(),
+                "Unblocking Resumed"),
+        ADD_STAT(RunningS, statistics::units::Count::get(),
+                    "RunningS Resumed"),
+        ADD_STAT(RunningW, statistics::units::Count::get(),
+                    "RunningS Resumed"),
+        ADD_STAT(IdleS, statistics::units::Count::get(),
+                    "IdleS Resumed"),
+        ADD_STAT(IdleW, statistics::units::Count::get(),
+                    "Unblocking Resumed"),
+        ADD_STAT(StartSquashS, statistics::units::Count::get(),
+                    "StartSquashS Resumed"),
+        ADD_STAT(StartSquashW, statistics::units::Count::get(),
+                    "StartSquashW Resumed"),
+        ADD_STAT(BlockedS, statistics::units::Count::get(),
+                    "BlockedS Resumed"),
+        ADD_STAT(BlockedW, statistics::units::Count::get(),
+                    "BlockedW Resumed"),
+        ADD_STAT(UnblockingS, statistics::units::Count::get(),
+                    "UnblockingS Resumed"),
+        ADD_STAT(UnblockingW, statistics::units::Count::get(),
+                    "UnblockingW Resumed"),
+        ADD_STAT(SerializeStallS, statistics::units::Count::get(),
+                    "SerializeStallS Resumed"),
+        ADD_STAT(SerializeStallW, statistics::units::Count::get(),
+                    "SerializeStallW Resumed"),
+        ADD_STAT(unknownStallS, statistics::units::Count::get(),
+                    "Unknown stall"),
+
       ADD_STAT(IQFullEvents, statistics::units::Count::get(),
                "Number of times rename has blocked due to IQ full"),
       ADD_STAT(IQFullEventsS, statistics::units::Count::get(),
@@ -584,8 +652,13 @@ Rename::tick()
     std::list<ThreadID>::iterator threads = activeThreads->begin();
     std::list<ThreadID>::iterator end = activeThreads->end();
 
+    rename_vals_sent = 0;
+    rename_vals_0_sent = 0;
+    rename_vals_1_sent = 0;
+
     RenamePreference.clear();
     // Check stall and squash signals.
+
     while (threads != end) {
         ThreadID tid = *threads++;
 
@@ -601,27 +674,63 @@ Rename::tick()
             if(insts_available != 0 && (renameStatus[tid] == Unblocking || renameStatus[tid] == Running)){
                 notBlockedS++;
             }
+            if(renameStatus[tid] == Running) {
+                ++stats.RunningS;
+            } else if(renameStatus[tid] == Idle) {
+                ++stats.IdleS;
+            } else if(renameStatus[tid] == StartSquash) {
+                ++stats.StartSquashS;
+            } else if(renameStatus[tid] == Squashing) {
+                ++stats.SquashingS;
+            } else if(renameStatus[tid] == Blocked) {
+                ++stats.BlockedS;
+            } else if(renameStatus[tid] == Unblocking) {
+                ++stats.UnblockingS;
+            } else if(renameStatus[tid] == SerializeStall) {
+                ++stats.SerializeStallS;
+            } else {
+                ++stats.unknownStallS;
+            }
         }
         if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
             wThreadCount++;
             if (insts_available != 0 && (renameStatus[tid] == Unblocking || renameStatus[tid] == Running)){
                 notBlockedW++;
             }
+            if(renameStatus[tid] == Running) {
+                ++stats.RunningW;
+            } else if(renameStatus[tid] == Idle) {
+                ++stats.IdleW;
+            } else if(renameStatus[tid] == StartSquash) {
+                ++stats.StartSquashW;
+            } else if(renameStatus[tid] == Squashing) {
+                ++stats.SquashingW;
+            } else if(renameStatus[tid] == Blocked) {
+                ++stats.BlockedW;
+            } else if(renameStatus[tid] == Unblocking) {
+                ++stats.UnblockingW;
+            } else if(renameStatus[tid] == SerializeStall) {
+                ++stats.SerializeStallW;
+            }
             // Always rename W threads
             rename(status_change, tid);
         }
+
+
     }
 
     // use a scheduling policy here to only rename 1 thread in 1 cycle
     // only 1 thread renames in a cycle
     bool thread_renamed = false;
     getRenamingThread();
+
     for(int i = 0; i < RenamePreference.size() ; i++) {
         ThreadID tid = RenamePreference[i];
         if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
             continue;
         } else if(thread_renamed){
             blockThisCycle = true;
+            ++stats.BlockedBecauseOneThread;
             block(tid);
         }
         if (renameStatus[tid] == Blocked) {
@@ -644,6 +753,11 @@ Rename::tick()
         // was set, then that means that we are resuming serializing
         // this cycle.  Tell the previous stages to block.
             if (resumeSerialize) {
+                if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+                    ++stats.resumeSerializeS;
+                } else {
+                    ++stats.resumeSerializeW;
+                }
                 resumeSerialize = false;
                 block(tid);
                 DPRINTF(Rename, "[tid:%i] Unblocking_at_4\n", tid);
@@ -651,6 +765,11 @@ Rename::tick()
             }
         } else if (renameStatus[tid] == Unblocking) {
             if (resumeUnblocking) {
+                if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+                    ++stats.resumeUnblockingS;
+                } else {
+                    ++stats.resumeUnblockingW;
+                }
                 block(tid);
                 resumeUnblocking = false;
                 DPRINTF(Rename, "[tid:%i] Unblocking_at_5\n", tid);
@@ -666,7 +785,6 @@ Rename::tick()
                     "[tid:%i] "
                     "Not blocked, so attempting to run stage.\n",
                     tid);
-
             renameInsts(tid);
             SThreadsRenamed++;
             thread_renamed = true;
@@ -686,6 +804,10 @@ Rename::tick()
             thread_renamed = true;
         }
     }
+
+    DPRINTF(pipelineView,"rename_vals_sent %d\n",rename_vals_sent);
+    DPRINTF(pipelineView,"rename_vals_0_sent %d\n",rename_vals_0_sent);
+    DPRINTF(pipelineView,"rename_vals_1_sent %d\n",rename_vals_1_sent);
 
     if (sThreadCount > 0 && notBlockedS == 0){
         ++stats.stalledS;
@@ -743,7 +865,9 @@ Rename::tick()
     }
 
     /* Upto 1 S thread can rename in a cycle */
-    assert(SThreadsRenamed <= 1);
+    if(SingleThreadFetchiew) {
+        assert(SThreadsRenamed <= 1);
+    }
 }
 
 void
@@ -1094,6 +1218,12 @@ Rename::renameInsts(ThreadID tid)
                 tid, inst->seqNum, inst->pcState());
 
         ++renamed_insts;
+        ++rename_vals_sent;
+        if(tid == 0) {
+            ++rename_vals_0_sent;
+        } else {
+            ++rename_vals_1_sent;
+        }
         if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
             ++renamed_insts_s;
         }
@@ -1241,7 +1371,7 @@ Rename::updateStatus()
         if (_status == Active) {
             _status = Inactive;
             DPRINTF(Activity, "Deactivating stage.\n");
-
+            ++stats.renameDeactivate;
             cpu->deactivateStage(CPU::RenameIdx);
         }
     }
@@ -1628,28 +1758,53 @@ bool
 Rename::checkStall(ThreadID tid)
 {
     bool ret_val = false;
+    bool isSType = (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong);
 
     if (stalls[tid].iew) {
         DPRINTF(Rename,"[tid:%i] Stall from IEW stage detected.\n", tid);
         ret_val = true;
+        if(isSType)
+            ++stats.iewStallS;
+        else    
+            ++stats.iewStallW;
     } else if (calcFreeROBEntries(tid) <= 0) {
         DPRINTF(Rename,"[tid:%i] Stall: ROB has 0 free entries.\n", tid);
         ret_val = true;
+        if(isSType)
+            ++stats.NoROBFreeS;
+        else    
+            ++stats.NoROBFreeW;
     } else if (calcFreeIQEntries(tid) <= 0) {
         DPRINTF(Rename,"[tid:%i] Stall: IQ has 0 free entries.\n", tid);
         ret_val = true;
+        if(isSType)
+            ++stats.NoIQFreeS;
+        else    
+            ++stats.NoIQFreeW;
     } else if (calcFreeLQEntries(tid) <= 0 && calcFreeSQEntries(tid) <= 0) {
         DPRINTF(Rename,"[tid:%i] Stall: LSQ has 0 free entries.\n", tid);
         ret_val = true;
+        if(isSType)
+            ++stats.NoLSQFreeS;
+        else    
+            ++stats.NoLSQFreeW;
     } else if (renameMap[tid]->numFreeEntries() <= 0) {
         DPRINTF(Rename,"[tid:%i] Stall: RenameMap has 0 free entries renameMap[tid].numFreeEntries() %d\n", tid,renameMap[tid]->numFreeEntries());
         ret_val = true;
+        if(isSType)
+            ++stats.NoRenameFreeS;
+        else    
+            ++stats.NoRenameFreeW;
     } else if (renameStatus[tid] == SerializeStall &&
                (!emptyROB[tid] || instsInProgress[tid])) {
         DPRINTF(Rename,"[tid:%i] Stall: Serialize stall and ROB is not "
                 "empty.\n",
                 tid);
         ret_val = true;
+        if(isSType)
+            ++stats.SerializeROBFullS;
+        else    
+            ++stats.SerializeROBFullW;
     }
 
     return ret_val;
@@ -1704,6 +1859,8 @@ Rename::checkSignalsAndUpdate(ThreadID tid)
     // If status was serialize stall
     //     check if ROB is empty and no insts are in flight to the ROB
 
+    bool isSType = (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong);
+
     readFreeEntries(tid);
     readStallSignals(tid);
 
@@ -1734,6 +1891,7 @@ Rename::checkSignalsAndUpdate(ThreadID tid)
     }
 
     if (renameStatus[tid] == Squashing) {
+
         // Switch status to running if rename isn't being told to block or
         // squash this cycle.
         if (resumeSerialize) {
@@ -1930,23 +2088,6 @@ Rename::SWiqCountPriority() {
 
     std::sort(ThreadAvailICountS.begin(), ThreadAvailICountS.end(), comparePairsRename);
     std::sort(ThreadAvailICountW.begin(), ThreadAvailICountW.end(), comparePairsRename);
-
-    // while (!SQ.empty()) {
-    //     ThreadID high_pri = SthreadMap[SQ.top()];
-    //     //DecodePreference[iter] = high_pri;
-    //     DecodePreference.push_back(high_pri);
-    //     SQ.pop();
-    //     
-    //     iter++;
-    // }
-    // while (!WQ.empty()) {
-    //     ThreadID high_pri = WthreadMap[WQ.top()];
-    //     //DecodePreference[iter] = high_pri;
-    //     DecodePreference.push_back(high_pri);
-    //     printf("THREAD CONSIDERED W_thread %d %d\n",DecodePreference[iter],high_pri);
-    //     WQ.pop();
-    //     iter++;
-    // }
 
     for (const auto& pair : ThreadAvailICountS) {
         RenamePreference.push_back(pair.second);

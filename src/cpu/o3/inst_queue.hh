@@ -433,6 +433,9 @@ class InstructionQueue
     /** Number of Total Threads*/
     ThreadID numThreads;
 
+    /** Number of active S threads. */
+    ThreadID numThreadsS;
+
     /** Pointer to list of active threads. */
     std::list<ThreadID> *activeThreads;
 

@@ -446,6 +446,21 @@ class IEW
      /** Number of threads that are actively decodng. */
     ThreadID numDispatchingThreads;
 
+    bool SingleThreadFetchiew;
+
+    int issue_vals_sent;
+    int execute_vals_sent;
+    int writeback_vals_sent;
+
+    int issue_vals_0_sent;
+    int execute_vals_0_sent;
+    int writeback_vals_0_sent;
+
+    int issue_vals_1_sent;
+    int execute_vals_1_sent;
+    int writeback_vals_1_sent;
+
+
     /** Fetch policy. */
     SMTFetchPolicy dispatchPolicy;
 
@@ -467,6 +482,8 @@ class IEW
 
     /** Number of active threads. */
     ThreadID numThreads;
+    ThreadID numThreadsS;
+    ThreadID numThreadsW;
 
     /** Pointer to list of active threads. */
     std::list<ThreadID> *activeThreads;

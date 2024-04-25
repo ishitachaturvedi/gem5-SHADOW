@@ -68,6 +68,7 @@
 #include "sim/eventq.hh"
 #include "sim/full_system.hh"
 #include "sim/system.hh"
+#include "debug/pipelineView.hh"
 
 namespace gem5
 {
@@ -101,6 +102,7 @@ Fetch::Fetch(CPU *_cpu, const BaseO3CPUParams &params)
       numThreads(params.numThreads),
       numFetchingThreads(params.smtNumFetchingThreads),
       icachePort(this, _cpu),
+      SingleThreadFetchiew(params.SingleThreadFetchIEW),
       finishTranslationEvent(this), fetchStats(_cpu, this)
 {
     if (numThreads > MaxThreads)
@@ -146,6 +148,8 @@ Fetch::Fetch(CPU *_cpu, const BaseO3CPUParams &params)
 
     // Get the size of an instruction.
     instSize = decoder[0]->moreBytesSize();
+
+    printf("fetch SingleThreadFetchiew %d\n",SingleThreadFetchiew);
 }
 
 std::string Fetch::name() const { return cpu->name() + ".fetch"; }
@@ -1068,56 +1072,75 @@ Fetch::tick()
         }
     }
 
-    // fetch->decode queue is filled here.
-    // Pick a random thread to start trying to grab instructions from
-    //Ishita
-    // auto tid_itr = activeThreads->begin();
-    // std::advance(tid_itr,
-    //         random_mt.random<uint8_t>(0, activeThreads->size() - 1));
+    int fetch_vals_sent = 0;
+    int fetch_vals_0_sent = 0;
+    int fetch_vals_1_sent = 0;
 
-    // while (available_insts != 0 && insts_to_decode < decodeWidth) {
-    //     ThreadID tid = *tid_itr;
-    //     if (!stalls[tid].decode && !fetchQueue[tid].empty()) {
-    //         const auto& inst = fetchQueue[tid].front();
-    //         toDecode->insts[toDecode->size++] = inst;
-    //         DPRINTF(Fetch, "[tid:%i] [sn:%llu] Sending instruction to decode "
-    //                 "from fetch queue. Fetch queue size: %i.\n",
-    //                 tid, inst->seqNum, fetchQueue[tid].size());
+    if(SingleThreadFetchiew) {
+        // filling the queue with only 1 thread in a cycle
+        // Prioritizing S thread and then W thread.
+        ToDecodeThreadPriority();
 
-    //         wroteToTimeBuffer = true;
-    //         fetchQueue[tid].pop_front();
-    //         insts_to_decode++;
-    //         available_insts--;
-    //     }
+        for(int i = 0; i < numThreads; i++) {
+            ThreadID tid = ToDecodePreference[i];
+            if (!stalls[tid].decode) {
+                int insts_to_decode = 0;
+                while(!fetchQueue[tid].empty() && insts_to_decode < decodeWidth) {
+                    const auto& inst = fetchQueue[tid].front();
+                    toDecode->insts[toDecode->size++] = inst;
+                    DPRINTF(Fetch, "[tid:%i] [sn:%llu] Sending instruction to decode "
+                        "from fetch queue. Fetch queue size: %i.\n",
+                        tid, inst->seqNum, fetchQueue[tid].size());
+                    wroteToTimeBuffer = true;
+                    fetchQueue[tid].pop_front();
+                    insts_to_decode++;
+                    fetch_vals_sent++;
+                    if(tid == 0) {
+                        fetch_vals_0_sent++;
+                    } else {
+                        fetch_vals_1_sent++;
+                    }
+                }
+                break;  // have only 1 thread issue in a cycle
+            }
+        }
+    } else {
+        // Pick a random thread to start trying to grab instructions from
+        auto tid_itr = activeThreads->begin();
+        std::advance(tid_itr,
+                random_mt.random<uint8_t>(0, activeThreads->size() - 1));
 
-    //     tid_itr++;
-    //     // Wrap around if at end of active threads list
-    //     if (tid_itr == activeThreads->end())
-    //         tid_itr = activeThreads->begin();
-    // }
-
-
-    // filling the queue with only 1 thread in a cycle
-    // Prioritizing S thread and then W thread.
-    ToDecodeThreadPriority();
-
-    for(int i = 0; i < numThreads; i++) {
-        ThreadID tid = ToDecodePreference[i];
-        if (!stalls[tid].decode) {
-            int insts_to_decode = 0;
-            while(!fetchQueue[tid].empty() && insts_to_decode < decodeWidth) {
+        while (available_insts != 0 && insts_to_decode < decodeWidth) {
+            ThreadID tid = *tid_itr;
+            if (!stalls[tid].decode && !fetchQueue[tid].empty()) {
                 const auto& inst = fetchQueue[tid].front();
                 toDecode->insts[toDecode->size++] = inst;
                 DPRINTF(Fetch, "[tid:%i] [sn:%llu] Sending instruction to decode "
-                    "from fetch queue. Fetch queue size: %i.\n",
-                    tid, inst->seqNum, fetchQueue[tid].size());
+                        "from fetch queue. Fetch queue size: %i.\n",
+                        tid, inst->seqNum, fetchQueue[tid].size());
+
                 wroteToTimeBuffer = true;
                 fetchQueue[tid].pop_front();
                 insts_to_decode++;
+                available_insts--;
+                fetch_vals_sent++;
+                if(tid == 0) {
+                    fetch_vals_0_sent++;
+                } else {
+                    fetch_vals_1_sent++;
+                }
             }
-            break;
+
+            tid_itr++;
+            // Wrap around if at end of active threads list
+            if (tid_itr == activeThreads->end())
+                tid_itr = activeThreads->begin();
         }
     }
+
+    DPRINTF(pipelineView,"fetch_vals_sent %d\n",fetch_vals_sent);
+    DPRINTF(pipelineView,"fetch_vals_0_sent %d\n",fetch_vals_0_sent);
+    DPRINTF(pipelineView,"fetch_vals_1_sent %d\n",fetch_vals_1_sent);
 
     // If there was activity this cycle, inform the CPU of it.
     if (wroteToTimeBuffer) {

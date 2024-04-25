@@ -69,6 +69,7 @@ if not env['CONF']['USE_NULL_ISA']:
     DebugFlag('Scoreboard')
     DebugFlag('StoreSet')
     DebugFlag('Writeback')
+    DebugFlag('pipelineView')
 
     CompoundFlag('O3CPUAll', [ 'Fetch', 'Decode', 'Rename', 'IEW', 'Commit',
         'IQ', 'ROB', 'FreeList', 'LSQ', 'LSQUnit', 'StoreSet', 'MemDepUnit',

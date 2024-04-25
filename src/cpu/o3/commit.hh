@@ -143,6 +143,10 @@ class Commit
     /** Returns the name of the Commit. */
     std::string name() const;
 
+    int commit_vals_sent;
+    int commit_vals_0_sent;
+    int commit_vals_1_sent;
+
     /** Registers probes. */
     void regProbePoints();
 
@@ -574,19 +578,19 @@ class Commit
         statistics::Scalar commitEligibleSamples;
 
         /** Instruciton Transit Time by instruction type (OpClass) */
-        statistics::Vector2d totalTransitTime;
-        statistics::Vector2d totalTransitTimeS;
-        statistics::Vector2d totalTransitTimeW;
-        statistics::Vector2d totalInstructionTime;
-        statistics::Vector2d totalInstructionTimeS;
-        statistics::Vector2d totalInstructionTimeW;
-        statistics::Vector2d IQTime;
-        statistics::Vector2d ROBTime;
-        statistics::Vector2d IEWTime;
-        statistics::Vector2d totalReadyTime;
-        statistics::Vector2d renameTime;
-        statistics::Vector2d decodeTime;
-        statistics::Vector2d fetchTime;
+        statistics::Vector totalTransitTime;
+        statistics::Vector totalTransitTimeS;
+        statistics::Vector totalTransitTimeW;
+        statistics::Vector totalInstructionTime;
+        statistics::Vector totalInstructionTimeS;
+        statistics::Vector totalInstructionTimeW;
+        statistics::Vector IQTime;
+        statistics::Vector ROBTime;
+        statistics::Vector IEWTime;
+        statistics::Vector totalReadyTime;
+        statistics::Vector renameTime;
+        statistics::Vector decodeTime;
+        statistics::Vector fetchTime;
 
         statistics::Scalar totalTransitTimeTotal;
         statistics::Scalar totalTransitTimeSTotal;

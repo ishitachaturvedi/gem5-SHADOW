@@ -903,7 +903,6 @@ InstructionQueue::scheduleReadyInsts()
     // Need to think hard. Do tomorrow.
 
     while (total_issued < totalWidth && order_it != order_end_it) {
-    //while (total_issued < totalWidth && order_it != order_end_it && (counter < listSize)) {
         OpClass op_class = (*order_it).queueType;
 
         DPRINTF(IQ, "Looking at class type %d\n",op_class);

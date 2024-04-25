@@ -110,10 +110,16 @@ class Decode
 
     void startupStage();
 
+    bool SingleThreadFetchiew;
+
     /** Clear all thread-specific states */
     void clearStates(ThreadID tid);
 
     void resetStage();
+
+    int decode_vals_sent;
+    int decode_vals_0_sent;
+    int decode_vals_1_sent;
 
     /** Returns the name of decode. */
     std::string name() const;

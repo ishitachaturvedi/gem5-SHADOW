@@ -210,6 +210,7 @@ class Fetch
     /** Returns the name of fetch. */
     std::string name() const;
 
+    bool SingleThreadFetchiew;
 
     /** Registers probes. */
     void regProbePoints();
