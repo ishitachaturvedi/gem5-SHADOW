@@ -147,19 +147,7 @@ cpu_type = {
         O3_ARM_grace.O3_ARM_grace_ICache,
         O3_ARM_grace.O3_ARM_grace_DCache,
         O3_ARM_grace.O3_ARM_grace_L2,
-    ),
-    "o3_grace_0.5thread": (
-        O3_ARM_grace.Grace12Wide_half_thread,
-        O3_ARM_grace.O3_ARM_grace_ICache,
-        O3_ARM_grace.O3_ARM_grace_DCache,
-        O3_ARM_grace.O3_ARM_grace_L2,
-    ),
-    "o3_grace_2threadDoubleResources": (
-        O3_ARM_grace.Grace12Wide_2threadDoubleResources,
-        O3_ARM_grace.O3_ARM_grace_ICache,
-        O3_ARM_grace.O3_ARM_grace_DCache,
-        O3_ARM_grace.O3_ARM_grace_L2,
-    ),
+    )
 }
 
 
@@ -204,6 +192,7 @@ class SimpleSeSystem(System):
             cpu.SThreads = args.SThreads
             cpu.WThreads = args.WThreads
             cpu.runTillSThreads = args.runTillSThreads
+            cpu.SingleThreadFetchIEW = args.SingleThreadFetchIEW
 
         # for cpu in self.cpu_cluster.cpus:
         #     cpu.numThreads = numThreads
@@ -359,6 +348,8 @@ def main():
     parser.add_argument('-runTillSThreads', type=bool, default=False)
 
     parser.add_argument('-env', type=str)
+
+    parser.add_argument('-SingleThreadFetchIEW', type=bool, default=False)
 
     args = parser.parse_args()
 

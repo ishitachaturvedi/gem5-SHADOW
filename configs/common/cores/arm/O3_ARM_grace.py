@@ -602,6 +602,7 @@ class Grace12Wide_1thread(ArmO3CPU):
     smtLSQPolicy = "Partitioned"
     smtROBPolicy = "Partitioned"
     smtIQPolicy = "Partitioned"
+    smtFetchPolicy = "SWFetchCount"
 class Grace12Wide_2thread(ArmO3CPU):
     # def __init__(self):
     #     super().__init__()
@@ -656,6 +657,7 @@ class Grace12Wide_2thread(ArmO3CPU):
     smtLSQPolicy = "Partitioned"
     smtROBPolicy = "Partitioned"
     smtIQPolicy = "Partitioned"
+    smtFetchPolicy = "SWFetchCount"
 
 class Grace12Wide_4thread(ArmO3CPU):
     # def __init__(self):
@@ -709,6 +711,7 @@ class Grace12Wide_4thread(ArmO3CPU):
     smtLSQPolicy = "Partitioned"
     smtROBPolicy = "Partitioned"
     smtIQPolicy = "Partitioned"
+    smtFetchPolicy = "SWFetchCount"
 
 class Grace12Wide_8thread(ArmO3CPU):
     # def __init__(self):
@@ -765,13 +768,14 @@ class Grace12Wide_8thread(ArmO3CPU):
     smtLSQPolicy = "Partitioned"
     smtROBPolicy = "Partitioned"
     smtIQPolicy = "Partitioned"
+    smtFetchPolicy = "SWFetchCount"
 
 # Instruction Cache
 class O3_ARM_grace_ICache(Cache):
     tag_latency = 1
     data_latency = 1
     response_latency = 1
-    mshrs = 2
+    mshrs = 12
     tgts_per_mshr = 8
     size = "32kB"
     assoc = 2
