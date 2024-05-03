@@ -48,7 +48,7 @@ from m5.objects.BranchPredictor import *
 
 
 class SMTFetchPolicy(ScopedEnum):
-    vals = ["RoundRobin", "Branch", "IQCount", "LSQCount","SWIQCount"]
+    vals = ["RoundRobin", "Branch", "IQCount", "LSQCount","SWIQCount","SWFetchCount"]
 
 class SMTQueuePolicy(ScopedEnum):
     vals = ["Dynamic", "Partitioned", "Threshold"]
