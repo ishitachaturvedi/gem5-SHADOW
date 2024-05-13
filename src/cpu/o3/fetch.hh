@@ -88,6 +88,9 @@ class Fetch
         /** Pointer to fetch. */
         Fetch *fetch;
 
+        Fetch *fetchS;
+        Fetch *fetchW;
+
       public:
         /** Default constructor. */
         IcachePort(Fetch *_fetch, CPU *_cpu);
@@ -106,6 +109,9 @@ class Fetch
     {
       protected:
         Fetch *fetch;
+
+        Fetch *fetchS;
+        Fetch *fetchW;
 
       public:
         FetchTranslation(Fetch *_fetch) : fetch(_fetch) {}
@@ -130,8 +136,14 @@ class Fetch
     {
       private:
         Fetch *fetch;
+        Fetch *fetchS;
+        Fetch *fetchW;
         Fault fault;
+        Fault faultS;
+        Fault faultW;
         RequestPtr req;
+        RequestPtr reqS;
+        RequestPtr reqW;
 
       public:
         FinishTranslationEvent(Fetch *_fetch)
@@ -289,6 +301,8 @@ class Fetch
     /* Prioritizes S threads followed by W threads */
     void SWiqCountPriority();
 
+    void SWFetchCountPriority();
+
   private:
     /** Reset this pipeline stage */
     void resetStage();
@@ -407,6 +421,9 @@ class Fetch
 
     /** Returns the approporiate thread to fetch by prioritizing S threads over W threads and using the IQ count policy internally for and W threads **/
     ThreadID SWiqCount();
+
+    /** Returns the approporiate thread to fetch by prioritizing S threads over W threads by comparing the number of entries in Fetch queue **/
+    ThreadID SWFetchCount();
 
     /** Returns the appropriate thread to fetch using the branch count
      * policy. */
@@ -567,6 +584,8 @@ class Fetch
 
     /** Instruction port. Note that it has to appear after the fetch stage. */
     IcachePort icachePort;
+    IcachePort icachePortS;
+    IcachePort icachePortW;
 
     /** Set to true if a pipelined I-cache request should be issued. */
     bool issuePipelinedIfetch[MaxThreads];

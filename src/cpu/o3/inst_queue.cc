@@ -982,10 +982,6 @@ InstructionQueue::scheduleReadyInsts()
         && ((!cpu->thread[tid]->ControlInstIssued && !(cpu->thread[tid]->MemInstIssued && cpu->thread[tid]->MemInstIssued!= issuing_inst->seqNum) &&  !olderIssuePending(issuing_inst->seqNum, issuing_inst->threadNumber)) || cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
         )
         {
-            // // test
-            // cpu->thread[tid]->MemInstIssued = false;
-            // cpu->thread[tid]->MemInstSeq = -1;
-
             // ensure that there is no OoO issue going on. No older seq number should have been marked as issued for this tid.
             if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak && youngerInstIssued(issuing_inst->seqNum, issuing_inst->threadNumber)) {
                 panic("[tid:%d] Instruction [sn:%llu] is being issued OoO for W thread!\n",tid,issuing_inst->seqNum);
@@ -1104,9 +1100,9 @@ InstructionQueue::scheduleReadyInsts()
                 ++freeEntries;
                 count[tid]--;
 
-                DPRINTF(IQ, "[tid:%d] Removing Mem instruction instruction [sn:%llu] PC %s "
-            "to the IQ QueueSize %d.\n",
-            issuing_inst->threadNumber,issuing_inst->seqNum, issuing_inst->pcState(),count[issuing_inst->threadNumber]);
+                DPRINTF(IQ, "[tid:%d] Removing non Mem instruction instruction [sn:%llu] PC %s "
+            "to the IQ QueueSize %d isNop %d.\n",
+            issuing_inst->threadNumber,issuing_inst->seqNum, issuing_inst->pcState(),count[issuing_inst->threadNumber],issuing_inst->isNop());
 
                 issuing_inst->clearInIQ();
             } else {

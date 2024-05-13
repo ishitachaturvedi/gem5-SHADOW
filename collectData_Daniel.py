@@ -194,28 +194,28 @@ def main():
     parent_folder = [
     #  "bc",
     #   "apsp",
-       "bfs"
+    #   "bfs"
     #   "community_detection",
     #   "pagerank",
     #   "triangle_counting",
     #   "connected_components",
     #    "unittest_res"
-    #    "matmul"
+        "matmul"
     ]  
 
     files_check = [
         [
-             "C1T1_7_5000_20",
+            # "C1T1_7_5000_20",
             # "C1T1_1_5000_20_half",
             # "C1T2_bfsSpagerankW",
-             "C1T2_bfsSpagerankW_double"
+            # "C1T2_bfsSpagerankW_double"
             #"C1T1_7_5000_20",
             #"C1T1_7_5000_20W",
             #"C1T2_bfsSbfsW",
             #"C1T2_bfsSbfsW_double"
-            #"test_matmulS",
+            "test_matmulS",
             #"test_matmulW",
-            #"test_matmulSW"
+            "test_matmulSW"
         ]
     ]
 

@@ -1717,8 +1717,8 @@ IEW::executeInsts()
                     inst->forwardOldRegs();
             }
 
-            DPRINTF(IEW, "[tid:%d] Execute: Set executed PC %s, [tid:%i] [sn:%llu].\n",
-                tid, inst->pcState(), inst->threadNumber,inst->seqNum);
+            DPRINTF(IEW, "[tid:%d] Execute: Set executed PC %s, [tid:%i] [sn:%llu] nop %d.\n",
+                tid, inst->pcState(), inst->threadNumber,inst->seqNum, inst->isNop());
 
             inst->setExecuted();
 
