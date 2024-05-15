@@ -16,63 +16,43 @@ import re
 # %%
 # generate a csv file which compares the stats of 2 files
 
-def read_val(fin, stat_names, stat_names_multithread, stage_specfic_stats):
+def read_val(fin, stat_names, stage_specfic_stats, cpu_stage_specfic_stats, cpulist):
 
-    pattern = r'\b\d+\b'
-
+    stat_name_main = []
     stat_val = []
-    all_stage_stats = []
-    stat_val_stage = []
     # add entries for general stats
     for i in range(len(stat_names)):
         stat_val.append(0)
+        if(len(cpulist) == 0):
+            stat_name_main.append("system.cpu_cluster.cpus."+stat_names[i])
+        else:
+            for i in len(cpulist):
+                stat_name_main.append("system.cpu_cluster."+cpulist[i]+"."+stat_names[i])
     # add entries for stage specific stats + place all stage specific stats in 1 list for easier initial check
     for i in range(len(stage_specfic_stats)):
-        stat_val_stage.append([])
         for j in range(len(stage_specfic_stats[i][1])):
-            stat_val_stage[i].append(0)
-            all_stage_stats.append(stage_specfic_stats[i][1][j])
-
+            stat_val.append(0)
+            stat_name_main.append("system.cpu_cluster."+stage_specfic_stats[i][0]+"."+stage_specfic_stats[i][1][j])
+    for i in range(len(cpu_stage_specfic_stats)):
+        for j in range(len(cpu_stage_specfic_stats[i][1])):
+            stat_val.append(0)
+            if(len(cpulist) == 0):
+                stat_name_main.append("system.cpu_cluster.cpus."+cpu_stage_specfic_stats[i][0]+"."+cpu_stage_specfic_stats[i][1][j])
+            else:
+                for i in len(cpulist):
+                    stat_name_main.append("system.cpu_cluster."+cpulist[i]+"."+cpu_stage_specfic_stats[i][0]+"."+cpu_stage_specfic_stats[i][1][j])
     for line in fin:
-        if any(keyword in line for keyword in (stat_names + stat_names_multithread + all_stage_stats)):
-            line = line.strip()
-            line1 =  line.split(' ')
-            filtered_list = [word for word in line1 if word != '']
-            index = -10000
-            index1 = -10000
-            index2 = -10000
-            splitted_words = filtered_list[0].split('.')
-            # take the first word
-            # consider the last word of splitted_words:
-            # Split based on ":"
-            # filtered_list1 = splitted_words[-1].split('::')
-            filtered_list1 = splitted_words[-1].split('.')
-            # now split if "_" 
-            filtered_list2 = filtered_list1[0].split('_')
-            final_word = filtered_list2[0]
-            for i in range(len(stat_names)):
-                if(stat_names[i].strip() == final_word.strip()):
-                    index = i
-                    break
-            if(index!=-10000):
-                if(filtered_list[1] != "nan"):
-                    number_value = float(filtered_list[1])
-                    stat_val[index] = number_value + stat_val[index]
-            if any(keyword1 in line for keyword1 in (all_stage_stats)):    
-                for i in range(len(stage_specfic_stats)):
-                    if(splitted_words[-2].strip() == stage_specfic_stats[i][0].strip()):
-                        for j in range(len(stage_specfic_stats[i][1])):
-                            if(stage_specfic_stats[i][1][j].strip() == final_word.strip()):
-                                index1 = i
-                                index2 = j
-                                break
-                if(index1!=-10000 and index2!=-10000):
-                    if(filtered_list[1] != "nan"):
-                        number_value = float(filtered_list[1])
-                        stat_val_stage[index1][index2] = number_value + stat_val_stage[index1][index2]
-    return stat_val, stat_val_stage
+        line = line.strip()
+        line1 =  line.split(' ')
+        if(line1[0] in (stat_name_main)):
+            line1 = [x for x in line1 if x != '']
+            index = stat_name_main.index(line1[0])
+            value =  float(line1[1])
+            stat_val[index] = value
 
-def get_stats(parent_folder, files_check, stat_names, stat_names_multithread, output_file, directory, stage_specfic_stats, top_line):
+    return stat_val
+
+def get_stats(parent_folder, files_check, stat_names, output_file, directory, stage_specfic_stats, cpu_stage_specfic_stats, top_line, cpulist):
 
     csv = open(output_file, "w")
 
@@ -81,18 +61,33 @@ def get_stats(parent_folder, files_check, stat_names, stat_names_multithread, ou
     line = line + "\n"
     csv.write(line)
 
+    stat_name_main = []
+
+    for i in range(len(stat_names)):
+        if(len(cpulist) == 0):
+            stat_name_main.append("system.cpu_cluster.cpus."+stat_names[i])
+        else:
+            for i in len(cpulist):
+                stat_name_main.append("system.cpu_cluster."+cpulist[i]+"."+stat_names[i])
+    # add entries for stage specific stats + place all stage specific stats in 1 list for easier initial check
+    for i in range(len(stage_specfic_stats)):
+        for j in range(len(stage_specfic_stats[i][1])):
+            stat_name_main.append("system.cpu_cluster."+stage_specfic_stats[i][0]+"."+stage_specfic_stats[i][1][j])
+    for i in range(len(cpu_stage_specfic_stats)):
+        for j in range(len(cpu_stage_specfic_stats[i][1])):
+            if(len(cpulist) == 0):
+                stat_name_main.append("system.cpu_cluster.cpus."+cpu_stage_specfic_stats[i][0]+"."+cpu_stage_specfic_stats[i][1][j])
+            else:
+                for i in len(cpulist):
+                    stat_name_main.append("system.cpu_cluster."+cpulist[i]+"."+cpu_stage_specfic_stats[i][0]+"."+cpu_stage_specfic_stats[i][1][j])
+
     # go over each file:
     for bmrk in parent_folder:
         # a subset has data for all S and W configs
         for file_subset in files_check:
             all_stats = []
-            all_stats_stage = []
-            for i in range(len(stat_names)):
+            for i in range(len(stat_name_main)):
                 all_stats.append([])
-            for i in range(len(stage_specfic_stats)):
-                all_stats_stage.append([])
-                for j in range(len(stage_specfic_stats[i][1])):
-                    all_stats_stage[i].append([])
             for file in file_subset:
                 file_to_read = directory +"/"+ bmrk +"/"+ file + "/stats.txt"
                 dir_ro_search = directory +"/"+ bmrk +"/"+ file
@@ -101,38 +96,25 @@ def get_stats(parent_folder, files_check, stat_names, stat_names_multithread, ou
                 files_in_directory = os.listdir(dir_to_search_in)
                 if file_name in files_in_directory:
                     fin=open(file_to_read,"r")
-                    packed_stats, packed_stats_stage =  read_val(fin, stat_names, stat_names_multithread, stage_specfic_stats)
-                    for i in range(len(packed_stats)):
-                        all_stats[i].append(packed_stats[i])
-                    for i in range(len(packed_stats_stage)):
-                        for j in range(len(packed_stats_stage[i])):
-                            all_stats_stage[i][j].append(packed_stats_stage[i][j])
+                    stat_val=  read_val(fin, stat_names, stage_specfic_stats, cpu_stage_specfic_stats, cpulist)
+                    for i in range(len(stat_val)):
+                        all_stats[i].append(stat_val[i])
                 else:
-                    for i in range(len(stat_names)):
+                    for i in range(len(stat_val)):
                         all_stats[i].append(-1)
-        
+
+
             os.chdir(directory)
-            for i in range(len(stat_names)):
+            for i in range(len(stat_name_main)):
                 # place value in the csv 
                 substring = file_subset[0][2:]
                 line = substring + ","
                 line = line + bmrk + ","
-                line = line + stat_names[i] + ","
+                line = line + stat_name_main[i] + ","
                 for j in range(len(file_subset)):
                     line = line + str(all_stats[i][j]) + ","
                 line = line + "\n"
                 csv.write(line)
-            # make entries fir stage specific stats
-            for i in range(len(stage_specfic_stats)):
-                for j in range(len(stage_specfic_stats[i][1])):
-                    substring = file_subset[0][2:]
-                    line = substring + ","
-                    line = line + bmrk + ","
-                    line = line + stage_specfic_stats[i][0]+"."+stage_specfic_stats[i][1][j] + ","
-                    for k in range(len(file_subset)):
-                        line = line + str(all_stats_stage[i][j][k]) + ","
-                    line = line + "\n"
-                    csv.write(line)
 
 
 def plot_per_cycle_status(file):
@@ -380,143 +362,6 @@ def plot_per_cycle_status(file):
                 commit1 = []
                 cycles1 = []
 
-        
-    # print("fetch ",len(fetch)," decode ",len(decode)," rename ",len(rename)," issue ",len(issue)," execute ",len(execute)," writeback ",len(writeback)," commit ",len(commit))
-
-    # for i in range(len(writeback)):
-    #     cycles.append(i)
-
-    
-
-    # # Loop through your data and plot
-    # for i in range(20):
-    #     # Update start_index and end_index
-    #     start_index = start_index + i * 50000
-    #     end_index = start_index + 50000
-
-    #     if(start_index>= len(cycles)):
-    #         break
-
-    #     # Check if end_index exceeds the length of cycles
-    #     if end_index >= len(cycles):
-    #         end_index = len(cycles)
-        
-    #     # Create new figure and axis for Fetch
-    #     fig_fetch, ax_fetch = plt.subplots()
-    #     ax_fetch.scatter(cycles[start_index:end_index], fetch[start_index:end_index], label='Fetch', marker=marker_styles[0])
-    #     ax_fetch.scatter(cycles[start_index:end_index], fetch0[start_index:end_index], label='Fetch0', marker=marker_styles[1])
-    #     ax_fetch.scatter(cycles[start_index:end_index], fetch1[start_index:end_index], label='Fetch1', marker=marker_styles[2])
-    #     # Adding labels and title
-    #     ax_fetch.set_xlabel('Cycle')
-    #     ax_fetch.set_ylabel('Time')
-    #     ax_fetch.set_title('Fetch')
-    #     # Adding legend
-    #     ax_fetch.legend()
-    #     fig_fetch.set_size_inches(20, 12)
-    #     # Save the plot
-    #     val = str(i)
-    #     plt.savefig('plots/Fetch_' + file   + val + '.png')
-    #     plt.close(fig_fetch)
-
-    #     # Create new figure and axis for Decode
-    #     fig_decode, ax_decode = plt.subplots()
-    #     ax_decode.scatter(cycles[start_index:end_index], decode[start_index:end_index], label='Decode', marker=marker_styles[0])
-    #     ax_decode.scatter(cycles[start_index:end_index], decode0[start_index:end_index], label='Decode0', marker=marker_styles[1])
-    #     ax_decode.scatter(cycles[start_index:end_index], decode1[start_index:end_index], label='Decode1', marker=marker_styles[2])
-    #     # Adding labels and title
-    #     ax_decode.set_xlabel('Cycle')
-    #     ax_decode.set_ylabel('Time')
-    #     ax_decode.set_title('Decode')
-    #     # Adding legend
-    #     ax_decode.legend()
-    #     fig_decode.set_size_inches(20, 12)
-    #     # Save the plot
-    #     plt.savefig('plots/Decode_' + file   + val + '.png')
-    #     plt.close(fig_decode)        
-
-    #     # Create new figure and axis for Rename
-    #     fig_rename, ax_rename = plt.subplots()
-    #     ax_rename.scatter(cycles[start_index:end_index], rename[start_index:end_index], label='Rename', marker=marker_styles[0])
-    #     ax_rename.scatter(cycles[start_index:end_index], rename0[start_index:end_index], label='Rename0', marker=marker_styles[1])
-    #     ax_rename.scatter(cycles[start_index:end_index], rename1[start_index:end_index], label='Rename1', marker=marker_styles[2])
-    #     # Adding labels and title
-    #     ax_rename.set_xlabel('Cycle')
-    #     ax_rename.set_ylabel('Time')
-    #     ax_rename.set_title('Rename')
-    #     # Adding legend
-    #     ax_rename.legend()
-    #     fig_rename.set_size_inches(20, 12)
-    #     # Save the plot
-    #     val = str(i)
-    #     plt.savefig('plots/Rename_' + file  + val + '.png')
-    #     plt.close(fig_rename)
-
-    #     # Create new figure and axis for Issue
-    #     fig_issue, ax_issue = plt.subplots()
-    #     ax_issue.scatter(cycles[start_index:end_index], issue[start_index:end_index], label='Issue', marker=marker_styles[0])
-    #     ax_issue.scatter(cycles[start_index:end_index], issue0[start_index:end_index], label='Issue0', marker=marker_styles[1])
-    #     ax_issue.scatter(cycles[start_index:end_index], issue1[start_index:end_index], label='Issue1', marker=marker_styles[2])
-    #     # Adding labels and title
-    #     ax_issue.set_xlabel('Cycle')
-    #     ax_issue.set_ylabel('Time')
-    #     ax_issue.set_title('Issue')
-    #     # Adding legend
-    #     ax_issue.legend()
-    #     fig_issue.set_size_inches(20, 12)
-    #     # Save the plot
-    #     plt.savefig('plots/Issue_' + file  + val + '.png')
-    #     plt.close(fig_issue)
-
-    #     # Create new figure and axis for Execute
-    #     fig_execute, ax_execute = plt.subplots()
-    #     ax_execute.scatter(cycles[start_index:end_index], execute[start_index:end_index], label='Execute', marker=marker_styles[0])
-    #     ax_execute.scatter(cycles[start_index:end_index], execute0[start_index:end_index], label='Execute0', marker=marker_styles[1])
-    #     ax_execute.scatter(cycles[start_index:end_index], execute1[start_index:end_index], label='Execute1', marker=marker_styles[2])
-    #     # Adding labels and title
-    #     ax_execute.set_xlabel('Cycle')
-    #     ax_execute.set_ylabel('Time')
-    #     ax_execute.set_title('Execute')
-    #     # Adding legend
-    #     ax_execute.legend()
-    #     fig_execute.set_size_inches(20, 12)
-    #     # Save the plot
-    #     plt.savefig('plots/Execute_' + file  + val + '.png')
-    #     plt.close(fig_execute)
-
-    #     # Create new figure and axis for Writeback
-    #     fig_writeback, ax_writeback = plt.subplots()
-    #     ax_writeback.scatter(cycles[start_index:end_index], writeback[start_index:end_index], label='Writeback', marker=marker_styles[0])
-    #     ax_writeback.scatter(cycles[start_index:end_index], writeback0[start_index:end_index], label='Writeback0', marker=marker_styles[1])
-    #     ax_writeback.scatter(cycles[start_index:end_index], writeback1[start_index:end_index], label='Writeback1', marker=marker_styles[2])
-    #     # Adding labels and title
-    #     ax_writeback.set_xlabel('Cycle')
-    #     ax_writeback.set_ylabel('Time')
-    #     ax_writeback.set_title('Writeback')
-    #     # Adding legend
-    #     ax_writeback.legend()
-    #     fig_writeback.set_size_inches(20, 12)
-    #     # Save the plot
-    #     plt.savefig('plots/Writeback_' + file + val + '.png')
-    #     plt.close(fig_writeback)
-
-    #     # Create new figure and axis for Commit
-    #     fig_commit, ax_commit = plt.subplots()
-    #     ax_commit.scatter(cycles[start_index:end_index], commit[start_index:end_index], label='Commit', marker=marker_styles[0])
-    #     ax_commit.scatter(cycles[start_index:end_index], commit0[start_index:end_index], label='Commit0', marker=marker_styles[1])
-    #     ax_commit.scatter(cycles[start_index:end_index], commit1[start_index:end_index], label='Commit1', marker=marker_styles[2])
-    #     # Adding labels and title
-    #     ax_commit.set_xlabel('Cycle')
-    #     ax_commit.set_ylabel('Time')
-    #     ax_commit.set_title('Commit')
-    #     # Adding legend
-    #     ax_commit.legend()
-    #     fig_commit.set_size_inches(20, 12)
-    #     # Save the plot
-    #     plt.savefig('plots/Commit_' + file + val + '.png')
-    #     plt.close(fig_commit)
-
-
-
 def main():
 
     parent_folder = [
@@ -524,40 +369,44 @@ def main():
     ]  
 
     files_check = [
-        [
-            "matmulS_1tc",
-            "matmulS_f",
-            "matmulS3W_1tc",
-            "matmulS3W_f",
-            "matmulS1W_1tc",
-            "matmulS1W_f",
-            "matmulS7W_1tc",
-            "matmulS7W_1tc_f"
-        ],
-        [
-            "bcS_1tc",
-            "bcS_f",
-            "bcS3W_1tc",
-            "bcS3W_f",
-            "bcS1W_1tc",
-            "bcS1W_f",
-            "bcS7W_1tc",
-            "bcS7W_f"
-        ]
         # [
+        #     "matmulS_1tc",
+        #     "matmulS_f",
+        #     "matmulS3W_1tc",
+        #     "matmulS3W_f",
+        #     "matmulS1W_1tc",
+        #     "matmulS1W_f",
+        #     "matmulS7W_1tc",
+        #     "matmulS7W_1tc_f"
+        # ],
+        # [
+        #     "bcS_1tc",
         #     "bcS_f",
+        #     "bcS3W_1tc",
+        #     "bcS3W_f",
+        #     "bcS1W_1tc",
+        #     "bcS1W_f",
+        #     "bcS7W_1tc",
         #     "bcS7W_f"
         # ]
         # [
-        #     "test",
-        #     "test_red"
-        # ]
+        #     "matmulS_f",
+        #     "matmulS1W_f",
+        #     "matmulS_f_4assoc64kbi",
+        #     "matmulS1W_f_4assoc64kbi"
+        # ],
+        [
+            "bcS_f",
+            "bcS7W_f",
+            "bcS_f_12mshr",
+            "bcS7W_f_12mshr"
+        ]
     ]
 
     # global stats
     stat_names = ["simTicks","issueRate","numIssuedDist::mean","statFuBusyPerThreadCollective","statStalledOnControlInstructionPerThread","statNumIssueNotPossiblePerThread","fuBusyS","fuBusyW","totalIpc", "cycleCountS", "cycleCountW","statFuNoFree::IntAlu","statFuNoFree::IntMult","statFuNoFree::IntDiv","statFuNoFree::MemRead","statFuNoFree::MemWrite","numIssuedDist::0","numIssuedDist::1","numIssuedDist::2","numIssuedDist::3","numIssuedDist::4","numIssuedDist::5","numIssuedDist::6","numIssuedDist::7","numIssuedDist::8","numIssuedDist::9","numIssuedDist::10","numIssuedDist::11","numIssuedDist::12","ipc::0"]
 
-    fetch_stats = ["cacheStallCycles","icacheStallCyclesSThread","icacheStallCyclesWThread","noActiveThreadStallCycles","blockedCycles","insts","instsSThread","instsWThread","branches","cycles","blockedCycles","noActiveThreadStallCycles","icacheWaitRetryStallCycles","cacheLines","icacheSquashes","tlbSquashes","idleRate","stalledS","stalledW","stalledSNotW","stalledSAndW","notStalled","multipleRunning","nisnDist::0","nisnDist::1","nisnDist::2","nisnDist::3","nisnDist::4","nisnDist::5","nisnDist::6","nisnDist::7","nisnDist::8","nisnDist::9","nisnDist::10","nisnDist::11","nisnDist::12","nisnDist::mean","squashCycles"]
+    fetch_stats = ["cacheStallCycles","icacheStallCycles","icacheStallCyclesSThread","icacheStallCyclesWThread","noActiveThreadStallCycles","blockedCycles","insts","instsSThread","instsWThread","branches","cycles","blockedCycles","noActiveThreadStallCycles","icacheWaitRetryStallCycles","cacheLines","icacheSquashes","tlbSquashes","idleRate","stalledS","stalledW","stalledSNotW","stalledSAndW","notStalled","multipleRunning","nisnDist::0","nisnDist::1","nisnDist::2","nisnDist::3","nisnDist::4","nisnDist::5","nisnDist::6","nisnDist::7","nisnDist::8","nisnDist::9","nisnDist::10","nisnDist::11","nisnDist::12","nisnDist::mean","squashCycles"]
 
     decode_stats = ["idleCycles","blockedCycles","runCycles","unblockCycles","branchMispred","branchMispredSThread","branchMispredWThread","controlMispred","stalledS","stalledW","notStalled","blocking","blockingS"]
 
@@ -569,22 +418,30 @@ def main():
 
     dcache_stats = ["overallMissRate::total","overallMissLatency::total"]
 
-    icache_stats = ["overallMissRate::total","overallMissLatency::total"]
+    icache_stats = ["overallMissRate::total","overallMissLatency::total","demandHits::total","overallHits::total","demandMisses::total","overallMisses::total","overallAvgMissLatency::total","blockedCycles::no_mshrs","blockedCycles::no_targets","avgBlocked::no_mshrs","avgBlocked::no_targets","replacements","overallAvgMshrMissLatency::total","tags.warmupTick","tags.avgRefs","tags.totalRefs","tags.avgOccs::total","demandMissLatency::total","demandAccesses::total","demandAvgMissLatency::total","demandMshrMissLatency::total","demandAvgMshrMissLatency::total","tags.avgOccs::total","ReadReq.mshrMissLatency::cpu_cluster.cpus.inst","ReadReq.avgMissLatency::cpu_cluster.cpus.inst","overallAvgMissLatency::cpu_cluster.cpus.inst","overallMshrMisses::total"]
 
-    l2_stats = ["overallMissRate::total","overallMissLatency::total"]
+    l2_stats = ["overallMissRate::total","overallMissLatency::total","demandHits::total","demandMisses::total","demandMissLatency::total","demandAccesses::total","demandAvgMissLatency::total","demandAvgMissLatency::cpu_cluster.cpus.inst","demandAvgMissLatency::cpu_cluster.cpus.data","overallMissRate::cpu_cluster.cpus.inst","overallMissRate::cpu_cluster.cpus.data","demandAccesses::cpu_cluster.cpus.inst",".overallMshrMissLatency::cpu_cluster.cpus.inst","overallMshrMissLatency::cpu_cluster.cpus.inst"]
 
-    stage_specfic_stats = [["commit",commit_stats],["iew",iew_stats],["rename",rename_stats],["decode",decode_stats],["fetch",fetch_stats],["dcache",dcache_stats],["icache",icache_stats],["l2",l2_stats]]
+    lsq = ["loadToUse::mean"]
 
-    # stage_specfic_stats = [["commit",commit_stats],["rename",rename_stats]]
+    #stage_specfic_stats = [["commit",commit_stats],["iew",iew_stats],["rename",rename_stats],["decode",decode_stats],["fetch",fetch_stats],["dcache",dcache_stats],["icache",icache_stats],["l2",l2_stats]]
 
-    stat_names_multithread = []
+    cpus = []
+
+    # where stats are per CPU
+    cpu_stage_specfic_stats = [["fetch",fetch_stats],["icache",icache_stats]]
+
+    stage_specfic_stats = [["l2",l2_stats],["lsq0",lsq]]
 
     output_file = "stats.csv"
-    top_line = "input,benchmark,stat,Strong1t,Strongf,Strong+1Weak1tc,Strong+1Weakf,Strong+2Weak1tc,Strong+2Weakf,Strong+7Weak1tc,Strong+7Weakf"
-    #top_line = "input,benchmark,stat,Strong1t,Strongf"
+    #top_line = "input,benchmark,stat,Strong1t,Strongf,Strong+1Weak1tc,Strong+1Weakf,Strong+2Weak1tc,Strong+2Weakf,Strong+7Weak1tc,Strong+7Weakf"
+    top_line = "input,benchmark,stat,bcS_f,bcS7W_f,bcS_f_4assoc64kbi,bcS7W_f_4assoc64kbi"
     directory = os.getcwd()
 
-    get_stats(parent_folder, files_check, stat_names, stat_names_multithread, output_file, directory, stage_specfic_stats, top_line)
+    # cpulist = ["cpus0","cpus1","cpus2"]
+    cpulist = []
+
+    get_stats(parent_folder, files_check, stat_names, output_file, directory, stage_specfic_stats, cpu_stage_specfic_stats, top_line, cpulist)
 
     # %% plot a graph to see how many instructions is being fetched/decoded/.. etc 
 

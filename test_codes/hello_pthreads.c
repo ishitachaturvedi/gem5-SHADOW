@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
         pthread_join(threads[t], NULL);
     }
 
-    fprintf(stderr, "All threads have completed.\n");
+    fprintf(stderr, "All threads have completed in Pthreads.\n");
 
     pthread_exit(NULL);
 }

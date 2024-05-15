@@ -880,7 +880,7 @@ Decode::decodeInsts(ThreadID tid)
         insts_to_decode.pop();
 
         DPRINTF(Decode, "[tid:%i] Processing instruction [sn:%lli] with "
-                "PC %s\n", tid, inst->seqNum, inst->pcState());
+                "PC %s isnop %d\n", tid, inst->seqNum, inst->pcState(), inst->isNop());
 
         if (inst->isSquashed()) {
             DPRINTF(Decode, "[tid:%i] Instruction %i with PC %s is "

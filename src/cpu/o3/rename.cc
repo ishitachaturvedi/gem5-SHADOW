@@ -1214,8 +1214,8 @@ Rename::renameInsts(ThreadID tid)
 
         DPRINTF(Rename,
                 "[tid:%i] "
-                "Processing instructions3 here [sn:%llu] with PC %s.\n",
-                tid, inst->seqNum, inst->pcState());
+                "Processing instructions3 here [sn:%llu] with PC %s isnop %d.\n",
+                tid, inst->seqNum, inst->pcState(), inst->isNop());
 
         ++renamed_insts;
         ++rename_vals_sent;

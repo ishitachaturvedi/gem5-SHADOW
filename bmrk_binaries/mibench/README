@@ -1,0 +1,33 @@
+MiBench is a benchmark suite for embedded devices. bin folder has the ARM binaries.
+input_data has the inputs and input_generation generates inputs for all bmrks.
+
+Explaination to run benchmarks:
+
+Automotive/industrial:
+1. basicmath: simple math calculations. ./basicmath_ARM 1
+2. bitcount: # bits in array of integers. ./bitcount_ARM 2 crashes in gem5
+3. qsort: quicksort. ./qsort_small_ARM 3 ../input_data/qsort_small_input.txt
+4. Susan: Image recognition. Vision based quality assurance. ./susan_ARM ../input_data/susan_input.pgm out.pmg
+Network:
+5. dijstra: Graph. ./dijkstra_ARM 3 ../input_data/dijkstra_input.dat  (SEGFAULTS)
+6. particia:  Patricia tries are used to represent routing tables in network applications. ./patricia_ARM ../input_data/patricia_input.udp 
+Security:
+8. sha: Secure hash algorithm. DOES NOT RUN
+9. rijndael encrypt/decrypt: does not build
+10. pgp: Dos not build
+Consumer Devices:
+11. jpeg encode/decode: ./cjpeg_ARM ../input_data/jpeg_input.ppm 
+12. tiff: None build. Will spend time later.
+13. lame: MP3 decoder. Buffer overflow on normal CPU
+14. mad: Mad is a high-quality MPEG audio decoder.Does not build
+15. typeset: Typeset is a general typesetting tool, that has a front-end processor for HTML. Check run_typeset.sh. All libs are the in the typeset folder (bin/typeset)
+Office:
+16. ghostscript: Does not build
+17. stringsearch: This benchmark searches for given words in phrases using a case insensitive comparison algorithm. ./stringsearch_ARM 1
+18. ispell: Does not build
+19. rsynth: Does not run?
+20. sphinx: Sphinx is a speech decoder that operates on finite-length segments of speech or utterances, one utterance at a time. Segfault
+21. FFT: ./fft_ARM 10 2
+22. GSM: Video encoding/decoding. run_gsm.sh
+23. ADPCM: Adaptive Differential Pulse Code Modulation. run_adpcm.sh.
+

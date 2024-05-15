@@ -102,6 +102,8 @@ Fetch::Fetch(CPU *_cpu, const BaseO3CPUParams &params)
       numThreads(params.numThreads),
       numFetchingThreads(params.smtNumFetchingThreads),
       icachePort(this, _cpu),
+      icachePortS(this, _cpu),
+      icachePortW(this, _cpu),
       SingleThreadFetchiew(params.SingleThreadFetchIEW),
       finishTranslationEvent(this), fetchStats(_cpu, this)
 {
@@ -1076,11 +1078,11 @@ Fetch::tick()
     int fetch_vals_0_sent = 0;
     int fetch_vals_1_sent = 0;
 
+    ToDecodeThreadPriority();
+
     if(SingleThreadFetchiew) {
         // filling the queue with only 1 thread in a cycle
         // Prioritizing S thread and then W thread.
-        ToDecodeThreadPriority();
-
         for(int i = 0; i < numThreads; i++) {
             ThreadID tid = ToDecodePreference[i];
             if (!stalls[tid].decode) {
@@ -1105,37 +1107,61 @@ Fetch::tick()
             }
         }
     } else {
-        // Pick a random thread to start trying to grab instructions from
-        auto tid_itr = activeThreads->begin();
-        std::advance(tid_itr,
-                random_mt.random<uint8_t>(0, activeThreads->size() - 1));
-
-        while (available_insts != 0 && insts_to_decode < decodeWidth) {
-            ThreadID tid = *tid_itr;
-            if (!stalls[tid].decode && !fetchQueue[tid].empty()) {
-                const auto& inst = fetchQueue[tid].front();
-                toDecode->insts[toDecode->size++] = inst;
-                DPRINTF(Fetch, "[tid:%i] [sn:%llu] Sending instruction to decode "
+            for(int i = 0; i < numThreads; i++) {
+            ThreadID tid = ToDecodePreference[i];
+            if (!stalls[tid].decode) {
+                while(!fetchQueue[tid].empty() && insts_to_decode < decodeWidth) {
+                    const auto& inst = fetchQueue[tid].front();
+                    toDecode->insts[toDecode->size++] = inst;
+                    DPRINTF(Fetch, "[tid:%i] [sn:%llu] Sending instruction to decode "
                         "from fetch queue. Fetch queue size: %i.\n",
                         tid, inst->seqNum, fetchQueue[tid].size());
-
-                wroteToTimeBuffer = true;
-                fetchQueue[tid].pop_front();
-                insts_to_decode++;
-                available_insts--;
-                fetch_vals_sent++;
-                if(tid == 0) {
-                    fetch_vals_0_sent++;
-                } else {
-                    fetch_vals_1_sent++;
+                    wroteToTimeBuffer = true;
+                    fetchQueue[tid].pop_front();
+                    insts_to_decode++;
+                    fetch_vals_sent++;
+                    if(tid == 0) {
+                        fetch_vals_0_sent++;
+                    } else {
+                        fetch_vals_1_sent++;
+                    }
                 }
             }
-
-            tid_itr++;
-            // Wrap around if at end of active threads list
-            if (tid_itr == activeThreads->end())
-                tid_itr = activeThreads->begin();
         }
+
+        // // Pick a random thread to start trying to grab instructions from
+        // auto tid_itr = activeThreads->begin();
+        // std::advance(tid_itr,
+        //         random_mt.random<uint8_t>(0, activeThreads->size() - 1));
+
+        // ToDecodeThreadPriority();
+
+        // while (available_insts != 0 && insts_to_decode < decodeWidth) {
+        //     ThreadID tid = *tid_itr;
+        //     if (!stalls[tid].decode && !fetchQueue[tid].empty()) {
+        //         const auto& inst = fetchQueue[tid].front();
+        //         toDecode->insts[toDecode->size++] = inst;
+        //         DPRINTF(Fetch, "[tid:%i] [sn:%llu] Sending instruction to decode "
+        //                 "from fetch queue. Fetch queue size: %i.\n",
+        //                 tid, inst->seqNum, fetchQueue[tid].size());
+
+        //         wroteToTimeBuffer = true;
+        //         fetchQueue[tid].pop_front();
+        //         insts_to_decode++;
+        //         available_insts--;
+        //         fetch_vals_sent++;
+        //         if(tid == 0) {
+        //             fetch_vals_0_sent++;
+        //         } else {
+        //             fetch_vals_1_sent++;
+        //         }
+        //     }
+
+        //     tid_itr++;
+        //     // Wrap around if at end of active threads list
+        //     if (tid_itr == activeThreads->end())
+        //         tid_itr = activeThreads->begin();
+        // }
     }
 
     DPRINTF(pipelineView,"fetch_vals_sent %d\n",fetch_vals_sent);
@@ -1652,6 +1678,8 @@ Fetch::getFetchingThread()
             return branchCount();
           case SMTFetchPolicy::SWIQCount:
             return SWiqCount();
+          case SMTFetchPolicy::SWFetchCount:
+            return SWFetchCount();
           default:
             return InvalidThreadID;
         }
@@ -1672,7 +1700,6 @@ Fetch::getFetchingThread()
         }
     }
 }
-
 
 ThreadID
 Fetch::roundRobin()
@@ -1781,6 +1808,83 @@ Fetch::SWiqCount()
     return InvalidThreadID;
 }
 
+
+
+
+ThreadID
+Fetch::SWFetchCount()
+{
+    std::priority_queue<unsigned, std::vector<unsigned>,
+                        std::greater<unsigned> > SQ;
+    std::priority_queue<unsigned, std::vector<unsigned>,
+                        std::greater<unsigned> > WQ;
+    std::priority_queue<float, std::vector<float>,
+                        std::greater<float> > SWQ;
+    std::map<unsigned, ThreadID> SthreadMap;
+    std::map<unsigned, ThreadID> WthreadMap;
+    std::map<float, ThreadID> SWthreadMap;
+
+    std::list<ThreadID>::iterator threads = activeThreads->begin();
+    std::list<ThreadID>::iterator end = activeThreads->end();
+
+    // create 2 lists for S threads and W threads 
+    while (threads != end) {
+        ThreadID tid = *threads++;
+        unsigned iqCount = fetchQueue[tid].size();
+
+        //we can potentially get tid collisions if two threads
+        //have the same iqCount, but this should be rare.
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
+        {
+            SQ.push(iqCount);
+            SthreadMap[iqCount] = tid;
+            SWQ.push(iqCount);
+            SWthreadMap[iqCount] = tid;
+        }
+        else
+        {
+            WQ.push(iqCount);
+            WthreadMap[iqCount] = tid;
+            SWQ.push(iqCount);
+            SWthreadMap[iqCount] = tid;
+        }
+    }
+
+    while (!SQ.empty()) {
+        ThreadID high_pri = SthreadMap[SQ.top()];
+
+        if (fetchStatus[high_pri] == Running ||
+            fetchStatus[high_pri] == IcacheAccessComplete ||
+            fetchStatus[high_pri] == Idle
+            && (fetchQueue[high_pri].size() < fetchQueueSize))
+            return high_pri;
+        else
+            SQ.pop();
+    }
+    while (!WQ.empty()) {
+        ThreadID high_pri = WthreadMap[WQ.top()];
+
+        if (fetchStatus[high_pri] == Running ||
+            fetchStatus[high_pri] == IcacheAccessComplete ||
+            fetchStatus[high_pri] == Idle)
+            return high_pri;
+        else
+            WQ.pop();
+    }
+    while (!SWQ.empty()) {
+        ThreadID high_pri = SWthreadMap[SWQ.top()];
+
+        if (fetchStatus[high_pri] == Running ||
+            fetchStatus[high_pri] == IcacheAccessComplete ||
+            fetchStatus[high_pri] == Idle)
+            return high_pri;
+        else
+            SWQ.pop();
+    }
+    return InvalidThreadID;
+
+}
+
 ThreadID
 Fetch::iqCount()
 {
@@ -1857,11 +1961,7 @@ Fetch::ToDecodeThreadPriority()
 {
     assert(ToDecodePreference.size() == 0);
     ToDecodePreference.resize(numThreads,-1);
-    
-    switch (fetchPolicy) {
-        case SMTFetchPolicy::SWIQCount:
-        SWiqCountPriority();
-    }
+    SWiqCountPriority();
 }
 
 void 
