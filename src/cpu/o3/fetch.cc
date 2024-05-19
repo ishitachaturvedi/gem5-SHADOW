@@ -76,9 +76,11 @@ namespace gem5
 namespace o3
 {
 
-Fetch::IcachePort::IcachePort(Fetch *_fetch, CPU *_cpu) :
-        RequestPort(_cpu->name() + ".icache_port", _cpu), fetch(_fetch)
-{}
+Fetch::IcachePort::IcachePort(Fetch *_fetch, CPU *_cpu, std::string icacheType) :
+        RequestPort(_cpu->name() + ".icache_" + icacheType + "_port", _cpu), fetch(_fetch)
+{
+    isStrong = (icacheType == "strong");
+}
 
 
 Fetch::Fetch(CPU *_cpu, const BaseO3CPUParams &params)
@@ -101,9 +103,8 @@ Fetch::Fetch(CPU *_cpu, const BaseO3CPUParams &params)
       fetchQueueSize(params.fetchQueueSize),
       numThreads(params.numThreads),
       numFetchingThreads(params.smtNumFetchingThreads),
-      icachePort(this, _cpu),
-      icachePortS(this, _cpu),
-      icachePortW(this, _cpu),
+      icachePortS(this, _cpu, "strong"),
+      icachePortW(this, _cpu, "weak"),
       SingleThreadFetchiew(params.SingleThreadFetchIEW),
       finishTranslationEvent(this), fetchStats(_cpu, this)
 {
@@ -735,6 +736,7 @@ Fetch::finishTranslation(const Fault &fault, const RequestPtr &mem_req)
 
     assert(!cpu->switchedOut());
 
+    IcachePort icachePort = (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) ? icachePortS : icachePortW;
     // Wake up CPU if it was idle
     cpu->wakeCPU();
 
@@ -1627,7 +1629,7 @@ Fetch::fetch(bool &status_change)
 }
 
 void
-Fetch::recvReqRetry()
+Fetch::recvReqRetry(bool isStrong)
 {
     if (retryPkt != NULL) {
         assert(cacheBlocked);
@@ -1638,7 +1640,7 @@ Fetch::recvReqRetry()
 
         assert(fetchStatus[retryTid] == IcacheWaitRetry);
 
-        
+        IcachePort icachePort = isStrong ? icachePortS : icachePortW;
 
         if (icachePort.sendTimingReq(retryPkt)) {
             fetchStatus[retryTid] = IcacheWaitResponse;
@@ -2122,7 +2124,7 @@ Fetch::IcachePort::recvTimingResp(PacketPtr pkt)
 void
 Fetch::IcachePort::recvReqRetry()
 {
-    fetch->recvReqRetry();
+    fetch->recvReqRetry(isStrong);
 }
 
 } // namespace o3

@@ -56,6 +56,7 @@
 #include "mem/port.hh"
 #include "sim/eventq.hh"
 #include "sim/probe/probe.hh"
+#include <string>
 #include <vector>
 
 namespace gem5
@@ -91,9 +92,11 @@ class Fetch
         Fetch *fetchS;
         Fetch *fetchW;
 
+        bool isStrong;
+
       public:
         /** Default constructor. */
-        IcachePort(Fetch *_fetch, CPU *_cpu);
+        IcachePort(Fetch *_fetch, CPU *_cpu, std::string icacheType);
 
       protected:
 
@@ -255,7 +258,7 @@ class Fetch
     void clearStates(ThreadID tid);
 
     /** Handles retrying the fetch access. */
-    void recvReqRetry();
+    void recvReqRetry(bool isStrong);
 
     /** Processes cache completion event. */
     void processCacheCompletion(PacketPtr pkt);
