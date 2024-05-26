@@ -56,7 +56,6 @@
 #include "mem/port.hh"
 #include "sim/eventq.hh"
 #include "sim/probe/probe.hh"
-#include <string>
 #include <vector>
 
 namespace gem5

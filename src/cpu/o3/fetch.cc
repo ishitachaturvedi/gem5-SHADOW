@@ -103,6 +103,7 @@ Fetch::Fetch(CPU *_cpu, const BaseO3CPUParams &params)
       fetchQueueSize(params.fetchQueueSize),
       numThreads(params.numThreads),
       numFetchingThreads(params.smtNumFetchingThreads),
+      icachePort(this, _cpu, "strong"),
       icachePortS(this, _cpu, "strong"),
       icachePortW(this, _cpu, "weak"),
       SingleThreadFetchiew(params.SingleThreadFetchIEW),
@@ -735,7 +736,7 @@ Fetch::finishTranslation(const Fault &fault, const RequestPtr &mem_req)
     Addr fetchBufferBlockPC = mem_req->getVaddr();
 
     assert(!cpu->switchedOut());
-
+    
     IcachePort icachePort = (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) ? icachePortS : icachePortW;
     // Wake up CPU if it was idle
     cpu->wakeCPU();
