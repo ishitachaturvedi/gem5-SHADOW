@@ -197,6 +197,7 @@ class BaseCPU(ClockedObject):
 
     def connectCachedPorts(self, in_ports):
         for p in self._cached_ports:
+            print(self._cached_ports, in_ports)
             exec("self.%s = in_ports" % p)
         
     def connectUncachedPorts(self, in_ports, out_ports):
@@ -219,6 +220,7 @@ class BaseCPU(ClockedObject):
         self.icache_strong = icS
         self.icache_weak = icW
         self.dcache = dc
+        print(icS, icS.cpu_side, icW, icW.cpu_side)
         self.icache_strong_port = icS.cpu_side
         self.icache_weak_port = icW.cpu_side
         self.dcache_port = dc.cpu_side  

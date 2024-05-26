@@ -117,7 +117,7 @@ class PrivateL1CacheHierarchy(AbstractClassicCacheHierarchy):
             self._setup_io_cache(board)
 
         for i, cpu in enumerate(board.get_processor().get_cores()):
-
+            print("CONNECTING HERE 1")
             cpu.connect_icache(self.l1icaches[i].cpu_side)
             cpu.connect_dcache(self.l1dcaches[i].cpu_side)
 

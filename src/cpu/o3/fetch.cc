@@ -529,7 +529,7 @@ Fetch::isDrained() const
 void
 Fetch::takeOverFrom()
 {
-    assert(cpu->getInstPort().isConnected());
+    assert(cpu->getStrongInstPort().isConnected() && cpu->getWeakInstPort().isConnected());
     resetStage();
 
 }

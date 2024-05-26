@@ -404,6 +404,9 @@ class Fetch
 
     RequestPort &getInstPort() { return icachePort; }
 
+    RequestPort &getStrongInstPort() {return icachePortS; }
+
+    RequestPort &getWeakInstPort() {return icachePortW; }
   private:
     DynInstPtr buildInst(ThreadID tid, StaticInstPtr staticInst,
             StaticInstPtr curMacroop, const PCStateBase &this_pc,

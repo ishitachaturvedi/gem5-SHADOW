@@ -597,6 +597,18 @@ class CPU : public BaseCPU
         return fetch.getInstPort();
     }
 
+    Port &
+    getStrongInstPort() override
+    {
+        return fetch.getStrongInstPort();
+    }
+
+    Port &
+    getWeakInstPort() override
+    {
+        return fetch.getWeakInstPort();
+    }
+
     /** Get the dcache port (used to find block size for translations). */
     Port &
     getDataPort() override

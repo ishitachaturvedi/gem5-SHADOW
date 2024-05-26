@@ -118,6 +118,24 @@ class CheckerCPU : public BaseCPU, public ExecContext
         return *icachePort;
     }
 
+    Port &
+    getStrongInstPort() override
+    {
+        // the checker does not have ports on its own so return the
+        // data port of the actual CPU core
+        assert(icachePort);
+        return *icachePort;
+    }
+
+    Port &
+    getWeakInstPort() override
+    {
+        // the checker does not have ports on its own so return the
+        // data port of the actual CPU core
+        assert(icachePort);
+        return *icachePort;
+    }
+
   protected:
 
     std::vector<Process*> workload;

@@ -124,7 +124,8 @@ class MinorCPU : public BaseCPU
 
     /** Return a reference to the instruction port. */
     Port &getInstPort() override;
-
+    Port &getStrongInstPort() override;
+    Port &getWeakInstPort() override;
   public:
     MinorCPU(const BaseMinorCPUParams &params);
 
