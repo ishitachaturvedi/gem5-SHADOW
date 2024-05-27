@@ -1,12 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <pthread.h>
 
 #define NUM_THREADS 1
-#define NUM_INCREMENTS 2
+#define NUM_INCREMENTS 50000
 
 int sharedVariable = 0;
-pthread_mutex_t lock;
 
 void *incrementVariable() {
     for (int i = 0; i < NUM_INCREMENTS; i++) {

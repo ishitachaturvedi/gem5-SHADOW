@@ -146,8 +146,11 @@ class CpuCluster(SubSystem):
     def addL1(self):
         for cpu in self.cpus:
             l1iStrong = None if self._l1iS_type is None else self._l1iS_type()
+            print("FINAL l1iStrong ",l1iStrong)
             l1iWeak = None if self._l1iW_type is None else self._l1iW_type()
+            print("FINAL l1iWeak ",l1iWeak)
             l1d = None if self._l1d_type is None else self._l1d_type()
+            print("FINAL l1d ",l1d)
             cpu.addPrivateSplitL1Caches(l1iStrong, l1iWeak, l1d)
 
     def addL2(self, clk_domain):

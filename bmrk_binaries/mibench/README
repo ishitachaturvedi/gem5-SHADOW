@@ -6,7 +6,7 @@ Explaination to run benchmarks:
 Automotive/industrial:
 1. basicmath: simple math calculations. ./basicmath_ARM 1
 2. bitcount: # bits in array of integers. ./bitcount_ARM 2 crashes in gem5
-3. qsort: quicksort. ./qsort_small_ARM 3 ../input_data/qsort_small_input.txt
+3. qsort: quicksort. ./qsort_small_ARM SWFetchCount ../input_data/qsort_small_input.txt. The number "3" ,ust be equal to the number being to generate the data, otherwise it shows problem with TLB.
 4. Susan: Image recognition. Vision based quality assurance. ./susan_ARM ../input_data/susan_input.pgm out.pmg
 Network:
 5. dijstra: Graph. ./dijkstra_ARM 3 ../input_data/dijkstra_input.dat  (SEGFAULTS)

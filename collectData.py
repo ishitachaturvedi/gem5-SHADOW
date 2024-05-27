@@ -365,42 +365,76 @@ def plot_per_cycle_status(file):
 def main():
 
     parent_folder = [
-        "talkStats"
+        #"talkStats"
+        "mibench"
+        # "CRONO"
     ]  
 
     files_check = [
-        # [
-        #     "matmulS_1tc",
-        #     "matmulS_f",
-        #     "matmulS3W_1tc",
-        #     "matmulS3W_f",
-        #     "matmulS1W_1tc",
-        #     "matmulS1W_f",
-        #     "matmulS7W_1tc",
-        #     "matmulS7W_1tc_f"
-        # ],
-        # [
-        #     "bcS_1tc",
-        #     "bcS_f",
-        #     "bcS3W_1tc",
-        #     "bcS3W_f",
-        #     "bcS1W_1tc",
-        #     "bcS1W_f",
-        #     "bcS7W_1tc",
-        #     "bcS7W_f"
-        # ]
-        # [
-        #     "matmulS_f",
-        #     "matmulS1W_f",
-        #     "matmulS_f_4assoc64kbi",
-        #     "matmulS1W_f_4assoc64kbi"
-        # ],
         [
-            "bcS_f",
-            "bcS7W_f",
-            "bcS_f_12mshr",
-            "bcS7W_f_12mshr"
-        ]
+            "qsortARM_S",
+            "qsortARM_SW",
+            "qsortARM_S3W",
+            "qsortARM_SW_Split",
+            "qsortARM_S3W_Split"
+        ],
+        [
+            "Susan_S",
+            "Susan_SW",
+            "Susan_S3W",
+            "Susan_SW_Split",
+            "Susan_S3W_Split"
+        ],
+        [
+            "patricia_S",
+            "patricia_SW",
+            "patricia_S3W",
+            "patricia_SW_Split",
+            "patricia_S3W_Split"
+        ],
+        [
+            "jpeg_S",
+            "jpeg_SW",
+            "jpeg_S3W",
+            "jpeg_SW_Split",
+            "jpeg_S3W_Split"
+        ],
+        [
+            "cjpeg_ARM_S",
+            "cjpeg_ARM_SW",
+            "cjpeg_ARM_S3W",
+        ],
+        [
+            "stringsearch_S",
+            "stringsearch_SW",
+            "stringsearch_S3W",
+            "stringsearch_SW_Split",
+            "stringsearch_S3W_Split"
+        ],
+        [
+            "fft_S",
+            "fft_SW",
+            "fft_S3W",
+            "fft_SW_Split",
+            "fft_S3W_Split"
+        ],
+        [
+            "fft_S",
+            "fft_SW",
+            "fft_S3W",
+            "fft_SW_Split",
+            "fft_S3W_Split"
+        ],
+
+        # [
+        #     "apsp_ARMS",
+        #     "apsp_ARMSW",
+        #     "apsp_ARMS3W",
+        #     "apsp_ARMSWSplit",
+        #     "apsp_ARMS3WSplit"
+        # ]
+
+
     ]
 
     # global stats
@@ -429,7 +463,7 @@ def main():
     cpus = []
 
     # where stats are per CPU
-    cpu_stage_specfic_stats = [["fetch",fetch_stats],["icache",icache_stats]]
+    cpu_stage_specfic_stats = [["commit",commit_stats],["iew",iew_stats],["rename",rename_stats],["decode",decode_stats],["fetch",fetch_stats],["icache_weak",icache_stats],["icache_strong",icache_stats],["dcache",icache_stats]]
 
     stage_specfic_stats = [["l2",l2_stats],["lsq0",lsq]]
 

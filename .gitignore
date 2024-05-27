@@ -32,3 +32,6 @@ configs/example/memcheck.cfg
 configs/dram/lowp_sweep.cfg
 .pyenv
 .vscode
+bmrk_binaries/mibench/input_data/*
+results
+unittest_res/
