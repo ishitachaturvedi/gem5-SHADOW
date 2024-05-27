@@ -95,7 +95,7 @@ class Fetch
 
       public:
         /** Default constructor. */
-        IcachePort(Fetch *_fetch, CPU *_cpu, std::string icacheType);
+        IcachePort(Fetch *_fetch, CPU *_cpu, std::string icacheType, bool isSplitCache);
 
       protected:
 
@@ -225,6 +225,8 @@ class Fetch
     std::string name() const;
 
     bool SingleThreadFetchiew;
+
+    bool UseSplitCache;
 
     /** Registers probes. */
     void regProbePoints();

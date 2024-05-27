@@ -76,10 +76,15 @@ namespace gem5
 namespace o3
 {
 
-Fetch::IcachePort::IcachePort(Fetch *_fetch, CPU *_cpu, std::string icacheType) :
+Fetch::IcachePort::IcachePort(Fetch *_fetch, CPU *_cpu, std::string icacheType, bool isSplitCache) :
         RequestPort(_cpu->name() + ".icache_" + icacheType + "_port", _cpu), fetch(_fetch)
 {
-    isStrong = (icacheType == "strong");
+    printf("isSplitCache %d\n",isSplitCache);
+
+    if(isSplitCache)
+        isStrong = (icacheType == "strong");
+    else   
+        isStrong = true;
 }
 
 
@@ -103,10 +108,11 @@ Fetch::Fetch(CPU *_cpu, const BaseO3CPUParams &params)
       fetchQueueSize(params.fetchQueueSize),
       numThreads(params.numThreads),
       numFetchingThreads(params.smtNumFetchingThreads),
-      icachePort(this, _cpu, "strong"),
-      icachePortS(this, _cpu, "strong"),
-      icachePortW(this, _cpu, "weak"),
+      icachePort(this, _cpu, "strong",params.UseSplitCache),
+      icachePortS(this, _cpu, "strong",params.UseSplitCache),
+      icachePortW(this, _cpu, "weak",params.UseSplitCache),
       SingleThreadFetchiew(params.SingleThreadFetchIEW),
+      UseSplitCache(params.UseSplitCache),
       finishTranslationEvent(this), fetchStats(_cpu, this)
 {
     if (numThreads > MaxThreads)
@@ -737,7 +743,10 @@ Fetch::finishTranslation(const Fault &fault, const RequestPtr &mem_req)
 
     assert(!cpu->switchedOut());
     
-    IcachePort icachePort = (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) ? icachePortS : icachePortW;
+    IcachePort icachePort = ((cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong || !UseSplitCache)) ? icachePortS : icachePortW;
+
+    assert(!(!UseSplitCache && (&icachePort == &icachePortW)));
+
     // Wake up CPU if it was idle
     cpu->wakeCPU();
 
@@ -1641,7 +1650,9 @@ Fetch::recvReqRetry(bool isStrong)
 
         assert(fetchStatus[retryTid] == IcacheWaitRetry);
 
-        IcachePort icachePort = isStrong ? icachePortS : icachePortW;
+        IcachePort icachePort = (isStrong || !UseSplitCache) ? icachePortS : icachePortW;
+
+        assert(!(!UseSplitCache && (&icachePort == &icachePortW)));
 
         if (icachePort.sendTimingReq(retryPkt)) {
             fetchStatus[retryTid] = IcacheWaitResponse;
