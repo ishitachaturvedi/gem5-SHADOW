@@ -79,7 +79,7 @@ namespace o3
 Fetch::IcachePort::IcachePort(Fetch *_fetch, CPU *_cpu, std::string icacheType, bool isSplitCache) :
         RequestPort(_cpu->name() + ".icache_" + icacheType + "_port", _cpu), fetch(_fetch)
 {
-    printf("isSplitCache %d\n",isSplitCache);
+    printf("isSplitCache %d %s\n",isSplitCache, icacheType);
 
     if(isSplitCache)
         isStrong = (icacheType == "strong");
@@ -110,7 +110,7 @@ Fetch::Fetch(CPU *_cpu, const BaseO3CPUParams &params)
       numFetchingThreads(params.smtNumFetchingThreads),
       icachePort(this, _cpu, "strong",params.UseSplitCache),
       icachePortS(this, _cpu, "strong",params.UseSplitCache),
-      icachePortW(this, _cpu, "weak",params.UseSplitCache),
+      icachePortW(this, _cpu, params.UseSplitCache ? "weak" : "strong", params.UseSplitCache),
       SingleThreadFetchiew(params.SingleThreadFetchIEW),
       UseSplitCache(params.UseSplitCache),
       finishTranslationEvent(this), fetchStats(_cpu, this)
