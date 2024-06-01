@@ -161,7 +161,7 @@ class BaseCPU(ClockedObject):
 
     tracer = Param.InstTracer(default_tracer, "Instruction tracer")
 
-    icache_strong_port = RequestPort("Instruction Port")
+    icache_strong_port = RequestPort("Strong Instruction Port")
     dcache_port = RequestPort("Data Port")
     _cached_ports = ["icache_strong_port", "dcache_port"]
 
