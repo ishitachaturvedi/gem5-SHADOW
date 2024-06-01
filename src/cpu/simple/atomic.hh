@@ -181,6 +181,8 @@ class AtomicSimpleCPU : public BaseSimpleCPU
     /** Return a reference to the instruction port. */
     Port &getInstPort() override { return icachePort; }
 
+    Port &getStrongInstPort() override { return icachePort; }
+
     /** Perform snoop for other cpu-local thread contexts. */
     void threadSnoop(PacketPtr pkt, ThreadID sender);
 

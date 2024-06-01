@@ -783,7 +783,30 @@ class O3_ARM_grace_ICache(Cache):
     # Writeback clean lines as well
     writeback_clean = True
 
+class O3_ARM_grace_ICache_Strong(Cache):
+    tag_latency = 1
+    data_latency = 1
+    response_latency = 1
+    mshrs = 6
+    tgts_per_mshr = 8
+    size = "16kB"
+    assoc = 2
+    is_read_only = True
+    # Writeback clean lines as well
+    writeback_clean = True
 
+class O3_ARM_grace_ICache_Weak(Cache):
+    tag_latency = 1
+    data_latency = 1
+    response_latency = 1
+    mshrs = 6
+    tgts_per_mshr = 8
+    size = "16kB"
+    assoc = 2
+    is_read_only = True
+    # Writeback clean lines as well
+    writeback_clean = True
+    
 # Data Cache
 class O3_ARM_grace_DCache(Cache):
     tag_latency = 2

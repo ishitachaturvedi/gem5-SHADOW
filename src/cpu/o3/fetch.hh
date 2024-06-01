@@ -91,9 +91,11 @@ class Fetch
         Fetch *fetchS;
         Fetch *fetchW;
 
+        bool isStrong;
+
       public:
         /** Default constructor. */
-        IcachePort(Fetch *_fetch, CPU *_cpu);
+        IcachePort(Fetch *_fetch, CPU *_cpu, std::string icacheType, bool isSplitCache);
 
       protected:
 
@@ -224,6 +226,8 @@ class Fetch
 
     bool SingleThreadFetchiew;
 
+    bool UseSplitCache;
+
     /** Registers probes. */
     void regProbePoints();
 
@@ -255,7 +259,7 @@ class Fetch
     void clearStates(ThreadID tid);
 
     /** Handles retrying the fetch access. */
-    void recvReqRetry();
+    void recvReqRetry(bool isStrong);
 
     /** Processes cache completion event. */
     void processCacheCompletion(PacketPtr pkt);
@@ -401,6 +405,8 @@ class Fetch
     InstDecoder *decoder[MaxThreads];
 
     RequestPort &getInstPort() { return icachePort; }
+
+    RequestPort &getStrongInstPort() {return icachePortS; }
 
   private:
     DynInstPtr buildInst(ThreadID tid, StaticInstPtr staticInst,

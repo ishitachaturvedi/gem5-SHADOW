@@ -107,7 +107,8 @@ class BaseKvmCPU : public BaseCPU
 
     Port &getDataPort() override { return dataPort; }
     Port &getInstPort() override { return instPort; }
-
+    Port &getStrongInstPort() override { return instPort; }
+    
     void wakeup(ThreadID tid = 0) override;
     void activateContext(ThreadID thread_num) override;
     void suspendContext(ThreadID thread_num) override;

@@ -271,6 +271,8 @@ class TimingSimpleCPU : public BaseSimpleCPU
     /** Return a reference to the instruction port. */
     Port &getInstPort() override { return icachePort; }
 
+    Port &getStrongInstPort() override { return icachePort; }
+
   public:
 
     DrainState drain() override;
