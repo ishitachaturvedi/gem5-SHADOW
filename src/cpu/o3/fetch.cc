@@ -737,6 +737,8 @@ Fetch::finishTranslation(const Fault &fault, const RequestPtr &mem_req)
 
     assert(!cpu->switchedOut());
 
+    IcachePort icachePort = icachePortS;
+
     // Wake up CPU if it was idle
     cpu->wakeCPU();
 
@@ -1640,7 +1642,7 @@ Fetch::recvReqRetry(bool isStrong)
 
         assert(fetchStatus[retryTid] == IcacheWaitRetry);
 
-        
+        IcachePort icachePort = icachePortS;
 
         if (icachePort.sendTimingReq(retryPkt)) {
             fetchStatus[retryTid] = IcacheWaitResponse;
