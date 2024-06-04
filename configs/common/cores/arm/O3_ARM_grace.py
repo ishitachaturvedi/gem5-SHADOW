@@ -797,6 +797,29 @@ class O3_ARM_grace_DCache(Cache):
     # Consider the L2 a victim cache also for clean lines
     writeback_clean = True
 
+class O3_ARM_grace_DCache_Strong(Cache):
+    tag_latency = 2
+    data_latency = 2
+    response_latency = 2
+    mshrs = 6
+    tgts_per_mshr = 8
+    size = "16kB"
+    assoc = 2
+    write_buffers = 16
+    # Consider the L2 a victim cache also for clean lines
+    writeback_clean = True
+
+class O3_ARM_grace_DCache_Weak(Cache):
+    tag_latency = 2
+    data_latency = 2
+    response_latency = 2
+    mshrs = 6
+    tgts_per_mshr = 8
+    size = "16kB"
+    assoc = 2
+    write_buffers = 16
+    # Consider the L2 a victim cache also for clean lines
+    writeback_clean = True
 
 # L2 Cache
 class O3_ARM_grace_L2(Cache):

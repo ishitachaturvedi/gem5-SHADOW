@@ -162,8 +162,9 @@ class BaseCPU(ClockedObject):
     tracer = Param.InstTracer(default_tracer, "Instruction tracer")
 
     icache_port = RequestPort("Instruction Port")
-    dcache_port = RequestPort("Data Port")
-    _cached_ports = ["icache_port", "dcache_port"]
+    dcache_strong_port = RequestPort("Strong Data Port")
+    dcache_weak_port = RequestPort("Weak Data Port")
+    _cached_ports = ["icache_port", "dcache_strong_port", "dcache_weak_port"]
 
     _uncached_interrupt_response_ports = []
     _uncached_interrupt_request_ports = []
@@ -214,12 +215,14 @@ class BaseCPU(ClockedObject):
             bus.cpu_side_ports, bus.cpu_side_ports, bus.mem_side_ports
         )
 
-    def addPrivateSplitL1Caches(self, ic, dc, iwc=None, dwc=None):
+    def addPrivateSplitL1Caches(self, ic, dcS, dcW, iwc=None, dwc=None):
         self.icache = ic
-        self.dcache = dc
+        self.dcache_strong = dcS
+        self.dcache_weak = dcW
         self.icache_port = ic.cpu_side
-        self.dcache_port = dc.cpu_side
-        self._cached_ports = ["icache.mem_side", "dcache.mem_side"]
+        self.dcache_strong_port = dcS.cpu_side
+        self.dcache_weak_port = dcW.cpu_side
+        self._cached_ports = ["icache.mem_side", "dcache_strong.mem_side", "dcache_weak.mem_side"]
         if iwc and dwc:
             self.itb_walker_cache = iwc
             self.dtb_walker_cache = dwc

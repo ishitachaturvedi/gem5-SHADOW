@@ -87,10 +87,10 @@ class LSQ
         /** Pointer to LSQ. */
         LSQ *lsq;
         CPU *cpu;
-
+        bool isStrong;
       public:
         /** Default constructor. */
-        DcachePort(LSQ *_lsq, CPU *_cpu);
+        DcachePort(LSQ *_lsq, CPU *_cpu, std::string threadType);
 
       protected:
 
@@ -859,12 +859,12 @@ class LSQ
     /** Checks if queues have any marked operations left,
      * and sends the appropriate Sync Completion message if not.
      */
-    void checkStaleTranslations();
+    void checkStaleTranslations(bool isStrong);
 
     /**
      * Retry the previous send that failed.
      */
-    void recvReqRetry();
+    void recvReqRetry(bool isStrong);
 
     void completeDataAccess(PacketPtr pkt);
     /**
@@ -873,9 +873,9 @@ class LSQ
      *
      * @param pkt Response packet from the memory sub-system
      */
-    bool recvTimingResp(PacketPtr pkt);
+    bool recvTimingResp(PacketPtr pkt, bool isStrong);
 
-    void recvTimingSnoopReq(PacketPtr pkt);
+    void recvTimingSnoopReq(PacketPtr pkt, bool isStrong);
 
     Fault pushRequest(const DynInstPtr& inst, bool isLoad, uint8_t *data,
                       unsigned int size, Addr addr, Request::Flags flags,
@@ -958,6 +958,8 @@ class LSQ
 
     /** Data port. */
     DcachePort dcachePort;
+    DcachePort dcachePortS;
+    DcachePort dcachePortW;
 
     /** The LSQ units for individual threads. */
     std::vector<LSQUnit> thread;

@@ -106,6 +106,8 @@ class BaseKvmCPU : public BaseCPU
     void verifyMemoryMode() const override;
 
     Port &getDataPort() override { return dataPort; }
+    Port &getStrongDataPort() override { return dataPort; }
+    Port &getWeakDataPort() override { return dataPort; }
     Port &getInstPort() override { return instPort; }
 
     void wakeup(ThreadID tid = 0) override;

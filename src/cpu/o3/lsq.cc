@@ -64,9 +64,11 @@ namespace gem5
 namespace o3
 {
 
-LSQ::DcachePort::DcachePort(LSQ *_lsq, CPU *_cpu) :
-    RequestPort(_cpu->name() + ".dcache_port", _cpu), lsq(_lsq), cpu(_cpu)
-{}
+LSQ::DcachePort::DcachePort(LSQ *_lsq, CPU *_cpu, std::string threadType) :
+    RequestPort(_cpu->name() + ".dcache_" + threadType + "_port", _cpu), lsq(_lsq), cpu(_cpu)
+{
+    isStrong = threadType == "strong";
+}
 
 LSQ::LSQ(CPU *cpu_ptr, IEW *iew_ptr, const BaseO3CPUParams &params)
     : cpu(cpu_ptr), iewStage(iew_ptr),
@@ -82,7 +84,9 @@ LSQ::LSQ(CPU *cpu_ptr, IEW *iew_ptr, const BaseO3CPUParams &params)
                   params.smtLSQThreshold)),
       maxSQEntries(maxLSQAllocation(lsqPolicy, SQEntries, params.numThreads,
                   params.smtLSQThreshold)),
-      dcachePort(this, cpu_ptr),
+      dcachePort(this, cpu_ptr, "strong"),
+      dcachePortS(this, cpu_ptr, "strong"),
+      dcachePortW(this, cpu_ptr, "weak"),
       numThreads(params.numThreads)
 {
     assert(numThreads > 0 && numThreads <= MaxThreads);
@@ -115,7 +119,10 @@ LSQ::LSQ(CPU *cpu_ptr, IEW *iew_ptr, const BaseO3CPUParams &params)
     for (ThreadID tid = 0; tid < numThreads; tid++) {
         thread.emplace_back(maxLQEntries, maxSQEntries);
         thread[tid].init(cpu, iew_ptr, params, this, tid);
-        thread[tid].setDcachePort(&dcachePort);
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
+            thread[tid].setDcachePort(&dcachePortS);
+        else
+            thread[tid].setDcachePort(&dcachePortW);
     }
 }
 
@@ -409,13 +416,15 @@ LSQ::setLastRetiredHtmUid(ThreadID tid, uint64_t htmUid)
 }
 
 void
-LSQ::recvReqRetry()
+LSQ::recvReqRetry(bool isStrong)
 {
     iewStage->cacheUnblocked();
     cacheBlocked(false);
 
     for (ThreadID tid : *activeThreads) {
-        thread[tid].recvRetry();
+        bool isStrongThread = cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong;
+        if(isStrongThread == isStrong)
+            thread[tid].recvRetry();
     }
 }
 
@@ -428,7 +437,7 @@ LSQ::completeDataAccess(PacketPtr pkt)
 }
 
 bool
-LSQ::recvTimingResp(PacketPtr pkt)
+LSQ::recvTimingResp(PacketPtr pkt, bool isStrong)
 {
     if (pkt->isError())
         DPRINTF(LSQ, "Got error packet back for address: %#X\n",
@@ -455,21 +464,23 @@ LSQ::recvTimingResp(PacketPtr pkt)
                 pkt->getAddr());
 
         for (ThreadID tid = 0; tid < numThreads; tid++) {
-            thread[tid].checkSnoop(pkt);
+            bool isStrongThread = cpu-> thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong;
+            if(isStrongThread == isStrong)
+                thread[tid].checkSnoop(pkt);
         }
     }
     // Update the LSQRequest state (this may delete the request)
     request->packetReplied();
 
     if (waitingForStaleTranslation) {
-        checkStaleTranslations();
+        checkStaleTranslations(isStrong);
     }
 
     return true;
 }
 
 void
-LSQ::recvTimingSnoopReq(PacketPtr pkt)
+LSQ::recvTimingSnoopReq(PacketPtr pkt, bool isStrong)
 {
     DPRINTF(LSQ, "received pkt for addr:%#x %s\n", pkt->getAddr(),
             pkt->cmdString());
@@ -479,7 +490,9 @@ LSQ::recvTimingSnoopReq(PacketPtr pkt)
         DPRINTF(LSQ, "received invalidation for addr:%#x\n",
                 pkt->getAddr());
         for (ThreadID tid = 0; tid < numThreads; tid++) {
-            thread[tid].checkSnoop(pkt);
+            bool isStrongThread = cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong;
+            if(isStrong == isStrongThread)
+                thread[tid].checkSnoop(pkt);
         }
     } else if (pkt->req && pkt->req->isTlbiExtSync()) {
         DPRINTF(LSQ, "received TLBI Ext Sync\n");
@@ -493,7 +506,7 @@ LSQ::recvTimingSnoopReq(PacketPtr pkt)
         }
 
         // In case no units have pending ops, just go ahead
-        checkStaleTranslations();
+        checkStaleTranslations(isStrong);
     }
 }
 
@@ -1445,24 +1458,26 @@ LSQ::SplitDataRequest::isCacheBlockHit(Addr blockAddr, Addr blockMask)
 bool
 LSQ::DcachePort::recvTimingResp(PacketPtr pkt)
 {
-    return lsq->recvTimingResp(pkt);
+    return lsq->recvTimingResp(pkt, isStrong);
 }
 
 void
 LSQ::DcachePort::recvTimingSnoopReq(PacketPtr pkt)
 {
+
     for (ThreadID tid = 0; tid < cpu->numThreads; tid++) {
-        if (cpu->getCpuAddrMonitor(tid)->doMonitor(pkt)) {
+        bool isStrongThread = cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong;
+        if (((isStrong && isStrongThread) ||(!isStrong && !isStrongThread)) && cpu->getCpuAddrMonitor(tid)->doMonitor(pkt)) {
             cpu->wakeup(tid);
         }
     }
-    lsq->recvTimingSnoopReq(pkt);
+    lsq->recvTimingSnoopReq(pkt, isStrong);
 }
 
 void
 LSQ::DcachePort::recvReqRetry()
 {
-    lsq->recvReqRetry();
+    lsq->recvReqRetry(isStrong);
 }
 
 LSQ::UnsquashableDirectRequest::UnsquashableDirectRequest(
@@ -1527,13 +1542,15 @@ LSQ::UnsquashableDirectRequest::finish(const Fault &fault,
 }
 
 void
-LSQ::checkStaleTranslations()
+LSQ::checkStaleTranslations(bool isStrong)
 {
     assert(waitingForStaleTranslation);
 
     DPRINTF(LSQ, "Checking pending TLBI sync\n");
     // Check if all thread queues are complete
-    for (const auto& unit : thread) {
+    for (ThreadID tid = 0; tid < thread.size(); tid++) {
+        bool isStrongThread = cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong;
+        auto & unit = thread[tid];
         if (unit.checkStaleTranslations())
             return;
     }
@@ -1546,7 +1563,7 @@ LSQ::checkStaleTranslations()
         cpu->dataRequestorId());
     req->setExtraData(staleTranslationWaitTxnId);
     PacketPtr pkt = Packet::createRead(req);
-
+    DcachePort & dcachePort = (isStrong) ? dcachePortS : dcachePortW;
     // TODO - reserve some credit for these responses?
     if (!dcachePort.sendTimingReq(pkt)) {
         panic("Couldn't send TLBI_EXT_SYNC_COMP message");

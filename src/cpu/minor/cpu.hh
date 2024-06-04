@@ -121,6 +121,8 @@ class MinorCPU : public BaseCPU
   protected:
      /** Return a reference to the data port. */
     Port &getDataPort() override;
+    Port &getStrongDataPort() override;
+    Port &getWeakDataPort() override;
 
     /** Return a reference to the instruction port. */
     Port &getInstPort() override;

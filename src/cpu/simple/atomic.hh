@@ -177,7 +177,8 @@ class AtomicSimpleCPU : public BaseSimpleCPU
 
     /** Return a reference to the data port. */
     Port &getDataPort() override { return dcachePort; }
-
+    Port &getStrongDataPort() override { return dcachePort; }
+    Port &getWeakDataPort() override { return dcachePort; }
     /** Return a reference to the instruction port. */
     Port &getInstPort() override { return icachePort; }
 
