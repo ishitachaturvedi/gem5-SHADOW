@@ -416,6 +416,8 @@ BaseCPU::getPort(const std::string &if_name, PortID idx)
         return getInstPort();
     else if (if_name == "icache_strong_port")
         return getStrongInstPort();
+    else if (if_name == "icache_weak_port")
+        return getWeakInstPort();
     else
         return ClockedObject::getPort(if_name, idx);
 }
@@ -605,7 +607,7 @@ BaseCPU::takeOverFrom(BaseCPU *oldCPU)
     // already. Unbind the old CPU and then bind the ports of the one
     // we are switching to.
     getStrongInstPort().takeOverFrom(&oldCPU->getStrongInstPort());
-    // getWeakInstPort().takeOverFrom(&oldCPU->getWeakInstPort());
+    getWeakInstPort().takeOverFrom(&oldCPU->getWeakInstPort());
     getDataPort().takeOverFrom(&oldCPU->getDataPort());
 }
 

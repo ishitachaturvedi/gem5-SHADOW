@@ -273,6 +273,8 @@ class TimingSimpleCPU : public BaseSimpleCPU
 
     Port &getStrongInstPort() override { return icachePort; }
 
+    Port &getWeakInstPort() override { return icachePort; }
+
   public:
 
     DrainState drain() override;

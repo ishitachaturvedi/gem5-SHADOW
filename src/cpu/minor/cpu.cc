@@ -310,6 +310,12 @@ MinorCPU::getStrongInstPort()
 }
 
 Port &
+MinorCPU::getWeakInstPort()
+{
+    return pipeline->getInstPort();
+}
+
+Port &
 MinorCPU::getDataPort()
 {
     return pipeline->getDataPort();

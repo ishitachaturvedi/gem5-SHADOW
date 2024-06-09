@@ -183,6 +183,8 @@ class AtomicSimpleCPU : public BaseSimpleCPU
 
     Port &getStrongInstPort() override { return icachePort; }
 
+    Port &getWeakInstPort() override { return icachePort; }
+
     /** Perform snoop for other cpu-local thread contexts. */
     void threadSnoop(PacketPtr pkt, ThreadID sender);
 

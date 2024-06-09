@@ -77,9 +77,12 @@ namespace o3
 {
 
 Fetch::IcachePort::IcachePort(Fetch *_fetch, CPU *_cpu, std::string icacheType, bool isSplitCache) :
-        RequestPort(_cpu->name() + ".icache_strong_port", _cpu), fetch(_fetch)
+        RequestPort(_cpu->name() + ".icache_" + icacheType + "_port", _cpu), fetch(_fetch)
 {
-
+    if(isSplitCache)
+        isStrong = (icacheType == "strong");
+    else   
+        isStrong = true;
 }
 
 
@@ -103,12 +106,17 @@ Fetch::Fetch(CPU *_cpu, const BaseO3CPUParams &params)
       fetchQueueSize(params.fetchQueueSize),
       numThreads(params.numThreads),
       numFetchingThreads(params.smtNumFetchingThreads),
-      icachePort(this, _cpu, "strong", params.UseSplitCache),
-      icachePortS(this, _cpu, "strong", params.UseSplitCache),
-      icachePortW(this, _cpu, "strong", params.UseSplitCache),
+    //   icachePort(this, _cpu, "strong", params.UseSplitCache),
+    //   icachePortS(this, _cpu, "strong", params.UseSplitCache),
+    //   icachePortW(this, _cpu, "strong", params.UseSplitCache),
+      icachePort(this, _cpu, "strong",params.UseSplitCache),
+      icachePortS(this, _cpu, "strong",params.UseSplitCache),
+      icachePortW(this, _cpu, "weak", params.UseSplitCache),
+      UseSplitCache(params.UseSplitCache),
       SingleThreadFetchiew(params.SingleThreadFetchIEW),
       finishTranslationEvent(this), fetchStats(_cpu, this)
 {
+
     if (numThreads > MaxThreads)
         fatal("numThreads (%d) is larger than compiled limit (%d),\n"
               "\tincrease MaxThreads in src/cpu/o3/limits.hh\n",
@@ -152,8 +160,6 @@ Fetch::Fetch(CPU *_cpu, const BaseO3CPUParams &params)
 
     // Get the size of an instruction.
     instSize = decoder[0]->moreBytesSize();
-
-    printf("fetch SingleThreadFetchiew %d\n",SingleThreadFetchiew);
 }
 
 std::string Fetch::name() const { return cpu->name() + ".fetch"; }
@@ -737,7 +743,13 @@ Fetch::finishTranslation(const Fault &fault, const RequestPtr &mem_req)
 
     assert(!cpu->switchedOut());
 
-    IcachePort icachePort = icachePortS;
+    bool isStrong = (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong);
+
+    IcachePort icachePort = ((cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong || !UseSplitCache)) ? icachePortS : icachePortW;
+
+    assert(!(isStrong && cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak));
+
+    assert(!(!UseSplitCache && (&icachePort == &icachePortW)));
 
     // Wake up CPU if it was idle
     cpu->wakeCPU();
@@ -1634,6 +1646,8 @@ void
 Fetch::recvReqRetry(bool isStrong)
 {
     if (retryPkt != NULL) {
+
+
         assert(cacheBlocked);
         assert(retryTid != InvalidThreadID);
 
@@ -1642,7 +1656,9 @@ Fetch::recvReqRetry(bool isStrong)
 
         assert(fetchStatus[retryTid] == IcacheWaitRetry);
 
-        IcachePort icachePort = icachePortS;
+        IcachePort icachePort = (isStrong || !UseSplitCache) ? icachePortS : icachePortW;
+
+        assert(!(!UseSplitCache && (&icachePort == &icachePortW)));
 
         if (icachePort.sendTimingReq(retryPkt)) {
             fetchStatus[retryTid] = IcacheWaitResponse;

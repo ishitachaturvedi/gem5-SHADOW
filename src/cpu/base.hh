@@ -181,6 +181,8 @@ class BaseCPU : public ClockedObject
 
     virtual Port &getStrongInstPort() = 0;
 
+    virtual Port &getWeakInstPort() = 0;
+
     /** Reads this CPU's ID. */
     int cpuId() const { return _cpuId; }
 
