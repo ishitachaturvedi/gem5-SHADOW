@@ -412,6 +412,8 @@ BaseCPU::getPort(const std::string &if_name, PortID idx)
     // of getDataPort and getInstPort.
     if (if_name == "dcache_port")
         return getDataPort();
+    else if(if_name == "dcache_strong_port")
+        return getDataPort();
     else if (if_name == "icache_port")
         return getInstPort();
     else if (if_name == "icache_strong_port")
@@ -609,6 +611,7 @@ BaseCPU::takeOverFrom(BaseCPU *oldCPU)
     getStrongInstPort().takeOverFrom(&oldCPU->getStrongInstPort());
     getWeakInstPort().takeOverFrom(&oldCPU->getWeakInstPort());
     getDataPort().takeOverFrom(&oldCPU->getDataPort());
+    getStrongDataPort().takeOverFrom(&oldCPU->getStrongDataPort());
 }
 
 void

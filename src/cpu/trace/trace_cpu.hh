@@ -1128,6 +1128,8 @@ class TraceCPU : public BaseCPU
     
     /** Used to get a reference to the dcache port. */
     Port &getDataPort() { return dcachePort; }
+    Port &getStrongDataPort() { return dcachePort; }
+    Port &getWeakDataPort() { return dcachePort; }
 
 };
 

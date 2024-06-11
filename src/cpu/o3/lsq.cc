@@ -83,6 +83,8 @@ LSQ::LSQ(CPU *cpu_ptr, IEW *iew_ptr, const BaseO3CPUParams &params)
       maxSQEntries(maxLSQAllocation(lsqPolicy, SQEntries, params.numThreads,
                   params.smtLSQThreshold)),
       dcachePort(this, cpu_ptr),
+      dcachePortS(this, cpu_ptr),
+      dcachePortW(this, cpu_ptr),
       numThreads(params.numThreads)
 {
     assert(numThreads > 0 && numThreads <= MaxThreads);

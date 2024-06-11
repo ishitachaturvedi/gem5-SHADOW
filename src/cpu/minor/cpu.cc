@@ -321,6 +321,18 @@ MinorCPU::getDataPort()
     return pipeline->getDataPort();
 }
 
+Port &
+MinorCPU::getStrongDataPort()
+{
+    return pipeline->getDataPort();
+}
+
+Port &
+MinorCPU::getWeakDataPort()
+{
+    return pipeline->getDataPort();
+}
+
 Counter
 MinorCPU::totalInsts() const
 {

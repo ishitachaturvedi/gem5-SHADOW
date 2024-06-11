@@ -616,6 +616,19 @@ class CPU : public BaseCPU
         return iew.ldstQueue.getDataPort();
     }
 
+    Port &
+    getStrongDataPort() override
+    {
+        return iew.ldstQueue.getStrongDataPort();
+    }
+
+    Port &
+    getWeakDataPort() override
+    {
+        return iew.ldstQueue.getWeakDataPort();
+    }
+
+
     struct CPUStats : public statistics::Group
     {
         CPUStats(CPU *cpu);

@@ -111,6 +111,10 @@ class BaseCPUCore(AbstractCore):
     def connect_dcache(self, port: Port) -> None:
         self.core.dcache_port = port
 
+    def connect_dcaches(self, strong_port, weak_port):
+        self.core.dcache_strong_port = strong_port
+        self.core.dcache_weak_port = weak_port
+
     @overrides(AbstractCore)
     def connect_walker_ports(self, port1: Port, port2: Port) -> None:
         if self.get_isa() == ISA.ARM:
