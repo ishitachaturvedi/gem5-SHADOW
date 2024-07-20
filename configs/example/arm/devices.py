@@ -103,15 +103,17 @@ class CpuCluster(SubSystem):
         cpu_clock,
         cpu_voltage,
         cpu_type,
-        l1i_type,
-        l1d_type,
+        l1iS_type,
+        l1iW_type,
+        l1dS_type,
         l2_type,
         numThreads
     ):
         super(CpuCluster, self).__init__()
         self._cpu_type = cpu_type
-        self._l1i_type = l1i_type
-        self._l1d_type = l1d_type
+        self._l1iS_type = l1iS_type
+        self._l1iW_type = l1iW_type
+        self._l1dS_type = l1dS_type
         self._l2_type = l2_type
 
         assert num_cpus > 0
@@ -143,9 +145,10 @@ class CpuCluster(SubSystem):
 
     def addL1(self):
         for cpu in self.cpus:
-            l1i = None if self._l1i_type is None else self._l1i_type()
-            l1d = None if self._l1d_type is None else self._l1d_type()
-            cpu.addPrivateSplitL1Caches(l1i, l1d)
+            l1iStrong = None if self._l1iS_type is None else self._l1iS_type()
+            l1iWeak = None if self._l1iW_type is None else self._l1iW_type()
+            l1dStrong = None if self._l1dS_type is None else self._l1dS_type()
+            cpu.addPrivateSplitL1Caches(l1iStrong, l1iWeak, l1dStrong)
 
     def addL2(self, clk_domain):
         if self._l2_type is None:

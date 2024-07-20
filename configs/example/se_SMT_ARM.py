@@ -108,18 +108,21 @@ cpu_type = {
     "O3CPU":(DerivO3CPU,devices.L1I, devices.L1D, devices.L2),
     "o3": (
         O3_ARM_v7a.O3_ARM_v7a_3,
-        O3_ARM_v7a.O3_ARM_v7a_ICache,
+        O3_ARM_v7a.O3_ARM_v7a_ICache_Strong,
+        O3_ARM_v7a.O3_ARM_v7a_ICache_Weak,
         O3_ARM_v7a.O3_ARM_v7a_DCache,
         O3_ARM_v7a.O3_ARM_v7aL2,
     ),
     "o3_novo": (
         O3_Novocore.NovoO3CPU,
-        O3_Novocore.O3_ARM_Novocore_ICache,
+        O3_Novocore.O3_ARM_Novocore_ICache_Strong,
+        O3_Novocore.O3_ARM_Novocore_ICache_Weak,
         O3_Novocore.O3_ARM_Novocore_DCache,
         O3_Novocore.O3_ARM_Novocore_L2,
     ),
     "o3_grace": (
         O3_ARM_grace.Grace12Wide,
+        O3_ARM_grace.O3_ARM_grace_ICache,
         O3_ARM_grace.O3_ARM_grace_ICache,
         O3_ARM_grace.O3_ARM_grace_DCache,
         O3_ARM_grace.O3_ARM_grace_L2,
@@ -127,11 +130,13 @@ cpu_type = {
     "o3_grace_1thread": (
         O3_ARM_grace.Grace12Wide_1thread,
         O3_ARM_grace.O3_ARM_grace_ICache,
+        O3_ARM_grace.O3_ARM_grace_ICache,
         O3_ARM_grace.O3_ARM_grace_DCache,
         O3_ARM_grace.O3_ARM_grace_L2,
     ),
     "o3_grace_2thread": (
         O3_ARM_grace.Grace12Wide_2thread,
+        O3_ARM_grace.O3_ARM_grace_ICache,
         O3_ARM_grace.O3_ARM_grace_ICache,
         O3_ARM_grace.O3_ARM_grace_DCache,
         O3_ARM_grace.O3_ARM_grace_L2,
@@ -139,12 +144,42 @@ cpu_type = {
     "o3_grace_4thread": (
         O3_ARM_grace.Grace12Wide_4thread,
         O3_ARM_grace.O3_ARM_grace_ICache,
+        O3_ARM_grace.O3_ARM_grace_ICache,
         O3_ARM_grace.O3_ARM_grace_DCache,
         O3_ARM_grace.O3_ARM_grace_L2,
     ),
     "o3_grace_8thread": (
         O3_ARM_grace.Grace12Wide_8thread,
         O3_ARM_grace.O3_ARM_grace_ICache,
+        O3_ARM_grace.O3_ARM_grace_ICache,
+        O3_ARM_grace.O3_ARM_grace_DCache,
+        O3_ARM_grace.O3_ARM_grace_L2,
+    ), 
+    "o3_grace_1thread_split": (
+        O3_ARM_grace.Grace12Wide_1thread,
+        O3_ARM_grace.O3_ARM_grace_ICache_Strong,
+        O3_ARM_grace.O3_ARM_grace_ICache_Weak,
+        O3_ARM_grace.O3_ARM_grace_DCache,
+        O3_ARM_grace.O3_ARM_grace_L2,
+    ),
+    "o3_grace_2thread_split": (
+        O3_ARM_grace.Grace12Wide_2thread,
+        O3_ARM_grace.O3_ARM_grace_ICache_Strong,
+        O3_ARM_grace.O3_ARM_grace_ICache_Weak,
+        O3_ARM_grace.O3_ARM_grace_DCache,
+        O3_ARM_grace.O3_ARM_grace_L2,
+    ),
+    "o3_grace_4thread_split": (
+        O3_ARM_grace.Grace12Wide_4thread,
+        O3_ARM_grace.O3_ARM_grace_ICache_Strong,
+        O3_ARM_grace.O3_ARM_grace_ICache_Weak,
+        O3_ARM_grace.O3_ARM_grace_DCache,
+        O3_ARM_grace.O3_ARM_grace_L2,
+    ),
+    "o3_grace_8thread_split": (
+        O3_ARM_grace.Grace12Wide_8thread,
+        O3_ARM_grace.O3_ARM_grace_ICache_Strong,
+        O3_ARM_grace.O3_ARM_grace_ICache_Weak,
         O3_ARM_grace.O3_ARM_grace_DCache,
         O3_ARM_grace.O3_ARM_grace_L2,
     )
@@ -193,6 +228,7 @@ class SimpleSeSystem(System):
             cpu.WThreads = args.WThreads
             cpu.runTillSThreads = args.runTillSThreads
             cpu.SingleThreadFetchIEW = args.SingleThreadFetchIEW
+            cpu.UseSplitCache = args.UseSplitCache
 
         # for cpu in self.cpu_cluster.cpus:
         #     cpu.numThreads = numThreads
@@ -350,6 +386,8 @@ def main():
     parser.add_argument('-env', type=str)
 
     parser.add_argument('-SingleThreadFetchIEW', type=bool, default=False)
+
+    parser.add_argument('-UseSplitCache', type=bool, default=False)
 
     args = parser.parse_args()
 

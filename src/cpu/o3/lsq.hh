@@ -90,6 +90,7 @@ class LSQ
 
       public:
         /** Default constructor. */
+        //DcachePort(LSQ *_lsq, CPU *_cpu, std::string threadType);
         DcachePort(LSQ *_lsq, CPU *_cpu);
 
       protected:
@@ -898,6 +899,8 @@ class LSQ
     void cachePortBusy(bool is_load);
 
     RequestPort &getDataPort() { return dcachePort; }
+    RequestPort &getStrongDataPort() { return dcachePortS; }
+    RequestPort &getWeakDataPort() { return dcachePortW; }
 
   protected:
     /** D-cache is blocked */
@@ -958,6 +961,8 @@ class LSQ
 
     /** Data port. */
     DcachePort dcachePort;
+    DcachePort dcachePortS;
+    DcachePort dcachePortW;
 
     /** The LSQ units for individual threads. */
     std::vector<LSQUnit> thread;

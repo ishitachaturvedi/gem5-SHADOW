@@ -1122,8 +1122,14 @@ class TraceCPU : public BaseCPU
     /** Used to get a reference to the icache port. */
     Port &getInstPort() { return icachePort; }
 
+    Port &getStrongInstPort() override { return icachePort; }
+
+    Port &getWeakInstPort() { return icachePort; }
+    
     /** Used to get a reference to the dcache port. */
     Port &getDataPort() { return dcachePort; }
+    Port &getStrongDataPort() { return dcachePort; }
+    Port &getWeakDataPort() { return dcachePort; }
 
 };
 

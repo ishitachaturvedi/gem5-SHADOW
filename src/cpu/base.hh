@@ -170,6 +170,8 @@ class BaseCPU : public ClockedObject
      * @return a reference to the data port
      */
     virtual Port &getDataPort() = 0;
+    virtual Port &getStrongDataPort() = 0;
+    virtual Port &getWeakDataPort() = 0;
 
     /**
      * Purely virtual method that returns a reference to the instruction
@@ -178,6 +180,10 @@ class BaseCPU : public ClockedObject
      * @return a reference to the instruction port
      */
     virtual Port &getInstPort() = 0;
+
+    virtual Port &getStrongInstPort() = 0;
+
+    virtual Port &getWeakInstPort() = 0;
 
     /** Reads this CPU's ID. */
     int cpuId() const { return _cpuId; }

@@ -304,7 +304,31 @@ MinorCPU::getInstPort()
 }
 
 Port &
+MinorCPU::getStrongInstPort()
+{
+    return pipeline->getInstPort();
+}
+
+Port &
+MinorCPU::getWeakInstPort()
+{
+    return pipeline->getInstPort();
+}
+
+Port &
 MinorCPU::getDataPort()
+{
+    return pipeline->getDataPort();
+}
+
+Port &
+MinorCPU::getStrongDataPort()
+{
+    return pipeline->getDataPort();
+}
+
+Port &
+MinorCPU::getWeakDataPort()
 {
     return pipeline->getDataPort();
 }

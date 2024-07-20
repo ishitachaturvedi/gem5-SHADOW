@@ -204,3 +204,5 @@ class BaseO3CPU(BaseCPU):
     needsTSO = Param.Bool(False, "Enable TSO Memory model")
 
     SingleThreadFetchiew = Param.Bool(False, "Only 1 thread fetches and decodes in a cycle")
+
+    UseSplitCache = Param.Bool(False, "Use different cache for S and W threads")

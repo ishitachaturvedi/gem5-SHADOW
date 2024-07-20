@@ -597,12 +597,37 @@ class CPU : public BaseCPU
         return fetch.getInstPort();
     }
 
+    Port &
+    getStrongInstPort() override
+    {
+        return fetch.getStrongInstPort();
+    }
+
+    Port &
+    getWeakInstPort() override
+    {
+        return fetch.getWeakInstPort();
+    }
+
     /** Get the dcache port (used to find block size for translations). */
     Port &
     getDataPort() override
     {
         return iew.ldstQueue.getDataPort();
     }
+
+    Port &
+    getStrongDataPort() override
+    {
+        return iew.ldstQueue.getStrongDataPort();
+    }
+
+    Port &
+    getWeakDataPort() override
+    {
+        return iew.ldstQueue.getWeakDataPort();
+    }
+
 
     struct CPUStats : public statistics::Group
     {

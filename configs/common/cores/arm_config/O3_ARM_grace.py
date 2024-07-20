@@ -471,36 +471,13 @@ class Grace12Wide(ArmO3CPU):
     backComSize = 5
     forwardComSize = 5
 
-# 1 thread
-    numROBEntries = 320
-    numPhysFloatRegs = 192
-    numPhysVecRegs = 192 
-    numPhysIntRegs = 224
-    numIQEntries = 120
+# # 1 thread
+#     numROBEntries = 320
+#     numPhysFloatRegs = 192
+#     numPhysVecRegs = 192 
+#     numPhysIntRegs = 224
+#     numIQEntries = 120
 
-# 1.5 resources scaling per thread
-# # 2 thread
-#     numROBEntries = 480
-#     numPhysFloatRegs = 288
-#     numPhysVecRegs = 288 
-#     numPhysIntRegs = 336
-#     numIQEntries = 180
-
-# # 4 thread
-#     numROBEntries = 720
-#     numPhysFloatRegs = 432
-#     numPhysVecRegs = 432 
-#     numPhysIntRegs = 504
-#     numIQEntries = 270
-
-# # 8 thread
-#     numROBEntries = 1080
-#     numPhysFloatRegs = 648
-#     numPhysVecRegs = 648 
-#     numPhysIntRegs = 756
-#     numIQEntries = 405
-
-# resource constraints
 # # 2 threads
 #     numROBEntries = 384
 #     numPhysFloatRegs = 230
@@ -529,12 +506,12 @@ class Grace12Wide(ArmO3CPU):
 #     numPhysIntRegs = 404
 #     numIQEntries = 216
 
-# # 10 threads
-#     numROBEntries = 640
-#     numPhysFloatRegs = 384
-#     numPhysVecRegs = 484 
-#     numPhysIntRegs = 448
-#     numIQEntries = 240
+# 10 threads
+    numROBEntries = 640
+    numPhysFloatRegs = 384
+    numPhysVecRegs = 484 
+    numPhysIntRegs = 448
+    numIQEntries = 240
 
     # cacheStorePorts = 512
     # cacheLoadPorts = 512
@@ -549,233 +526,12 @@ class Grace12Wide(ArmO3CPU):
     LFSTSize = 1024
     SSITSize = 1024
 
-
-class Grace12Wide_1thread(ArmO3CPU):
-    # def __init__(self):
-    #     super().__init__()
-
-    commitToIEWDelay = 1
-    commitToRenameDelay = 1
-    iewToRenameDelay = 1
-    commitToDecodeDelay = 1
-    iewToDecodeDelay = 1
-    renameToDecodeDelay = 1
-    commitToFetchDelay = 1
-    iewToFetchDelay = 1
-    renameToFetchDelay = 1
-    decodeToFetchDelay = 1
-    fetchWidth = 12
-    fetchBufferSize = 64
-    fetchToDecodeDelay = 1
-    decodeWidth = 8
-    decodeToRenameDelay = 1
-    renameWidth = 8
-    renameToIEWDelay = 1
-    issueToExecuteDelay = 1
-    dispatchWidth = 8
-    issueWidth = 12
-    wbWidth = 8
-    iewToCommitDelay = 1
-    renameToROBDelay = 1
-    commitWidth = 8
-    squashWidth = 8
-    trapLatency = 13
-    backComSize = 5
-    forwardComSize = 5
-
-    numROBEntries = 320
-    numPhysFloatRegs = 192
-    numPhysVecRegs = 192 
-    numPhysIntRegs = 224
-    numIQEntries = 120
-
-    switched_out = False
-    branchPred = O3_ARM_Grace_BP()
-    fuPool = O3_ARM_Grace_FUP()
-
-    LQEntries = 68
-    SQEntries = 72
-    LSQDepCheckShift = 0
-    LFSTSize = 1024
-    SSITSize = 1024
-
-    smtLSQPolicy = "Partitioned"
-    smtROBPolicy = "Partitioned"
-    smtIQPolicy = "Partitioned"
-    smtFetchPolicy = "SWFetchCount"
-class Grace12Wide_2thread(ArmO3CPU):
-    # def __init__(self):
-    #     super().__init__()
-
-    commitToIEWDelay = 1
-    commitToRenameDelay = 1
-    iewToRenameDelay = 1
-    commitToDecodeDelay = 1
-    iewToDecodeDelay = 1
-    renameToDecodeDelay = 1
-    commitToFetchDelay = 1
-    iewToFetchDelay = 1
-    renameToFetchDelay = 1
-    decodeToFetchDelay = 1
-    fetchWidth = 12
-    fetchBufferSize = 64
-    fetchToDecodeDelay = 1
-    decodeWidth = 8
-    decodeToRenameDelay = 1
-    renameWidth = 8
-    renameToIEWDelay = 1
-    issueToExecuteDelay = 1
-    dispatchWidth = 8
-    issueWidth = 12
-    wbWidth = 8
-    iewToCommitDelay = 1
-    renameToROBDelay = 1
-    commitWidth = 8
-    squashWidth = 8
-    trapLatency = 13
-    backComSize = 5
-    forwardComSize = 5
-
-    numROBEntries = 640
-    numPhysFloatRegs = 288
-    numPhysVecRegs = 288 
-    numPhysIntRegs = 336
-    numIQEntries = 240
-    #numIQEntries = 200
-
-    switched_out = False
-    branchPred = O3_ARM_Grace_BP()
-    fuPool = O3_ARM_Grace_FUP()
-
-    LQEntries = 102
-    SQEntries = 110
-    # SQEntries = 150
-    LSQDepCheckShift = 0
-    LFSTSize = 1024
-    SSITSize = 1024
-
-    smtLSQPolicy = "Partitioned"
-    smtROBPolicy = "Partitioned"
-    smtIQPolicy = "Partitioned"
-    smtFetchPolicy = "SWFetchCount"
-
-class Grace12Wide_4thread(ArmO3CPU):
-    # def __init__(self):
-    #     super().__init__()
-
-    commitToIEWDelay = 1
-    commitToRenameDelay = 1
-    iewToRenameDelay = 1
-    commitToDecodeDelay = 1
-    iewToDecodeDelay = 1
-    renameToDecodeDelay = 1
-    commitToFetchDelay = 1
-    iewToFetchDelay = 1
-    renameToFetchDelay = 1
-    decodeToFetchDelay = 1
-    fetchWidth = 12
-    fetchBufferSize = 64
-    fetchToDecodeDelay = 1
-    decodeWidth = 8
-    decodeToRenameDelay = 1
-    renameWidth = 8
-    renameToIEWDelay = 1
-    issueToExecuteDelay = 1
-    dispatchWidth = 8
-    issueWidth = 12
-    wbWidth = 8
-    iewToCommitDelay = 1
-    renameToROBDelay = 1
-    commitWidth = 8
-    squashWidth = 8
-    trapLatency = 13
-    backComSize = 5
-    forwardComSize = 5
-
-    numROBEntries = 1280
-    numPhysFloatRegs = 432
-    numPhysVecRegs = 432 
-    numPhysIntRegs = 504
-    numIQEntries = 480
-
-    switched_out = False
-    branchPred = O3_ARM_Grace_BP()
-    fuPool = O3_ARM_Grace_FUP()
-
-    LQEntries = 170
-    SQEntries = 180
-    LSQDepCheckShift = 0
-    LFSTSize = 1024
-    SSITSize = 1024
-
-    smtLSQPolicy = "Partitioned"
-    smtROBPolicy = "Partitioned"
-    smtIQPolicy = "Partitioned"
-    smtFetchPolicy = "SWFetchCount"
-
-class Grace12Wide_8thread(ArmO3CPU):
-    # def __init__(self):
-    #     super().__init__()
-
-    commitToIEWDelay = 1
-    commitToRenameDelay = 1
-    iewToRenameDelay = 1
-    commitToDecodeDelay = 1
-    iewToDecodeDelay = 1
-    renameToDecodeDelay = 1
-    commitToFetchDelay = 1
-    iewToFetchDelay = 1
-    renameToFetchDelay = 1
-    decodeToFetchDelay = 1
-    fetchWidth = 12
-    fetchBufferSize = 64
-    fetchToDecodeDelay = 1
-    decodeWidth = 8
-    decodeToRenameDelay = 1
-    renameWidth = 8
-    renameToIEWDelay = 1
-    issueToExecuteDelay = 1
-    dispatchWidth = 8
-    issueWidth = 12
-    wbWidth = 8
-    iewToCommitDelay = 1
-    renameToROBDelay = 1
-    commitWidth = 8
-    squashWidth = 8
-    trapLatency = 13
-    backComSize = 5
-    forwardComSize = 5
-
-    numROBEntries = 2560
-    # numROBEntries = 320
-    numPhysFloatRegs = 648
-    numPhysVecRegs = 648 
-    numPhysIntRegs = 756
-    numIQEntries = 960
-
-    switched_out = False
-    branchPred = O3_ARM_Grace_BP()
-    fuPool = O3_ARM_Grace_FUP()
-
-    LQEntries = 306
-    SQEntries = 324
-    #LQEntries = 544
-    #SQEntries = 544
-    LSQDepCheckShift = 0
-    LFSTSize = 1024
-    SSITSize = 1024
-
-    smtLSQPolicy = "Partitioned"
-    smtROBPolicy = "Partitioned"
-    smtIQPolicy = "Partitioned"
-    smtFetchPolicy = "SWFetchCount"
-
 # Instruction Cache
 class O3_ARM_grace_ICache(Cache):
     tag_latency = 1
     data_latency = 1
     response_latency = 1
-    mshrs = 12
+    mshrs = 2
     tgts_per_mshr = 8
     size = "32kB"
     assoc = 2
@@ -783,30 +539,7 @@ class O3_ARM_grace_ICache(Cache):
     # Writeback clean lines as well
     writeback_clean = True
 
-class O3_ARM_grace_ICache_Strong(Cache):
-    tag_latency = 2
-    data_latency = 2
-    response_latency = 2
-    mshrs = 6
-    tgts_per_mshr = 8
-    size = "32kB"
-    assoc = 2
-    write_buffers = 16
-    # Consider the L2 a victim cache also for clean lines
-    writeback_clean = True
 
-class O3_ARM_grace_ICache_Weak(Cache):
-    tag_latency = 2
-    data_latency = 2
-    response_latency = 2
-    mshrs = 6
-    tgts_per_mshr = 8
-    size = "32kB"
-    assoc = 2
-    write_buffers = 16
-    # Consider the L2 a victim cache also for clean lines
-    writeback_clean = True
-    
 # Data Cache
 class O3_ARM_grace_DCache(Cache):
     tag_latency = 2

@@ -145,6 +145,8 @@ ThreadContext::sendFunctional(PacketPtr pkt)
 {
     const auto *port =
         dynamic_cast<const RequestPort *>(&getCpuPtr()->getDataPort());
+    // const auto *port =
+    //     dynamic_cast<const RequestPort *>(&getCpuPtr()->getStrongDataPort());
     assert(port);
     port->sendFunctional(pkt);
 }
