@@ -801,8 +801,8 @@ for i in range(args.num_cpus):
     system.cpu[i].createInterruptController()
 
     # Connect cache port's to ruby
-    system.cpu[i].icache_port = ruby_port.in_ports
-    system.cpu[i].dcache_port = ruby_port.in_ports
+    system.cpu[i].icache_strong_port = ruby_port.in_ports
+    system.cpu[i].dcache_strong_port = ruby_port.in_ports
 
     ruby_port.mem_request_port = system.piobus.cpu_side_ports
     if get_runtime_isa() == ISA.X86:

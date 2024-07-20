@@ -154,6 +154,34 @@ cpu_type = {
         O3_ARM_grace.O3_ARM_grace_ICache,
         O3_ARM_grace.O3_ARM_grace_DCache,
         O3_ARM_grace.O3_ARM_grace_L2,
+    ), 
+    "o3_grace_1thread_split": (
+        O3_ARM_grace.Grace12Wide_1thread,
+        O3_ARM_grace.O3_ARM_grace_ICache_Strong,
+        O3_ARM_grace.O3_ARM_grace_ICache_Weak,
+        O3_ARM_grace.O3_ARM_grace_DCache,
+        O3_ARM_grace.O3_ARM_grace_L2,
+    ),
+    "o3_grace_2thread_split": (
+        O3_ARM_grace.Grace12Wide_2thread,
+        O3_ARM_grace.O3_ARM_grace_ICache_Strong,
+        O3_ARM_grace.O3_ARM_grace_ICache_Weak,
+        O3_ARM_grace.O3_ARM_grace_DCache,
+        O3_ARM_grace.O3_ARM_grace_L2,
+    ),
+    "o3_grace_4thread_split": (
+        O3_ARM_grace.Grace12Wide_4thread,
+        O3_ARM_grace.O3_ARM_grace_ICache_Strong,
+        O3_ARM_grace.O3_ARM_grace_ICache_Weak,
+        O3_ARM_grace.O3_ARM_grace_DCache,
+        O3_ARM_grace.O3_ARM_grace_L2,
+    ),
+    "o3_grace_8thread_split": (
+        O3_ARM_grace.Grace12Wide_8thread,
+        O3_ARM_grace.O3_ARM_grace_ICache_Strong,
+        O3_ARM_grace.O3_ARM_grace_ICache_Weak,
+        O3_ARM_grace.O3_ARM_grace_DCache,
+        O3_ARM_grace.O3_ARM_grace_L2,
     )
 }
 

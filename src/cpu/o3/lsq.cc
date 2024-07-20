@@ -64,6 +64,13 @@ namespace gem5
 namespace o3
 {
 
+
+// LSQ::DcachePort::DcachePort(LSQ *_lsq, CPU *_cpu, std::string threadType) :
+//     RequestPort(_cpu->name() + ".dcache_" + threadType + "_port", _cpu), lsq(_lsq), cpu(_cpu)
+// {
+//     //isStrong = threadType == "strong";
+// }
+
 LSQ::DcachePort::DcachePort(LSQ *_lsq, CPU *_cpu) :
     RequestPort(_cpu->name() + ".dcache_port", _cpu), lsq(_lsq), cpu(_cpu)
 {}

@@ -90,6 +90,7 @@ class LSQ
 
       public:
         /** Default constructor. */
+        //DcachePort(LSQ *_lsq, CPU *_cpu, std::string threadType);
         DcachePort(LSQ *_lsq, CPU *_cpu);
 
       protected:

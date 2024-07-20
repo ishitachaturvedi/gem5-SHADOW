@@ -784,27 +784,27 @@ class O3_ARM_grace_ICache(Cache):
     writeback_clean = True
 
 class O3_ARM_grace_ICache_Strong(Cache):
-    tag_latency = 1
-    data_latency = 1
-    response_latency = 1
+    tag_latency = 2
+    data_latency = 2
+    response_latency = 2
     mshrs = 6
     tgts_per_mshr = 8
-    size = "16kB"
+    size = "32kB"
     assoc = 2
-    is_read_only = True
-    # Writeback clean lines as well
+    write_buffers = 16
+    # Consider the L2 a victim cache also for clean lines
     writeback_clean = True
 
 class O3_ARM_grace_ICache_Weak(Cache):
-    tag_latency = 1
-    data_latency = 1
-    response_latency = 1
+    tag_latency = 2
+    data_latency = 2
+    response_latency = 2
     mshrs = 6
     tgts_per_mshr = 8
-    size = "16kB"
+    size = "32kB"
     assoc = 2
-    is_read_only = True
-    # Writeback clean lines as well
+    write_buffers = 16
+    # Consider the L2 a victim cache also for clean lines
     writeback_clean = True
     
 # Data Cache
