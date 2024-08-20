@@ -1261,6 +1261,7 @@ Rename::renameInsts(ThreadID tid)
             ++stats.blockingBandwidthFullS;
         } else {
             ++stats.blockingBandwidthFullW;
+            //DPRINTFN("RENAME IS BLOCKING DUW TO BW INST LEFT %d\n",insts_available);
         }
     }
 

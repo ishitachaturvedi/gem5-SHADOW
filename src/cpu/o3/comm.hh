@@ -124,6 +124,9 @@ struct TimeStruct
         bool predIncorrect;
         bool branchMispredict;
         bool branchTaken;
+        bool isConditionalBranch;
+
+        bool BranchResolved;
     };
 
     DecodeComm decodeInfo[MaxThreads];
@@ -147,6 +150,11 @@ struct TimeStruct
         unsigned dispatched;
         bool usedIQ;
         bool usedLSQ;
+
+        std::unique_ptr<PCStateBase> nextPC;
+        DynInstPtr squashBranchInst;
+
+        bool BranchResolved;
     };
 
     IewComm iewInfo[MaxThreads];

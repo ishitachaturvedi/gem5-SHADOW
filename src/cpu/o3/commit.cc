@@ -1046,6 +1046,9 @@ Commit::commit()
                     tid, cpu->thread[tid]->ControlInstIssued,fromIEW->squash[tid],commitStatus[tid],fromIEW->squashedSeqNum[tid],youngestSeqNum[tid]);
         }
 
+        // if it is weak thread, restart stage after conditional bp instruction completed
+        // 
+
         if(fromIEW->mispredictInst[tid] && cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
             DPRINTF(IQ, "Thread %i: RELIEVING4_ControlInstIssued "
                     "ControlInstIssued %d [sn:%llu]\n",
@@ -1075,6 +1078,7 @@ Commit::commit()
                     "[tid:%i] Squashing due to order violation [sn:%llu]\n",
                     tid, fromIEW->squashedSeqNum[tid]);
             }
+            // OFF_BP
 
             DPRINTF(Commit, "[tid:%i] Redirecting to PC %#x\n",
                     tid, *fromIEW->pc[tid]);
@@ -1431,6 +1435,8 @@ Commit::commitInsts()
 
                 DPRINTF(Commit,"[tid:%d] committing instruction1 [sn:%llu] lastCommitedCycle %llu\n",tid,head_inst->seqNum,lastCommitedCycle[tid]);
 
+                
+
                 // If this is an instruction that doesn't play nicely with
                 // others squash everything and restart fetch
                 if (head_inst->isSquashAfter())
@@ -1549,6 +1555,8 @@ Commit::commitInsts()
                 if (head_inst->isSquashed()) {
                     while(rob->isHeadReady(commit_thread) && rob->readHeadInst(commit_thread)->isSquashed()) 
                     {
+                        // OFF_BP
+                        // DPRINTFN("Commit_FAILED_inst [sn:%llu] PC %s branch %d\n",head_inst->seqNum,head_inst->pcState(),head_inst->isCondCtrl());
                         // if this is not the instruction which started the squash and it is a W thread no other instruction
                         // should have executed because we have non speculative issue. If not, then we have an issue and panic
                         if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak && rob->readHeadInst(commit_thread)->seqNum!=commitheadSeq[tid] && rob->readHeadInst(commit_thread)->isExecuted() && !rob->readHeadInst(commit_thread)->isNop()) {
@@ -1580,6 +1588,10 @@ Commit::commitInsts()
                     if (commit_success) {
                         ++num_committed;
                         stats.committedInstType[tid][head_inst->opClass()]++;
+
+                        // OFF_BP
+                        // DPRINTFN("Commit_w_sn_inst [sn:%llu] PC %s branch %d\n",head_inst->seqNum,head_inst->pcState(),head_inst->isCondCtrl());
+                        // DPRINTFN("Commit_inst PC %s branch %d\n",head_inst->pcState(),head_inst->isCondCtrl());
 
                         ppCommit->notify(head_inst);
 

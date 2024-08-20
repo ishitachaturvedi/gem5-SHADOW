@@ -194,7 +194,8 @@ class Fetch
         IcacheWaitResponse,
         IcacheWaitRetry,
         IcacheAccessComplete,
-        NoGoodAddr
+        NoGoodAddr,
+        BlockedOnBranch // blocked because of conditional brnahc, will be unset by commit after the instruction resolves
     };
 
   private:
@@ -355,6 +356,11 @@ class Fetch
     void doSquash(const PCStateBase &new_pc, const DynInstPtr squashInst,
             ThreadID tid);
 
+
+    /** Resets pc and redirects branch. */
+    void doBranchRedirect(const PCStateBase &new_pc, const DynInstPtr squashInst,
+            ThreadID tid);
+
     /** Squashes a specific thread and resets the PC. Also tells the CPU to
      * remove any instructions between fetch and decode
      *  that should be sqaushed.
@@ -442,6 +448,10 @@ class Fetch
 
     /** Profile the reasons of fetch stall. */
     void profileStall(ThreadID tid);
+
+    /* Did we stall on a conditional branch */
+    bool StalledOnConditionalBranch[MaxThreads];
+    InstSeqNum StalledOnConditionalBranchSeq[MaxThreads];
 
   private:
     /** Pointer to the O3CPU. */

@@ -371,7 +371,11 @@ Decode::squash(const DynInstPtr &inst, ThreadID tid)
     toFetch->decodeInfo[tid].mispredictInst = inst;
     toFetch->decodeInfo[tid].squash = true;
     toFetch->decodeInfo[tid].doneSeqNum = inst->seqNum;
+    toFetch->decodeInfo[tid].isConditionalBranch = inst->isCondCtrl();
     set(toFetch->decodeInfo[tid].nextPC, *inst->branchTarget());
+
+    // BP_OFF
+    // DPRINTFN("[tid:%i] [sn:%llu] SQUASHING CONDITIONAL BRANCH %d prediction detected at decode.\n", tid, inst->seqNum, toFetch->decodeInfo[tid].isConditionalBranch);
 
     // Looking at inst->pcState().branching()
     // may yield unexpected results if the branch
@@ -953,6 +957,13 @@ Decode::decodeInsts(ThreadID tid)
             ++stats.branchResolved;
 
             std::unique_ptr<PCStateBase> target = inst->branchTarget();
+
+            // DPRINTFN(
+                        // "[tid:%i] [sn:%llu] "
+                        // "DECODE FOUND ISSUE: Wrong predicted target: %s \
+                        // PredPC: %s\n",
+                        // tid, inst->seqNum, inst->readPredTarg(), *target);
+
             if (*target != inst->readPredTarg()) {
                 ++stats.branchMispred;
                 if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
@@ -963,7 +974,21 @@ Decode::decodeInsts(ThreadID tid)
 
                 // Might want to set some sort of boolean and just do
                 // a check at the end
+                // do not squash for weak threads, we just need to update the PC correctly
+                // then turn on fetch correctly for the right branch instructions (not all of them).
+                //if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
+                // DPRINTFN(
+                        // "[tid:%i] [sn:%llu] "
+                        // "DECODE NEEDS TO SQUASH: Wrong predicted target: %s \
+                        // PredPC: %s\n",
+                        // tid, inst->seqNum, inst->readPredTarg(), *target);
+
+                // no need to squash because no prediction happened at fetch
+                // OFF_BP
                 squash(inst, inst->threadNumber);
+
+                toFetch->decodeInfo[tid].BranchResolved = true;
+
 
                 DPRINTF(Decode,
                         "[tid:%i] [sn:%llu] "
@@ -976,6 +1001,8 @@ Decode::decodeInsts(ThreadID tid)
             }
         }
     }
+    
+    DPRINTF(Decode,"Ending decode loop  insts_available %d toRenameIndex %d decodeWidth %d\n",insts_available,toRenameIndex,decodeWidth);
 
     // If we didn't process all instructions, then we will need to block
     // and put all those instructions into the skid buffer.

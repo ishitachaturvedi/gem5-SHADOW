@@ -645,6 +645,8 @@ IEW::squashDueToBranch(const DynInstPtr& inst, ThreadID tid)
         toCommit->mispredictInst[tid] = inst;
         toCommit->includeSquashInst[tid] = false;
 
+        // // DPRINTFN("[sn:%llu] PRED PC %d RedPC %s toCommit %#x\n",inst->seqNum, inst->readPredTarg(), inst->pcState(), *toCommit->pc[tid]);
+
         wroteToTimeBuffer = true;
 
         DPRINTF(IEW, "[tid:%i] [sn:%llu] SETTING_VALS,"
@@ -1727,6 +1729,33 @@ IEW::executeInsts()
 
         updateExeInstStats(inst);
 
+        // if(inst->isControl() && ) { // Ishita
+        //     // DPRINTFN("EXECUTED STATUS exec %d mispred %d oldPC %s newPC %s\n",inst->isExecuted(),inst->mispredicted(), inst->readPredTarg(), inst->pcState());
+        // }
+
+        if((inst->isCondCtrl() || inst->isReturn() || inst->isIndirectCtrl()) && cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak && inst->isExecuted())
+        {
+            // Ishita OFF_BP
+            // send signal to fetch:
+            // new pc after branch resolution
+            // get back to running state   
+
+            // USE *toCommit->pc[tid] as the PC to change
+            
+            set(toCommit->pc[tid], inst->pcState());
+            inst->staticInst->advancePC(*toCommit->pc[tid]); 
+            set(toFetch->iewInfo[tid].nextPC, toCommit->pc[tid]);
+            toFetch->iewInfo[tid].squashBranchInst = inst;
+            inst->setPredTarg(*toCommit->pc[tid]);  
+            toFetch->iewInfo[tid].BranchResolved = true;
+            // DPRINTFN("[sn:%llu] 11PRED PC %d RedPC %s toCommit %#x toFetch %s isReturn() %d\n",inst->seqNum, inst->readPredTarg(), inst->pcState(), *toCommit->pc[tid], *toFetch->iewInfo[tid].//nextPC, inst->isReturn());
+        }
+
+        // set next pc correctly after conditional instruction completes
+        // if(inst->isControl() && inst->isExecuted() && !inst->mispredicted() && cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+            
+        // }
+
         // Check if branch prediction was correct, if not then we need
         // to tell commit to squash in flight instructions.  Only
         // handle this if there hasn't already been something that
@@ -1754,12 +1783,14 @@ IEW::executeInsts()
                 cpu->thread[tid]->ControlInstSeq = -1;
             }
 
-            if (inst->mispredicted() && !loadNotExecuted) {
+            if (inst->mispredicted() && !loadNotExecuted && !(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak)) { // OFF_BP
+            //if (inst->mispredicted() && !loadNotExecuted) { // ON_BP
+                //assert(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() != Weak);// OFF_BP
                 fetchRedirect[tid] = true;
 
                 DPRINTF(IEW, "[tid:%i] [sn:%llu] Execute: "
-                        "Branch mispredict detected.\n",
-                        tid, inst->seqNum);
+                        "Branch mispredict detected isReturn %d.\n",
+                        tid, inst->seqNum, inst->isReturn());
                 DPRINTF(IEW, "[tid:%i] [sn:%llu] "
                         "Predicted target was PC: %s\n",
                         tid, inst->seqNum, inst->readPredTarg());
@@ -2264,7 +2295,12 @@ IEW::checkMisprediction(const DynInstPtr& inst)
         }
 
         if (inst->mispredicted()) {
+            assert(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() != Weak);
             fetchRedirect[tid] = true;
+            
+            DPRINTF(IEW, "[tid:%i] [sn:%llu] Execute: "
+                    "check place of error detected.\n",
+                    tid, inst->seqNum);
 
             DPRINTF(IEW, "[tid:%i] [sn:%llu] Execute: "
                     "Branch mispredict detected.\n",

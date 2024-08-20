@@ -135,7 +135,7 @@ class O3_ARM_v7a_3(ArmO3CPU):
     commitToIEWDelay = 1
     fetchWidth = 3
     fetchBufferSize = 16
-    fetchToDecodeDelay = 3
+    fetchToDecodeDelay = 1
     decodeWidth = 3
     decodeToRenameDelay = 2
     renameWidth = 3

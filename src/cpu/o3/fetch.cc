@@ -147,6 +147,7 @@ Fetch::Fetch(CPU *_cpu, const BaseO3CPUParams &params)
         fetchBufferValid[i] = false;
         lastIcacheStall[i] = 0;
         issuePipelinedIfetch[i] = false;
+        StalledOnConditionalBranch[i] = false;
     }
 
     branchPred = params.branchPred;
@@ -391,6 +392,7 @@ Fetch::clearStates(ThreadID tid)
     fetchBufferPC[tid] = 0;
     fetchBufferValid[tid] = false;
     fetchQueue[tid].clear();
+    StalledOnConditionalBranch[tid] = false;
 
     // TODO not sure what to do with priorityList for now
     // priorityList.push_back(tid);
@@ -425,6 +427,7 @@ Fetch::resetStage()
         fetchQueue[tid].clear();
 
         priorityList.push_back(tid);
+        StalledOnConditionalBranch[tid] = false;
     }
 
     wroteToTimeBuffer = false;
@@ -631,6 +634,7 @@ Fetch::activateThread(ThreadID tid)
     fetchBufferPC[tid] = 0;
     fetchBufferValid[tid] = false;
     fetchQueue[tid].clear();
+    StalledOnConditionalBranch[tid] = false;
 }
 
 bool
@@ -906,11 +910,79 @@ Fetch::doSquash(const PCStateBase &new_pc, const DynInstPtr squashInst,
     ++fetchStats.squashCycles;
 }
 
+// OFF_BP
+void
+Fetch::doBranchRedirect(const PCStateBase &new_pc, const DynInstPtr squashInst,
+        ThreadID tid)
+{
+    DPRINTF(Fetch, "[tid:%i] Rediecting brnahc, setting PC to: %s.\n",
+            tid, new_pc);
+
+    set(pc[tid], new_pc);
+    fetchOffset[tid] = 0;
+    if (squashInst && squashInst->pcState().instAddr() == new_pc.instAddr())
+        macroop[tid] = squashInst->macroop;
+    else
+        macroop[tid] = NULL;
+    decoder[tid]->reset();
+
+    // Clear the icache miss if it's outstanding.
+    if (fetchStatus[tid] == IcacheWaitResponse) {
+        DPRINTF(Fetch, "[tid:%i] Squashing outstanding Icache miss.\n",
+                tid);
+        memReq[tid] = NULL;
+    } else if (fetchStatus[tid] == ItlbWait) {
+        DPRINTF(Fetch, "[tid:%i] Squashing outstanding ITLB miss.\n",
+                tid);
+        memReq[tid] = NULL;
+    }
+
+    // Get rid of the retrying packet if it was from this thread.
+    if (retryTid == tid) {
+        assert(cacheBlocked);
+        if (retryPkt) {
+            delete retryPkt;
+        }
+        retryPkt = NULL;
+        retryTid = InvalidThreadID;
+    }
+
+    DPRINTF(Fetch, "Redirecting FetchStatus Update: fetchStatus[%i] = %d\n", tid, fetchStatus[tid]);
+
+    // Empty fetch queue
+    fetchQueue[tid].clear();
+
+    // // microops are being squashed, it is not known wheather the
+    // // youngest non-squashed microop was  marked delayed commit
+    // // or not. Setting the flag to true ensures that the
+    // // interrupts are not handled when they cannot be, though
+    // // some opportunities to handle interrupts may be missed.
+    // delayedCommit[tid] = true;
+}
+
 void
 Fetch::squashFromDecode(const PCStateBase &new_pc, const DynInstPtr squashInst,
         const InstSeqNum seq_num, ThreadID tid)
 {
     DPRINTF(Fetch, "[tid:%i] Squashing from decode.\n", tid);
+
+    // if the instruction which caused squash was a mispredict, current stage is BlockedOnBranch and the instrution is an unconditional branch mark
+    // fetch to be in unconditional branching state.
+    // We will keep track of this after squashing is done, to decide if we want to go into Running state or to keep squash in BlockedOnBranch state
+    // till the branch is resolved in the iew state
+
+    // OFF_BP
+    if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+        assert(fetchStatus[tid] == BlockedOnBranch);
+
+        if(fromDecode->decodeInfo[tid].isConditionalBranch) {
+            StalledOnConditionalBranch[tid] = true;
+            StalledOnConditionalBranchSeq[tid] = seq_num;
+        }
+    }
+
+    // BP_OFF
+    // DPRINTFN("[tid:%i] [sn:%llu] FETCH MAKING SURE %d.\n", tid, seq_num, StalledOnConditionalBranch[tid]);
 
     doSquash(new_pc, squashInst, tid);
 
@@ -1197,7 +1269,10 @@ Fetch::tick()
 bool
 Fetch::checkSignalsAndUpdate(ThreadID tid)
 {
-    DPRINTF(Fetch, "[tid:%i] Checking Update Signals.\n",tid);
+    // OFF_BP
+    DPRINTF(Fetch, "[tid:%i] Checking Update Signals state %d BranchResolved From decode %d decodeToFetchDelay %d check_all %d.\n",tid, fetchStatus[tid], fromDecode->decodeInfo[tid].BranchResolved, decodeToFetchDelay, (fetchStatus[tid] != BlockedOnBranch
+        || (fetchStatus[tid] == BlockedOnBranch && fromIEW->iewInfo[tid].BranchResolved == true) // if it is blocked on branch, it can only be unblocked by IEW bypassing the next pointer. 
+       ));
     // Update the per thread stall statuses.
     if (fromDecode->decodeBlock[tid]) {
         stalls[tid].decode = true;
@@ -1214,6 +1289,22 @@ Fetch::checkSignalsAndUpdate(ThreadID tid)
 
         DPRINTF(Fetch, "[tid:%i] Squashing instructions due to squash "
                 "from commit.\n",tid);
+
+        if(fromIEW->iewInfo[tid].nextPC)
+            DPRINTF(Fetch, "[tid:%i] Squashing instructions due to squash "
+               "from commit PCFromIEW %s.\n",tid, *fromIEW->iewInfo[tid].nextPC);
+
+        // if we have a squash from commit, then there has to be an interrupt
+        // assert that the squash from commit is from a newer instruction than the one that 
+        // put the system in stallforbranch, if the system is stalling on branch
+        // then reset the stall on branch to false because the instruction which put us in this state
+        // will be killed anyway
+        if(StalledOnConditionalBranch[tid]) {
+            assert(fromCommit->commitInfo[tid].doneSeqNum < StalledOnConditionalBranchSeq[tid]);
+            StalledOnConditionalBranch[tid] = false;
+        }
+
+
         // In any case, squash.
         squash(*fromCommit->commitInfo[tid].pc,
                fromCommit->commitInfo[tid].doneSeqNum,
@@ -1229,10 +1320,11 @@ Fetch::checkSignalsAndUpdate(ThreadID tid)
                 branchPred->squash(fromCommit->commitInfo[tid].doneSeqNum,
                         *fromCommit->commitInfo[tid].pc,
                         fromCommit->commitInfo[tid].branchTaken, tid);
-            } else {
-                branchPred->squash(fromCommit->commitInfo[tid].doneSeqNum,
-                                tid);
-            }
+            } 
+            // else {
+            //     branchPred->squash(fromCommit->commitInfo[tid].doneSeqNum,
+            //                     tid);
+            // }
         }
 
         return true;
@@ -1253,10 +1345,11 @@ Fetch::checkSignalsAndUpdate(ThreadID tid)
                 branchPred->squash(fromDecode->decodeInfo[tid].doneSeqNum,
                         *fromDecode->decodeInfo[tid].nextPC,
                         fromDecode->decodeInfo[tid].branchTaken, tid);
-            } else {
-                branchPred->squash(fromDecode->decodeInfo[tid].doneSeqNum,
-                                tid);
             }
+            // else {
+            //     branchPred->squash(fromDecode->decodeInfo[tid].doneSeqNum,
+            //                     tid);
+            // }
         }
 
         if (fetchStatus[tid] != Squashing) {
@@ -1286,14 +1379,42 @@ Fetch::checkSignalsAndUpdate(ThreadID tid)
         return true;
     }
 
+    // // DPRINTFN("[tid:%i] Checking Update Signals state %d BranchResolved From decode %d decodeToFetchDelay %d check_all %d.\n",tid, fetchStatus[tid], fromDecode->decodeInfo[tid].BranchResolved, decodeToFetchDelay, (fetchStatus[tid] != BlockedOnBranch
+    //     || (fetchStatus[tid] == BlockedOnBranch && fromIEW->iewInfo[tid].BranchResolved == true) // if it is blocked on branch, it can only be unblocked by IEW bypassing the next pointer. 
+    //    ));
+
+    // OFF_BP
     if (fetchStatus[tid] == Blocked ||
-        fetchStatus[tid] == Squashing) {
+        fetchStatus[tid] == Squashing 
+        || (fetchStatus[tid] == BlockedOnBranch && fromIEW->iewInfo[tid].BranchResolved == true) // if it is blocked on branch, it can only be unblocked by IEW bypassing the next pointer. 
+        // the # cycles to resolve branch should be deterministic, so we can just issue it after a given number of cycles // Ishita
+        // the implementation logic should not be hard in real HW, here I just wait for IEW to signal that the fetch stage can now go and fix the next pc to the correct instruction
+        ) {
         // Switch status to running if fetch isn't being told to block or
         // squash this cycle.
-        DPRINTF(Fetch, "[tid:%i] Done squashing, switching to running.\n",
-                tid);
+        // if(fetchStatus[tid] == BlockedOnBranch) {
+        //     DPRINTFN("BACK TO RUNNING BlockedOnBranch\n");
+        // }
 
-        fetchStatus[tid] = Running;
+        //DPRINTFN("UNBLOCKING THE SYSTE OLD STATE WAS %d\n",fetchStatus[tid]);
+
+        DPRINTF(Fetch, "[tid:%i] Done squashing, switching to running.\n",
+                tid);       
+
+        // if fetch squashed due to a conditional branch in decode we need to continue to stall fetch. 
+        if(fetchStatus[tid] != Squashing || (fetchStatus[tid] == Squashing && !StalledOnConditionalBranch[tid])) {
+            
+            // if we are stalled because of a branch and the branch is now resolved, we can reset the fetch stage to start execution
+            if( fetchStatus[tid] == BlockedOnBranch) {
+                doBranchRedirect(*fromIEW->iewInfo[tid].nextPC, fromIEW->iewInfo[tid].squashBranchInst, tid);
+            }
+            fetchStatus[tid] = Running;
+            StalledOnConditionalBranch[tid] = false;
+            //DPRINTFN("[tid:%i] FETCH BACK TO RUNNING %d.\n", tid, StalledOnConditionalBranch[tid]);
+        } else {
+            fetchStatus[tid] = BlockedOnBranch;
+            //DPRINTFN("[tid:%i] WE STILL STALL %d.\n", tid, StalledOnConditionalBranch[tid]);
+        }
         DPRINTF(Fetch, "(Running 5) FetchStatus Update: fetchStatus[%i] = %d\n", tid, fetchStatus[tid]);
 
         return true;
@@ -1572,12 +1693,20 @@ Fetch::fetch(bool &status_change)
             set(next_pc, this_pc);
 
             // If we're branching after this instruction, quit fetching
-            // from the same block.
+            // from the same block. // Ishita
+
+            bool condititional_branch_inst_issued = false;
+            //assert(!instruction->isCondCtrl() && this_pc.branching());
+
             predictedBranch |= this_pc.branching();
             predictedBranch |= lookupAndUpdateNextPC(instruction, *next_pc);
             if (predictedBranch) {
                 DPRINTF(Fetch, "Branch detected with PC = %s\n", this_pc);
             }
+
+            //DPRINTFN("Inst_fetch [sn:%llu] PC %s isCondCtrl %d isDirectCtrl %d isIndirectCtrl %d isUncondCtrl %d\n",instruction->seqNum,instruction->pcState(),instruction->isCondCtrl(),instruction->isDirectCtrl(),instruction->isIndirectCtrl(),instruction->isUncondCtrl());
+
+            condititional_branch_inst_issued  = (instruction->isCondCtrl() || instruction->isDirectCtrl() ||  instruction->isIndirectCtrl() || instruction->isUncondCtrl()) && cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak;
 
             newMacro |= this_pc.instAddr() != next_pc->instAddr();
 
@@ -1591,6 +1720,16 @@ Fetch::fetch(bool &status_change)
                 blkOffset = (fetchAddr - fetchBufferPC[tid]) / instSize;
                 pcOffset = 0;
                 curMacroop = NULL;
+            }
+
+            // if the code is having a conditional brnahc and is a weak thread, then stop fetch
+
+            //Ishita -> set next PC to stall
+            // OFF_BP
+            if(condititional_branch_inst_issued) {
+                fetchStatus[tid] = BlockedOnBranch;
+                // DPRINTFN("WILL_BLOCK_HERE [sn:%llu] PC %s isCondCtrl %d isDirectCtrl %d isIndirectCtrl %d isUncondCtrl %d STATE %d\n",instruction->seqNum,instruction->pcState(),instruction->isCondCtrl(),instruction->isDirectCtrl(),instruction->isIndirectCtrl(),instruction->isUncondCtrl(),fetchStatus[tid]);
+                break;
             }
 
             if (instruction->isQuiesce()) {

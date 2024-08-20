@@ -94,19 +94,21 @@ class BaseO3CPU(BaseCPU):
         32, "Fetch queue size in micro-ops " "per-thread"
     )
 
-    renameToDecodeDelay = Param.Cycles(1, "Rename to decode delay")
+    # renameToDecodeDelay = Param.Cycles(1, "Rename to decode delay")
+    # decodeToRenameDelay = Param.Cycles(1, "Decode to rename delay")
+    renameToDecodeDelay = Param.Cycles(0, "Rename to decode delay")
+    decodeToRenameDelay = Param.Cycles(0, "Decode to rename delay")
     iewToDecodeDelay = Param.Cycles(
         1, "Issue/Execute/Writeback to decode " "delay"
     )
     commitToDecodeDelay = Param.Cycles(1, "Commit to decode delay")
-    fetchToDecodeDelay = Param.Cycles(1, "Fetch to decode delay")
+    fetchToDecodeDelay = Param.Cycles(0, "Fetch to decode delay")
     decodeWidth = Param.Unsigned(8, "Decode width")
 
     iewToRenameDelay = Param.Cycles(
         1, "Issue/Execute/Writeback to rename " "delay"
     )
     commitToRenameDelay = Param.Cycles(1, "Commit to rename delay")
-    decodeToRenameDelay = Param.Cycles(1, "Decode to rename delay")
     renameWidth = Param.Unsigned(8, "Rename width")
 
     commitToIEWDelay = Param.Cycles(
@@ -138,6 +140,8 @@ class BaseO3CPU(BaseCPU):
     forwardComSize = Param.Unsigned(
         5, "Time buffer size for forward communication"
     )
+
+    UseSplitCache = Param.Bool(False, "Use different cache for S and W threads")
 
     LQEntries = Param.Unsigned(100, "Number of load queue entries")
     SQEntries = Param.Unsigned(100, "Number of store queue entries")
@@ -204,5 +208,3 @@ class BaseO3CPU(BaseCPU):
     needsTSO = Param.Bool(False, "Enable TSO Memory model")
 
     SingleThreadFetchiew = Param.Bool(False, "Only 1 thread fetches and decodes in a cycle")
-
-    UseSplitCache = Param.Bool(False, "Use different cache for S and W threads")
