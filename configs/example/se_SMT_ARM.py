@@ -229,6 +229,7 @@ class SimpleSeSystem(System):
             cpu.runTillSThreads = args.runTillSThreads
             cpu.SingleThreadFetchIEW = args.SingleThreadFetchIEW
             cpu.UseSplitCache = args.UseSplitCache
+            cpu.FirstThreadSOtherW = args.FirstThreadSOtherW
 
         # for cpu in self.cpu_cluster.cpus:
         #     cpu.numThreads = numThreads
@@ -388,6 +389,9 @@ def main():
     parser.add_argument('-SingleThreadFetchIEW', type=bool, default=False)
 
     parser.add_argument('-UseSplitCache', type=bool, default=False)
+
+    #run first thread as S for ILP and others as W as TLP
+    parser.add_argument('-FirstThreadSOtherW', type=bool, default=False)
 
     args = parser.parse_args()
 

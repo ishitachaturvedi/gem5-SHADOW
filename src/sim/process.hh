@@ -95,6 +95,7 @@ class Process : public SimObject
     inline void pgid(uint64_t pgid) { _pgid = pgid; }
     inline uint64_t tgid() { return _tgid; }
     int getprocessThreadType() { return processThreadType; }
+    void setprocessThreadType(int threadType) { processThreadType = threadType; }
 
     const char *progName() const { return executable.c_str(); }
 

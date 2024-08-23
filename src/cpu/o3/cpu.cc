@@ -80,6 +80,7 @@ CPU::CPU(const BaseO3CPUParams &params)
       threadExitEvent([this]{ exitThreads(); }, "O3CPU exit threads",
                 false, Event::CPU_Exit_Pri),
         runTillSThreads(params.runTillSThreads),
+        FirstThreadSOtherW(params.FirstThreadSOtherW),
 #ifndef NDEBUG
       instcount(0),
 #endif
@@ -275,16 +276,24 @@ CPU::CPU(const BaseO3CPUParams &params)
         } else {
             if (tid < params.workload.size()) {
                 threadSet = 1;
+                // DPRINTF(O3CPU, "Inside Workload[%i] params.workload %d process is %#x Numthreads %d size %d ThreadType %d\n", tid, &params.workload,
+                //         thread[tid],numThreads,params.workload.size(),params.workload[tid]->processThreadType);
                 DPRINTF(O3CPU, "Inside Workload[%i] params.workload %d process is %#x Numthreads %d size %d ThreadType %d\n", tid, &params.workload,
-                        thread[tid],numThreads,params.workload.size(),params.workload[tid]->processThreadType);
+                        thread[tid],numThreads,params.workload.size(),Strong);
                 thread[tid] = new ThreadState(this, tid, params.workload[tid]);
                 //Daniel: push thread to map
-                system->threadTypes.push_back((int)(params.workload[tid]->processThreadType));
-                if(params.workload[tid]->processThreadType == Strong){
-                    strongCount++;
-                }else{
-                    weakCount++;
+                // Ishita: Make first thread S thread
+                if(!FirstThreadSOtherW) {
+                    system->threadTypes.push_back((int)(params.workload[tid]->processThreadType));
+                } else {
+                    system->threadTypes.push_back(Strong);
                 }
+                // if(params.workload[tid]->processThreadType == Strong){
+                //     strongCount++;
+                // }else{
+                //     weakCount++;
+                // }
+                strongCount++;
             } else {
                 //Allocate Empty thread so M5 can use later
                 //when scheduling threads to CPU
@@ -329,6 +338,12 @@ CPU::CPU(const BaseO3CPUParams &params)
 
         if(threadSet)
         {
+            // Ishita: Make first thread S thread
+            assert(tid == 0);
+            if(FirstThreadSOtherW) {
+                thread[tid]->tc->getProcessPtr()->setprocessThreadType(Strong);
+            }
+
             DPRINTF(O3CPU,"[tid:%d] InitThread Adding new thread Type: %d Strong ActiveThreads: %d TotalThreads: %d Weak ActiveThreads: %d TotalThreads: %d\n",tid,tc->getProcessPtr()->getprocessThreadType(),SThreadsAvailable,SThreads,WThreadsAvailable,WThreads);
             fprintf(stderr, "[tid:%d] InitThread Adding new thread Type: %d Strong ActiveThreads: %d TotalThreads: %d Weak ActiveThreads: %d TotalThreads: %d\n",tid,tc->getProcessPtr()->getprocessThreadType(),SThreadsAvailable,SThreads,WThreadsAvailable,WThreads); 
  
@@ -354,7 +369,7 @@ CPU::CPU(const BaseO3CPUParams &params)
     commit.setRenameMap(commitRenameMap);
     rename.setFreeList(&freeList);
 
-    //for (ThreadID tid = 0; tid < active_threads; tid++) { // Ishita
+    //for (ThreadID tid = 0; tid < active_threads; tid++) { 
     for (ThreadID tid = 0; tid < numThreads; tid++) {
         for (auto type = (RegClassType)0; type <= CCRegClass;
                 type = (RegClassType)(type + 1)) {
@@ -643,6 +658,16 @@ CPU::activateThread(ThreadID tid)
     // adding context to add registers
 
     if (isActive == activeThreads.end()) {
+
+        // Ishita: Make tid==1 S thread, every tid over 1 is Weak. Only tid 0,1 are strong. 0 runs main process, 1 runs pthread thread 0.
+        if(FirstThreadSOtherW) {
+            if(tid == 1) {
+                thread[tid]->tc->getProcessPtr()->setprocessThreadType(Strong);
+            } else if(tid > 1) {
+                thread[tid]->tc->getProcessPtr()->setprocessThreadType(Weak);
+            }
+        }
+
         DPRINTF(O3CPU, "[tid:%i] Adding to active threads list\n", tid);
 
         activeThreads.push_back(tid);
@@ -1463,7 +1488,7 @@ CPU::getWritableArchReg(const RegId &reg, ThreadID tid)
 void
 CPU::setArchReg(const RegId &reg, RegVal val, ThreadID tid)
 {
-    DPRINTF(O3CPU,"[tid:%d] setting Arch Reg\n",tid);
+    //DPRINTF(O3CPU,"[tid:%d] setting Arch Reg\n",tid);
     const RegId flat = reg.flatten(*isa[tid]);
     PhysRegIdPtr phys_reg = commitRenameMap[tid].lookup(flat);
     regFile.setReg(phys_reg, val);

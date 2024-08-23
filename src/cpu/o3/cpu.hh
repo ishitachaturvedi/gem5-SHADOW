@@ -457,6 +457,9 @@ class CPU : public BaseCPU
     /** Exit program after S thread finishes **/
     bool runTillSThreads;
 
+    /** Run 1 pthread iteration as S thread and all others as W threads**/
+    bool FirstThreadSOtherW;
+
     /**
      *  This is a list of threads that are trying to exit. Each thread id
      *  is mapped to a boolean value denoting whether the thread is ready

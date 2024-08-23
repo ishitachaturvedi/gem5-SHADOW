@@ -136,10 +136,11 @@ System::findFree(int threadType)
 {
     for (auto &thread: threads.threads) {
         if (thread.context->status() == ThreadContext::Halted){
-            if(threadTypes.empty() || threadTypes[thread.context->contextId()] == threadType){
-                fprintf(stderr, "Returning thread %d for process of type %d\n", thread.context->contextId(), threadType);
-                return thread.context;
-            }
+            // if(threadTypes.empty() || threadTypes[thread.context->contextId()] == threadType){
+            //     fprintf(stderr, "Returning thread %d for process of type %d\n", thread.context->contextId(), threadType);
+            //     return thread.context;
+            // }
+            return thread.context;
         }
     }
     return nullptr;
