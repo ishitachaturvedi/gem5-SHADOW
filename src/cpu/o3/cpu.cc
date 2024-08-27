@@ -229,9 +229,9 @@ CPU::CPU(const BaseO3CPUParams &params)
     assert(numThreads == (SThreads + WThreads));
     const auto &regClasses = params.isa[0]->regClasses();
 
-    printf("Per thread Reg size IntRegClass: %ld, FloatRegClass: %ld, VecRegClass: %ld, VecPredRegClass: %ld, CCRegClass: %ld\n",regClasses.at(IntRegClass)->numRegs(),regClasses.at(FloatRegClass)->numRegs(),regClasses.at(VecRegClass)->numRegs(),regClasses.at(VecPredRegClass)->numRegs(),regClasses.at(CCRegClass)->numRegs());
+    printf("Per thread Reg size IntRegClass: %ld, FloatRegClass: %ld, VecRegClass: %ld, VecElmClass: %ld, VecPredRegClass: %ld, CCRegClass: %ld\n",regClasses.at(IntRegClass)->numRegs(),regClasses.at(FloatRegClass)->numRegs(),regClasses.at(VecRegClass)->numRegs(),regClasses.at(VecElemClass)->numRegs(),regClasses.at(VecPredRegClass)->numRegs(),regClasses.at(CCRegClass)->numRegs());
 
-    printf("Total thread Reg size IntRegClass: %ld, FloatRegClass: %ld, VecRegClass: %ld, VecPredRegClass: %ld, CCRegClass: %ld\n",numThreads * regClasses.at(IntRegClass)->numRegs(),numThreads * regClasses.at(FloatRegClass)->numRegs(),numThreads * regClasses.at(VecRegClass)->numRegs(),numThreads * regClasses.at(VecPredRegClass)->numRegs(),numThreads * regClasses.at(CCRegClass)->numRegs());
+    printf("Total thread Reg size IntRegClass: %ld, FloatRegClass: %ld, VecRegClass: %ld, VecPredRegClass: %ld, CCRegClass: %ld\n",params.numPhysIntRegs,params.numPhysFloatRegs,params.numPhysVecRegs,params.numPhysVecPredRegs,params.numPhysCCRegs);
 
 
     assert(params.numPhysIntRegs >=

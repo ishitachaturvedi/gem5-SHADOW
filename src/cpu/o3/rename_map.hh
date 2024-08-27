@@ -306,6 +306,8 @@ class UnifiedRenameMap
     /** Return number of registers available
      */
     int getRegsAvailable(DynInstPtr inst) const;
+
+    std::vector<int> getFreeRegCount();
 };
 
 } // namespace o3

@@ -162,5 +162,14 @@ UnifiedRenameMap::getRegsAvailable(DynInstPtr inst) const
     return true;
 }
 
+std::vector<int> 
+UnifiedRenameMap::getFreeRegCount() {
+    std::vector<int> RegCount;
+    for (int i = 0; i < renameMaps.size(); i++) {
+        RegCount.push_back(renameMaps[i].numFreeEntries());
+    }
+    return RegCount;
+}
+
 } // namespace o3
 } // namespace gem5

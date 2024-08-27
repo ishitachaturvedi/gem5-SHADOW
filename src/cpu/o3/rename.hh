@@ -147,6 +147,8 @@ class Rename
     int rename_vals_0_sent;
     int rename_vals_1_sent;
 
+    int FreeRegcount = 0;
+
     /** Sets the main backwards communication time buffer pointer. */
     void setTimeBuffer(TimeBuffer<TimeStruct> *tb_ptr);
 
@@ -645,6 +647,12 @@ class Rename
         statistics::Scalar SerializeStallW;
         statistics::Scalar unknownStallS;
 
+        statistics::Scalar FreeIntRegClass;
+        statistics::Scalar FreeFloatRegClass;
+        statistics::Scalar FreeVecElemClass;
+        statistics::Scalar FreeVecRegClass;
+        statistics::Scalar FreeVecPredRegClass;
+        statistics::Scalar FreeCCRegClass;
 
         /** S and W thread information **/
 

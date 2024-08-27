@@ -55,6 +55,7 @@
 #include "debug/pipelineView.hh"
 #include <algorithm>
 #include <utility>
+#include <vector>
 
 namespace gem5
 {
@@ -93,6 +94,8 @@ Rename::Rename(CPU *_cpu, const BaseO3CPUParams &params)
         serializeInst[tid] = nullptr;
         serializeOnNextInst[tid] = false;
     }
+
+    FreeRegcount = 0;
 
     printf("rename SingleThreadFetchiew %d %d\n",SingleThreadFetchiew,params.SingleThreadFetchiew);
 }
@@ -254,6 +257,19 @@ Rename::RenameStats::RenameStats(statistics::Group *parent)
       ADD_STAT(skidInsts, statistics::units::Count::get(),
                "count of insts added to the skid buffer"),
 
+      ADD_STAT(FreeIntRegClass, statistics::units::Count::get(),
+               "Average free Int regs for S Thread"),
+      ADD_STAT(FreeFloatRegClass, statistics::units::Count::get(),
+               "Average free Float regs for S Thread"),
+      ADD_STAT(FreeVecElemClass, statistics::units::Count::get(),
+               "Average free Vec Elem regs for S Thread"),
+      ADD_STAT(FreeVecRegClass, statistics::units::Count::get(),
+               "Average free Vec regs for S Thread"),
+      ADD_STAT(FreeVecPredRegClass, statistics::units::Count::get(),
+               "Average free VecPred regs for S Thread"),
+      ADD_STAT(FreeCCRegClass, statistics::units::Count::get(),
+               "Average free CC regs for S Thread"),
+
       ADD_STAT(stalledS, statistics::units::Count::get(),
                "Number of cycles all S threads are stalled"),
       ADD_STAT(stalledW, statistics::units::Count::get(),
@@ -312,6 +328,13 @@ Rename::RenameStats::RenameStats(statistics::Group *parent)
 
     renamedInsts.prereq(renamedInsts);
     squashedInsts.prereq(squashedInsts);
+
+    FreeIntRegClass.prereq(FreeIntRegClass);
+    FreeFloatRegClass.prereq(FreeFloatRegClass);
+    FreeVecElemClass.prereq(FreeVecElemClass);
+    FreeVecRegClass.prereq(FreeVecRegClass);
+    FreeVecPredRegClass.prereq(FreeVecPredRegClass);
+    FreeCCRegClass.prereq(FreeCCRegClass);
 
     ROBFullEvents.prereq(ROBFullEvents);
     ROBFullEventsS.prereq(ROBFullEventsW);
@@ -1634,6 +1657,32 @@ Rename::renameDestRegs(const DynInstPtr &inst, ThreadID tid)
         bool isWThread = (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak);
 
         rename_result = map->rename(flat_dest_regid, isWThread, tid, inst->seqNum);
+
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+            std::vector<int> FreeRegs = map->getFreeRegCount();
+            FreeRegcount++;
+
+            // get running average
+            // stats.FreeIntRegClass += (FreeRegs[0] - stats.FreeIntRegClass)/FreeRegcount;
+            // stats.FreeFloatRegClass += (FreeRegs[1] - stats.FreeFloatRegClass)/FreeRegcount;
+            // stats.FreeVecRegClass += (FreeRegs[2] - stats.FreeVecRegClass)/FreeRegcount;
+            // stats.FreeVecElemClass += (FreeRegs[3] - stats.FreeVecElemClass)/FreeRegcount;
+            // stats.FreeVecPredRegClass += (FreeRegs[4] - stats.FreeVecPredRegClass)/FreeRegcount;
+            // stats.FreeCCRegClass += (FreeRegs[5] - stats.FreeCCRegClass)/FreeRegcount;
+
+            double FreeIntRegClassVal = stats.FreeIntRegClass.value();
+            double FreeFloatRegClassVal = stats.FreeFloatRegClass.value();
+            double FreeVecRegClassVal = stats.FreeVecRegClass.value();
+            double FreeVecElemClassVal = stats.FreeVecElemClass.value();
+            double FreeCCRegClassVal = stats.FreeCCRegClass.value();
+
+            stats.FreeIntRegClass += (static_cast<double>(FreeRegs[0]) - FreeIntRegClassVal) / FreeRegcount;
+            stats.FreeFloatRegClass += (static_cast<double>(FreeRegs[1]) - FreeFloatRegClassVal) / FreeRegcount;
+            stats.FreeVecRegClass += (static_cast<double>(FreeRegs[2]) - FreeVecRegClassVal) / FreeRegcount;
+            stats.FreeVecElemClass += (static_cast<double>(FreeRegs[3]) - FreeVecElemClassVal) / FreeRegcount;
+            stats.FreeCCRegClass += (static_cast<double>(FreeRegs[4]) - FreeCCRegClassVal) / FreeRegcount;
+
+        }
 
         // For weak threads, we store the pinned values here. Since we can have WAW hazards, we dont want 
         // to overwrite pinned values.
