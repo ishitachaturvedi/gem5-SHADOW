@@ -249,8 +249,24 @@ Fetch::FetchStatGroup::FetchStatGroup(CPU *cpu, Fetch *fetch)
     ADD_STAT(notStalled, statistics::units::Count::get(),
             "Number of cycles decode is not stalled"),
     ADD_STAT(multipleRunning, statistics::units::Count::get(),
-            "Multiple threads running together")     
+            "Multiple threads running together"),
+    ADD_STAT(NumFetchCycles, statistics::units::Count::get(),
+            "Number of fetch cycles for each thread") ,
+    ADD_STAT(FetchQueueEmpty, statistics::units::Count::get(),
+            "Number of fetch cycles where fetch queue is empty"),
+    ADD_STAT(DecodeWidthFull, statistics::units::Count::get(),
+            "Number of fetch cycles thread could not move to decode because decode width full")  
+    
 {
+        NumFetchCycles
+            .init(cpu->numThreads)
+            .flags(statistics::total);
+        FetchQueueEmpty
+            .init(cpu->numThreads)
+            .flags(statistics::total);
+        DecodeWidthFull
+            .init(cpu->numThreads)
+            .flags(statistics::total);
         icacheStallCycles
             .prereq(icacheStallCycles);
         icacheStallCyclesSThread
@@ -1198,7 +1214,18 @@ Fetch::tick()
             for(int i = 0; i < numThreads; i++) {
             ThreadID tid = ToDecodePreference[i];
             if (!stalls[tid].decode) {
+                // get stats if fetchQueue Empty or decode width exhasted
+                if(fetchQueue[tid].empty() && tid > 0) {
+
+                    ++fetchStats.FetchQueueEmpty[tid];
+                }
+                if(insts_to_decode >= decodeWidth && tid > 0) {
+                    ++fetchStats.DecodeWidthFull[tid];
+                }
                 while(!fetchQueue[tid].empty() && insts_to_decode < decodeWidth) {
+                    if(tid > 0) {
+                        ++fetchStats.NumFetchCycles[tid];
+                    }
                     const auto& inst = fetchQueue[tid].front();
                     toDecode->insts[toDecode->size++] = inst;
                     DPRINTF(Fetch, "[tid:%i] [sn:%llu] Sending instruction to decode "
@@ -1912,6 +1939,7 @@ Fetch::SWiqCount()
     while (threads != end) {
         ThreadID tid = *threads++;
         unsigned iqCount = fromIEW->iewInfo[tid].iqCount;
+        unsigned FreeEntries = fromIEW->iewInfo[tid].iqCount;
 
         //we can potentially get tid collisions if two threads
         //have the same iqCount, but this should be rare.
@@ -2120,7 +2148,8 @@ Fetch::ToDecodeThreadPriority()
 {
     assert(ToDecodePreference.size() == 0);
     ToDecodePreference.resize(numThreads,-1);
-    SWiqCountPriority();
+    //SWiqCountPriority();
+    IQCountPriority();
 }
 
 void 
@@ -2165,6 +2194,33 @@ Fetch::SWiqCountPriority() { //Ishita
         ThreadID high_pri = WthreadMap[WQ.top()];
         ToDecodePreference[iter] = high_pri;
         WQ.pop();
+        iter++;
+    }
+}
+
+void 
+Fetch::IQCountPriority() { //Ishita
+    std::priority_queue<unsigned, std::vector<unsigned>,
+                        std::greater<unsigned> > Queue;
+    std::map<unsigned, ThreadID> threadMap;
+
+    std::list<ThreadID>::iterator threads = activeThreads->begin();
+    std::list<ThreadID>::iterator end = activeThreads->end();
+
+    // create 2 lists for S threads and W threads 
+    while (threads != end) {
+        ThreadID tid = *threads++;
+        unsigned iqCount = fetchQueue[tid].size();
+
+        Queue.push(iqCount);
+        threadMap[iqCount] = tid;
+    }
+
+    int iter = 0;
+    while (!Queue.empty()) {
+        ThreadID high_pri = threadMap[Queue.top()];
+        ToDecodePreference[iter] = high_pri;
+        Queue.pop();
         iter++;
     }
 }

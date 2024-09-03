@@ -170,6 +170,12 @@ class InstructionQueue
     /** Returns total number of free entries. */
     unsigned numFreeEntries();
 
+    /** Returns total number of free entries. */
+    unsigned numFreeEntriesS();
+
+    /** Returns total number of free entries. */
+    unsigned numFreeEntriesW();
+
     /** Returns number of free entries for a thread. */
     unsigned numFreeEntries(ThreadID tid);
 
@@ -436,6 +442,9 @@ class InstructionQueue
     /** Number of active S threads. */
     ThreadID numThreadsS;
 
+    /** Number of active W threads. */
+    ThreadID numThreadsW;
+
     /** Pointer to list of active threads. */
     std::list<ThreadID> *activeThreads;
 
@@ -448,8 +457,22 @@ class InstructionQueue
     /** Number of free IQ entries left. */
     unsigned freeEntries;
 
+    /** For Dynamic S and Static W **/
+    /** Number of free S IQ entries left. */
+    unsigned freeEntriesS;
+
+    /** Number of free W IQ entries left. */
+    unsigned freeEntriesW;
+
     /** The number of entries in the instruction queue. */
     unsigned numEntries;
+
+    /** The number of entries in the Strong instruction queue which is shared dynamically. */
+    unsigned numSEntries;
+
+    /** The number of entries in the Weak instruction queue. */
+    unsigned numWEntries;
+    unsigned numWEntriesPerThread;
 
     /** The total number of instructions that can be issued in one cycle. */
     unsigned totalWidth;
@@ -490,6 +513,10 @@ class InstructionQueue
      *  during normal execution.
      */
     int countInsts();
+
+    int countInstsS();
+
+    int countInstsW();
 
     /** Debugging function to dump all the list sizes, as well as print
      *  out the list of nonspeculative instructions.  Should not be used
@@ -583,6 +610,8 @@ class InstructionQueue
 
         /** Number of times the FU was busy. */
         statistics::Vector fuBusy;
+        statistics::Vector TotalInstIssued;
+        statistics::Vector TotalOoOInstIssued;
         /** Number of times the FU was busy per instruction issued. */
         statistics::Formula fuBusyRate;
     } iqStats;

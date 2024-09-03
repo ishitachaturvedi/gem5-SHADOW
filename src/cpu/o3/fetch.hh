@@ -306,6 +306,9 @@ class Fetch
     /* Prioritizes S threads followed by W threads */
     void SWiqCountPriority();
 
+    /* Simply prioritize thread with fewer IQ entries */
+    void IQCountPriority();
+
     void SWFetchCountPriority();
 
   private:
@@ -683,6 +686,10 @@ class Fetch
         statistics::Scalar stalledSAndW;
         statistics::Scalar notStalled;
         statistics::Scalar multipleRunning;
+        statistics::Vector NumFetchCycles;
+        statistics::Vector FetchQueueEmpty;
+        statistics::Vector DecodeWidthFull;
+
     } fetchStats;
 };
 

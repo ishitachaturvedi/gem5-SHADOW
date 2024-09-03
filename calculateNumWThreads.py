@@ -24,13 +24,13 @@ def process_file(filename):
     # If the values were found, perform the division and print the results
     if free_int_reg_class_value is not None:
         result_int = free_int_reg_class_value / 42
-        print(f'Result of FreeIntRegClass value ',free_int_reg_class_value ,' divided by 42 (num arch regs): {result_int}')
+        print(f'Result of FreeIntRegClass value ',free_int_reg_class_value ,' divided by 42 (num arch regs): ',result_int)
     else:
         print('FreeIntRegClass not found in the file.')
 
     if free_vec_reg_class_value is not None:
         result_vec = free_vec_reg_class_value / 44
-        print(f'Result of FreeVecRegClass value ', free_vec_reg_class_value ,' divided by 44 (num arch regs): {result_vec}')
+        print(f'Result of FreeVecRegClass value ', free_vec_reg_class_value ,' divided by 44 (num arch regs): ',result_vec)
     else:
         print('FreeVecRegClass not found in the file.')
 
@@ -38,4 +38,4 @@ def process_file(filename):
     print('You can have upto ',min_val,' W Theads')
 
 # Example usage:
-process_file('sparse_matrix/singleThread_8000_50_40/stats.txt')
+process_file('sparse_matrix/sparce_matrix_dynamic_1pThread_parallelBottleneck_small_80_9_40/stats.txt')

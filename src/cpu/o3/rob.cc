@@ -92,6 +92,13 @@ ROB::ROB(CPU *_cpu, const BaseO3CPUParams &params)
         for (ThreadID tid = 0; tid < numThreads; tid++) {
             maxEntries[tid] = part_amt;
         }
+    } else if (robPolicy == SMTQueuePolicy::Static) {
+        DPRINTF(Fetch, "ROB sharing policy set to Static\n");
+
+        //Divide up by threshold amount
+        for (ThreadID tid = 0; tid < numThreads; tid++) {
+            maxEntries[tid] = numEntries;
+        }
     } else if (robPolicy == SMTQueuePolicy::Threshold) {
         DPRINTF(Fetch, "ROB sharing policy set to Threshold\n");
 
@@ -112,7 +119,7 @@ ROB::ROB(CPU *_cpu, const BaseO3CPUParams &params)
 
 void 
 ROB::changeEntrySizeForWThreads(int tid) {
-    maxEntries[tid] = 1000;
+    maxEntries[tid] = 2000;
 }
 
 void
@@ -173,6 +180,8 @@ ROB::resetEntries()
 
             if (robPolicy == SMTQueuePolicy::Partitioned) {
                 maxEntries[tid] = numEntries / active_threads;
+            } else if (robPolicy == SMTQueuePolicy::Static) {
+                maxEntries[tid] = numEntries;
             } else if (robPolicy == SMTQueuePolicy::Threshold &&
                        active_threads == 1) {
                 maxEntries[tid] = numEntries;
@@ -186,6 +195,8 @@ ROB::entryAmount(ThreadID num_threads)
 {
     if (robPolicy == SMTQueuePolicy::Partitioned) {
         return numEntries / num_threads;
+    } else if (robPolicy == SMTQueuePolicy::Static) {
+        return numEntries;
     } else {
         return 0;
     }

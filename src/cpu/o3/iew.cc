@@ -119,6 +119,7 @@ IEW::IEW(CPU *_cpu, const BaseO3CPUParams &params)
     for (ThreadID tid = 0; tid < MaxThreads; tid++) {
         dispatchStatus[tid] = Running;
         fetchRedirect[tid] = false;
+        instIssuedByThread[tid] = false;
     }
 
     updateLSQNextCycle = false;
@@ -270,7 +271,13 @@ IEW::IEWStats::IEWStats(CPU *cpu)
     ADD_STAT(blockingBandwidthFull, statistics::units::Count::get(),
             "Blocking from bandwidth Full"),
     ADD_STAT(blockingBandwidthFullS, statistics::units::Count::get(),
-            "Blocking from bandwidth Full S")  
+            "Blocking from bandwidth Full S"),  
+    ADD_STAT(NoIntructionsAvailable, statistics::units::Count::get(),
+            "Number of instructions available in thread"),
+    ADD_STAT(InstructionDispatched, statistics::units::Count::get(),
+            "Number of instructions dispatched by thread"),
+    ADD_STAT(InstructionAvaialbleNoneIssued, statistics::units::Count::get(),
+            "Instructions avaialble but none dispatched by thread")
 {
     instsToCommit
         .init(cpu->numThreads)
@@ -294,6 +301,18 @@ IEW::IEWStats::IEWStats(CPU *cpu)
         .init(cpu->numThreads)
         .flags(statistics::total);
 
+    NoIntructionsAvailable
+        .init(cpu->numThreads)
+        .flags(statistics::total);
+
+    InstructionDispatched
+        .init(cpu->numThreads)
+        .flags(statistics::total);
+
+    InstructionAvaialbleNoneIssued
+        .init(cpu->numThreads)
+        .flags(statistics::total);
+    
     wbRate
         .flags(statistics::total);
     wbRate = writebackCount / cpu->baseStats.numCycles;
@@ -1391,6 +1410,10 @@ IEW::dispatchInsts(ThreadID tid)
         }
 
         insts_to_dispatch.pop();
+
+        ++iewStats.InstructionDispatched[tid];
+        instIssuedByThread[tid] = true;
+
         ++issue_vals_sent;
         if(tid == 0) {
             ++issue_vals_0_sent;
@@ -1996,6 +2019,9 @@ IEW::tick()
             if(dispatchStatus[tid] == Blocked){
                 ++iewStats.blockingS;
             }
+            if(insts_available == 0) {
+                ++iewStats.NoIntructionsAvailable[tid];
+            }
         }
         if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
             wThreadCount++;
@@ -2005,9 +2031,15 @@ IEW::tick()
             if(dispatchStatus[tid] == Blocked){
                 ++iewStats.blockingW;
             }
+            if(insts_available == 0) {
+                ++iewStats.NoIntructionsAvailable[tid];
+            }
         }
         if(!SingleThreadFetchiew) {
             dispatch(tid);
+            if(insts_available != 0 && !instIssuedByThread[tid]) {
+                ++iewStats.InstructionAvaialbleNoneIssued[tid];
+            }
         }
     }
 
@@ -2211,10 +2243,10 @@ IEW::tick()
                 tid, toRename->iewInfo[tid].dispatched);
     }
 
-    DPRINTF(IEW, "IQ has %i free entries (Can schedule: %i).  "
-            "LQ has %i free entries. SQ has %i free entries.\n",
-            instQueue.numFreeEntries(), instQueue.hasReadyInsts(),
-            ldstQueue.numFreeLoadEntries(), ldstQueue.numFreeStoreEntries());
+    // DPRINTF(IEW, "IQ has %i free entries (Can schedule: %i).  "
+    //         "LQ has %i free entries. SQ has %i free entries.\n",
+    //         instQueue.numFreeEntries(), instQueue.hasReadyInsts(),
+    //         ldstQueue.numFreeLoadEntries(), ldstQueue.numFreeStoreEntries());
 
     updateStatus();
 

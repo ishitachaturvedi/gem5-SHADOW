@@ -234,14 +234,33 @@ CPU::CPU(const BaseO3CPUParams &params)
     printf("Total thread Reg size IntRegClass: %ld, FloatRegClass: %ld, VecRegClass: %ld, VecPredRegClass: %ld, CCRegClass: %ld\n",params.numPhysIntRegs,params.numPhysFloatRegs,params.numPhysVecRegs,params.numPhysVecPredRegs,params.numPhysCCRegs);
 
 
+    if(!(params.numPhysIntRegs >= numThreads * regClasses.at(IntRegClass)->numRegs())) {
+            panic("Not enough numPhysIntRegs. NumRegs %d Regs Req %d Num Threads %d\n",params.numPhysIntRegs,numThreads * regClasses.at(IntRegClass)->numRegs(),numThreads);
+    }
     assert(params.numPhysIntRegs >=
             numThreads * regClasses.at(IntRegClass)->numRegs());
+    
+    if(!(params.numPhysFloatRegs >= numThreads * regClasses.at(FloatRegClass)->numRegs())) {
+            panic("Not enough numPhysFloatRegs. NumRegs %d Regs Req %d Num Threads %d\n",params.numPhysFloatRegs,numThreads * regClasses.at(FloatRegClass)->numRegs(),numThreads);
+    }
     assert(params.numPhysFloatRegs >=
             numThreads * regClasses.at(FloatRegClass)->numRegs());
+    
+    if(!(params.numPhysVecRegs >= numThreads * regClasses.at(VecRegClass)->numRegs())) {
+            panic("Not enough numPhysVecRegs. NumRegs %d Regs Req %d Num Threads %d\n",params.numPhysVecRegs,numThreads * regClasses.at(VecRegClass)->numRegs(),numThreads);
+    }
     assert(params.numPhysVecRegs >=
             numThreads * regClasses.at(VecRegClass)->numRegs());
+
+    if(!(params.numPhysVecPredRegs >= numThreads * regClasses.at(VecRegClass)->numRegs())) {
+            panic("Not enough numPhysVecPredRegs. NumRegs %d Regs Req %d Num Threads %d\n",params.numPhysVecPredRegs,numThreads * regClasses.at(VecPredRegClass)->numRegs(),numThreads);
+    }
     assert(params.numPhysVecPredRegs >=
             numThreads * regClasses.at(VecPredRegClass)->numRegs());
+
+    if(!(params.numPhysCCRegs >= numThreads * regClasses.at(CCRegClass)->numRegs())) {
+            panic("Not enough numPhysCCRegs. NumRegs %d Regs Req %d Num Threads %d\n",params.numPhysCCRegs,numThreads * regClasses.at(CCRegClass)->numRegs(),numThreads);
+    }
     assert(params.numPhysCCRegs >=
             numThreads * regClasses.at(CCRegClass)->numRegs());
 

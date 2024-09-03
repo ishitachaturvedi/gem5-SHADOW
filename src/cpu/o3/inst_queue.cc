@@ -93,8 +93,12 @@ InstructionQueue::InstructionQueue(CPU *cpu_ptr, IEW *iew_ptr,
       iqPolicy(params.smtIQPolicy),
       numThreads(params.numThreads),
       numEntries(params.numIQEntries),
+      numSEntries(params.numSIQEntries),
+      numWEntriesPerThread(params.numWIQEntries),
       totalWidth(params.issueWidth),
       commitToIEWDelay(params.commitToIEWDelay),
+      numThreadsS(params.SThreads),
+      numThreadsW(params.WThreads),
       iqStats(cpu, totalWidth),
       iqIOStats(cpu)
 {
@@ -124,10 +128,32 @@ InstructionQueue::InstructionQueue(CPU *cpu_ptr, IEW *iew_ptr,
         memDepUnit[tid].setIQ(this);
     }
 
+    numWEntries = numWEntriesPerThread * numThreadsW;
+
     resetState();
 
     //Figure out resource sharing policy
-    if (iqPolicy == SMTQueuePolicy::Dynamic) {
+
+    // S threads are dynamically assigned while W threads are statically assigned.
+    // S threads share the IQ synamically, W threads have n entries per thread
+    // We split toal entries across thread types
+    if (iqPolicy == SMTQueuePolicy::SDynamicWStatic) {
+        //Set Max Entries to Total ROB Capacity
+        assert(numThreads == (numThreadsS + numThreadsW));
+
+        // make S threads dynamic
+        for (ThreadID tid = 0; tid < numThreadsS; tid++) {
+            maxEntries[tid] = numSEntries;
+        } 
+        // make W thread static
+        for (ThreadID tid = numThreadsS; tid < numThreads; tid++) {
+            maxEntries[tid] = numWEntriesPerThread;
+        }
+
+        // total num entries for W thread is just # W threads * num entires per thread
+        DPRINTF(IQ, "numThreads %d SnumEntries %d WnumEntries %d\n",numThreads,numSEntries,numWEntries);
+
+    } else if (iqPolicy == SMTQueuePolicy::Dynamic) {
         //Set Max Entries to Total ROB Capacity
         for (ThreadID tid = 0; tid < numThreads; tid++) {
             maxEntries[tid] = numEntries;
@@ -144,6 +170,17 @@ InstructionQueue::InstructionQueue(CPU *cpu_ptr, IEW *iew_ptr,
 
         DPRINTF(IQ, "IQ sharing policy set to Partitioned:"
                 "%i entries per thread.\n",part_amt);
+    } else if (iqPolicy == SMTQueuePolicy::Static) {
+
+        //@todo:make work if part_amt doesnt divide evenly.
+
+        //Divide ROB up evenly
+        for (ThreadID tid = 0; tid < numThreads; tid++) {
+            maxEntries[tid] = numEntries;
+        }
+
+        DPRINTF(IQ, "IQ sharing policy set to Static:"
+                "%i entries per thread.\n",numEntries);
     } else if (iqPolicy == SMTQueuePolicy::Threshold) {
         double threshold =  (double)params.smtIQThreshold / 100;
 
@@ -251,7 +288,11 @@ InstructionQueue::IQStats::IQStats(CPU *cpu, const unsigned &total_width)
     ADD_STAT(statStalledOnMemoryReorderPerThreadRate, statistics::units::Count::get(),
              "Number of times instruction not issued because older memory instruction not completed, per thread rate (busy events/executed inst)"),
     ADD_STAT(statStalledNotOldestInIQPerThreadRate, statistics::units::Count::get(),
-             "Number of times instruction not issued because older IQ instruction not issued, per thread rate (busy events/executed inst)")
+             "Number of times instruction not issued because older IQ instruction not issued, per thread rate (busy events/executed inst)"),
+    ADD_STAT(TotalInstIssued, statistics::units::Count::get(),
+             "Number of instructions issued"),
+    ADD_STAT(TotalOoOInstIssued, statistics::units::Count::get(),
+             "Number of instructions issued OoO")
 {
     instsAdded
         .prereq(instsAdded);
@@ -373,6 +414,16 @@ InstructionQueue::IQStats::IQStats(CPU *cpu, const unsigned &total_width)
         .flags(statistics::total)
         ;
 
+    TotalInstIssued
+        .init(cpu->numThreads)
+        .flags(statistics::total)
+        ;
+
+    TotalOoOInstIssued
+        .init(cpu->numThreads)
+        .flags(statistics::total)
+        ;
+
     statOlderROBNotIssuedPerThread
         .init(cpu->numThreads)
         .flags(statistics::total)
@@ -490,6 +541,12 @@ InstructionQueue::resetState()
     // Initialize the number of free IQ entries.
     freeEntries = numEntries;
 
+    freeEntriesW = numWEntries;
+    freeEntriesS = numSEntries;
+
+    DPRINTF(IQ, "Starting freeEntriesS %d\n",freeEntriesS);
+    DPRINTF(IQ, "Starting freeEntriesW %d\n",freeEntriesW);
+
     // Note that in actuality, the registers corresponding to the logical
     // registers start off as ready.  However this doesn't matter for the
     // IQ as the instruction should have been correctly told if those
@@ -569,6 +626,8 @@ InstructionQueue::entryAmount(ThreadID num_threads)
 {
     if (iqPolicy == SMTQueuePolicy::Partitioned) {
         return numEntries / num_threads;
+    } else if (iqPolicy == SMTQueuePolicy::Static) {
+        return numEntries;
     } else {
         return 0;
     }
@@ -589,9 +648,25 @@ InstructionQueue::resetEntries()
 
             if (iqPolicy == SMTQueuePolicy::Partitioned) {
                 maxEntries[tid] = numEntries / active_threads;
-            } else if (iqPolicy == SMTQueuePolicy::Threshold &&
+            } else if (iqPolicy == SMTQueuePolicy::Static) {
+                maxEntries[tid] = numEntries;
+            } 
+            else if (iqPolicy == SMTQueuePolicy::Threshold &&
                        active_threads == 1) {
                 maxEntries[tid] = numEntries;
+            }
+        }
+        if (iqPolicy == SMTQueuePolicy::SDynamicWStatic) {
+            //Set Max Entries to Total ROB Capacity
+            assert(numThreads == (numThreadsS + numThreadsW));
+
+            // make S threads dynamic
+            for (ThreadID tid = 0; tid < numThreadsS; tid++) {
+                maxEntries[tid] = numSEntries;
+            } 
+            // make W thread static
+            for (ThreadID tid = numThreadsS; tid < numThreads; tid++) {
+                maxEntries[tid] = numWEntriesPerThread;
             }
         }
     }
@@ -604,8 +679,27 @@ InstructionQueue::numFreeEntries()
 }
 
 unsigned
+InstructionQueue::numFreeEntriesS()
+{
+    return freeEntriesS;
+}
+
+unsigned
+InstructionQueue::numFreeEntriesW()
+{
+    return freeEntriesW;
+}
+
+unsigned
 InstructionQueue::numFreeEntries(ThreadID tid)
 {
+    DPRINTF(IQ, "Check numFreeEntries tid %d maxEntries[0] %d maxEntries[1] %d count[0] %d count[1] %d freeEntriesS %d\n",tid,maxEntries[0],maxEntries[1],count[0],count[1],freeEntriesS);
+    // if the first 2 threads have dynamic partitioning then we need to ensure that we dont overrun the paritioning
+    if(iqPolicy == SMTQueuePolicy::SDynamicWStatic && (tid == 0 || tid == 1)) {
+        assert(maxEntries[0] == (freeEntriesS + count[0] + count[1]));
+        return numFreeEntriesS() && (maxEntries[tid] - count[tid]);
+    }
+    // if the assignment is dynamic we need to check for # free entries avaialble
     return maxEntries[tid] - count[tid];
 }
 
@@ -664,11 +758,33 @@ InstructionQueue::insert(const DynInstPtr &new_inst)
     DPRINTF(IQ, "[tid:%d] Adding instruction [sn:%llu] PC %s to the IQ QueueSize %d.\n",
             new_inst->threadNumber, new_inst->seqNum, new_inst->pcState(),count[new_inst->threadNumber]);
 
-    assert(freeEntries != 0);
+    if(iqPolicy != SMTQueuePolicy::SDynamicWStatic) {
+        assert(freeEntries != 0);
+    } else {
+        if(cpu->thread[new_inst->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+            DPRINTF(IQ, "tid: %d STEP1 freeEntriesS %d\n",new_inst->threadNumber,freeEntriesS);
+            assert(freeEntriesS != 0);
+        } else {
+            if(freeEntriesW == 0) {
+                panic("tid:%d maxEntries %d count %d freeEntriesW %d\n",new_inst->threadNumber,maxEntries[new_inst->threadNumber],count[new_inst->threadNumber],freeEntriesW);
+            }
+        }
+    }
+    
 
     instList[new_inst->threadNumber].push_back(new_inst);
-
-    --freeEntries;
+    
+    if(iqPolicy != SMTQueuePolicy::SDynamicWStatic) {
+        --freeEntries;
+    } else {
+        if(cpu->thread[new_inst->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+            //DPRINTF(IQ, "tid: %d STEP2 freeEntriesS %d\n",new_inst->threadNumber,freeEntriesS);
+            --freeEntriesS;
+        } else {
+            DPRINTF(IQ, "tid: %d STEP2 freeEntriesW %d\n",new_inst->threadNumber,freeEntriesS);
+            --freeEntriesW;
+        }
+    }
 
     new_inst->setInIQ();
 
@@ -700,7 +816,14 @@ InstructionQueue::insert(const DynInstPtr &new_inst)
 
     count[new_inst->threadNumber]++;
 
-    assert(freeEntries == (numEntries - countInsts()));
+    if(iqPolicy != SMTQueuePolicy::SDynamicWStatic) {
+        assert(freeEntries == (numEntries - countInsts()));
+    } else {
+        //DPRINTF(IQ, "tid: %d STEP3 freeEntriesS %d\n",new_inst->threadNumber,freeEntriesS);
+        DPRINTF(IQ, "tid: %d STEP3 freeEntriesW %d\n",new_inst->threadNumber,freeEntriesW);
+        assert(freeEntriesS == (numSEntries - countInstsS()));
+        assert(freeEntriesW == (numWEntries - countInstsW()));
+    }
 }
 
 void
@@ -729,11 +852,31 @@ InstructionQueue::insertNonSpec(const DynInstPtr &new_inst)
             "to the IQ QueueSize %d.\n",
             new_inst->threadNumber,new_inst->seqNum, new_inst->pcState(),count[new_inst->threadNumber]);
 
-    assert(freeEntries != 0);
+    if(iqPolicy != SMTQueuePolicy::SDynamicWStatic) {
+        assert(freeEntries != 0);
+    } else {
+        if(cpu->thread[new_inst->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+            //DPRINTF(IQ, "tid: %d STEP4 freeEntriesS %d\n",new_inst->threadNumber,freeEntriesS);
+            assert(freeEntriesS != 0);
+        } else {
+            DPRINTF(IQ, "tid: %d STEP4 freeEntriesW %d\n",new_inst->threadNumber,freeEntriesW);
+            assert(freeEntriesW != 0);
+        }
+    }
 
     instList[new_inst->threadNumber].push_back(new_inst);
 
-    --freeEntries;
+    if(iqPolicy != SMTQueuePolicy::SDynamicWStatic) {
+        --freeEntries;
+    } else {
+        if(cpu->thread[new_inst->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+            //DPRINTF(IQ, "tid: %d STEP5 freeEntriesS %d\n",new_inst->threadNumber,freeEntriesS);
+            --freeEntriesS;
+        } else {
+            DPRINTF(IQ, "tid: %d STEP5 freeEntriesW %d\n",new_inst->threadNumber,freeEntriesW);
+            --freeEntriesW;
+        }
+    }
 
     new_inst->setInIQ();
 
@@ -751,7 +894,19 @@ InstructionQueue::insertNonSpec(const DynInstPtr &new_inst)
 
     count[new_inst->threadNumber]++;
 
-    assert(freeEntries == (numEntries - countInsts()));
+    if(iqPolicy != SMTQueuePolicy::SDynamicWStatic) {
+        assert(freeEntries == (numEntries - countInsts()));
+    } else {
+        DPRINTF(IQ, "tid: %d STEP6 freeEntriesW %d\n",new_inst->threadNumber,freeEntriesW);
+        assert(freeEntriesS == (numSEntries - countInstsS()));
+        assert(freeEntriesW == (numWEntries - countInstsW()));
+    }
+
+    // Ishita TEST
+    // if(freeEntriesW+count[2]+count[3]+count[4]!=3*maxEntries[2]) {
+    //     panic("We have wrong values freeEntriesW %d count[2] %d count[3] %d count[3] %d 3*maxEntries[2] %d\n",freeEntriesW,count[2],count[3],count[4],3*maxEntries[2]);
+    // }
+    
 }
 
 void
@@ -900,7 +1055,6 @@ InstructionQueue::scheduleReadyInsts()
     // is marked to execute.
     // Need to really think about this for in-order.
     // Merge issue and execute?
-    // Need to think hard. Do tomorrow.
 
     while (total_issued < totalWidth && order_it != order_end_it) {
         OpClass op_class = (*order_it).queueType;
@@ -985,6 +1139,12 @@ InstructionQueue::scheduleReadyInsts()
             // ensure that there is no OoO issue going on. No older seq number should have been marked as issued for this tid.
             if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak && youngerInstIssued(issuing_inst->seqNum, issuing_inst->threadNumber)) {
                 panic("[tid:%d] Instruction [sn:%llu] is being issued OoO for W thread!\n",tid,issuing_inst->seqNum);
+            }
+
+            // number of OoO inst issued
+            iqStats.TotalInstIssued[tid]++;
+            if(olderIssuePending(issuing_inst->seqNum, issuing_inst->threadNumber)) {
+                iqStats.TotalOoOInstIssued[tid]++;
             }
 
             int8_t total_src_regs1 = issuing_inst->numSrcRegs();
@@ -1097,7 +1257,17 @@ InstructionQueue::scheduleReadyInsts()
             if (!issuing_inst->isMemRef()) {
                 // Memory instructions can not be freed from the IQ until they
                 // complete.
-                ++freeEntries;
+                if(iqPolicy != SMTQueuePolicy::SDynamicWStatic) {
+                    ++freeEntries;
+                } else {
+                    if(cpu->thread[issuing_inst->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+                        //DPRINTF(IQ, "tid: %d STEP7 freeEntriesS %d\n",issuing_inst->threadNumber,freeEntriesS);
+                        ++freeEntriesS;
+                    } else {
+                        DPRINTF(IQ, "tid: %d STEP7 freeEntriesW %d\n",issuing_inst->threadNumber,freeEntriesW);
+                        ++freeEntriesW;
+                    }
+                }
                 count[tid]--;
 
                 DPRINTF(IQ, "[tid:%d] Removing non Mem instruction instruction [sn:%llu] PC %s "
@@ -1215,7 +1385,13 @@ InstructionQueue::commit(const InstSeqNum &inst, ThreadID tid)
         instList[tid].pop_front();
     }
 
-    assert(freeEntries == (numEntries - countInsts()));
+    if(iqPolicy != SMTQueuePolicy::SDynamicWStatic) {
+        assert(freeEntries == (numEntries - countInsts()));
+    } else {
+        DPRINTF(IQ, "tid: %d STEP8 freeEntriesW %d\n",tid,freeEntriesW);
+        assert(freeEntriesS == (numSEntries - countInstsS()));
+        assert(freeEntriesW == (numWEntries - countInstsW()));
+    }
 }
 
 bool InstructionQueue::olderIssuePending(const InstSeqNum &inst, ThreadID tid) {
@@ -1327,7 +1503,17 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
             DPRINTF(IQ, "[tid:%d] Completing mem instruction PC: %s [sn:%llu]\n",
                 tid,completed_inst->pcState(), completed_inst->seqNum);
 
-            ++freeEntries;
+            if(iqPolicy != SMTQueuePolicy::SDynamicWStatic) {
+                ++freeEntries;
+            } else {
+                if(cpu->thread[completed_inst->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+                    //DPRINTF(IQ, "tid: %d STEP9 freeEntriesS %d\n",completed_inst->threadNumber,freeEntriesS);
+                    ++freeEntriesS;
+                } else {
+                    DPRINTF(IQ, "tid: %d STEP9 freeEntriesW %d\n",completed_inst->threadNumber,freeEntriesW);
+                    ++freeEntriesW;
+                }
+            }
             completed_inst->memOpDone(true);
 
             DPRINTF(IQ, "[tid:%d] Removing MemComplete instruction instruction [sn:%llu] PC %s "
@@ -1335,6 +1521,7 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
                 completed_inst->threadNumber,completed_inst->seqNum, completed_inst->pcState(),count[completed_inst->threadNumber]);
 
             count[tid]--;
+
         } else if (completed_inst->isReadBarrier() ||
                 completed_inst->isWriteBarrier()) {
             // Completes a non mem ref barrier
@@ -2033,7 +2220,17 @@ InstructionQueue::doSquash(ThreadID tid)
             "to the IQ QueueSize %d.\n",
             squashed_inst->threadNumber,squashed_inst->seqNum, squashed_inst->pcState(),count[squashed_inst->threadNumber]);
 
-            ++freeEntries;
+            if(iqPolicy != SMTQueuePolicy::SDynamicWStatic) {
+                ++freeEntries;
+            } else {
+                if(cpu->thread[squashed_inst->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+                    //DPRINTF(IQ, "tid: %d STEP10 freeEntriesS %d\n",squashed_inst->threadNumber,freeEntriesS);
+                    ++freeEntriesS;
+                } else {
+                    DPRINTF(IQ, "tid: %d STEP10 freeEntriesW %d\n",squashed_inst->threadNumber,freeEntriesW);
+                    ++freeEntriesW;
+                }
+            }
         }
     }
 }
@@ -2445,6 +2642,18 @@ int
 InstructionQueue::countInsts()
 {
     return numEntries - freeEntries;
+}
+
+int
+InstructionQueue::countInstsS()
+{
+    return numSEntries - freeEntriesS;
+}
+
+int
+InstructionQueue::countInstsW()
+{
+    return numWEntries - freeEntriesW;
 }
 
 void

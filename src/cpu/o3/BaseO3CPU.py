@@ -51,7 +51,7 @@ class SMTFetchPolicy(ScopedEnum):
     vals = ["RoundRobin", "Branch", "IQCount", "LSQCount","SWIQCount","SWFetchCount"]
 
 class SMTQueuePolicy(ScopedEnum):
-    vals = ["Dynamic", "Partitioned", "Threshold"]
+    vals = ["Dynamic", "Partitioned", "Threshold","Static","SDynamicWStatic"]
 class CommitPolicy(ScopedEnum):
     vals = ["RoundRobin", "OldestReady","SWIQCount"]
 
@@ -180,6 +180,8 @@ class BaseO3CPU(BaseCPU):
     # most ISAs don't use condition-code regs, so default is 0
     numPhysCCRegs = Param.Unsigned(0, "Number of physical cc registers")
     numIQEntries = Param.Unsigned(640, "Number of instruction queue entries")
+    numWIQEntries = Param.Unsigned(640, "Number of Weak instruction queue entries")
+    numSIQEntries = Param.Unsigned(640, "Number of Strong instruction queue entries")
     numROBEntries = Param.Unsigned(192, "Number of reorder buffer entries")
 
     smtNumFetchingThreads = Param.Unsigned(1, "SMT Number of Fetching Threads")

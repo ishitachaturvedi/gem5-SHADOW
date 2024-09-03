@@ -344,6 +344,9 @@ class IEW
      */
     void tick();
 
+    /* Did this thread isseu instructions */
+    bool instIssuedByThread[MaxThreads];
+
   private:
     /** Updates execution stats based on the instruction. */
     void updateExeInstStats(const DynInstPtr &inst);
@@ -568,6 +571,9 @@ class IEW
         statistics::Scalar blockingLSQFullS;
         statistics::Scalar blockingBandwidthFull;
         statistics::Scalar blockingBandwidthFullS;
+        statistics::Vector NoIntructionsAvailable;
+        statistics::Vector InstructionDispatched;
+        statistics::Vector InstructionAvaialbleNoneIssued;
 
         struct ExecutedInstStats : public statistics::Group
         {

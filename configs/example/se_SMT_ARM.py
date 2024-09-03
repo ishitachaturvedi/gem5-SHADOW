@@ -182,7 +182,13 @@ cpu_type = {
         O3_ARM_grace.O3_ARM_grace_ICache_Weak,
         O3_ARM_grace.O3_ARM_grace_DCache,
         O3_ARM_grace.O3_ARM_grace_L2,
-    )
+    ),"o3_grace_test": (
+        O3_ARM_grace.Grace12Wide_testConfig,
+        O3_ARM_grace.O3_ARM_grace_ICache,
+        O3_ARM_grace.O3_ARM_grace_ICache,
+        O3_ARM_grace.O3_ARM_grace_DCache,
+        O3_ARM_grace.O3_ARM_grace_L2,
+    ),
 }
 
 
