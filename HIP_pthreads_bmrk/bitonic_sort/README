@@ -1,0 +1,7 @@
+This application has HIP and pthread code
+
+bitonic_sort_pthreads: ./bitonic_sort_pthreads numentries inc numthreads
+(# entries is 2^numentries)
+Eg: ./bitonic_sort_pthreads 2 inc 3
+
+bitonic_sort_HIP: ./bitonic_sort_HIP 2 inc
