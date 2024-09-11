@@ -370,103 +370,169 @@ def plot_per_cycle_status(file):
 
 def main():
 
+    # parent_folder = [
+    #     "HIP_pthreads_bmrk/prefix_sum/results"
+    # ]  
+
+    # files_check = [
+    #     [
+    #         "ThreadS_32",
+    #         "ThreadSW1_32",
+    #         "ThreadSW2_32",
+    #         "ThreadSW3_32",
+    #         "ThreadSW4_32",
+    #         "Thread6S_32",
+    #         "ThreadS1W4_32",
+    #         "APU_32"
+    #     ],
+    #     [
+    #         "ThreadS_512",
+    #         "ThreadSW1_512",
+    #         "ThreadSW2_512",
+    #         "ThreadSW3_512",
+    #         "ThreadSW4_512",
+    #         "Thread6S_512",
+    #         "ThreadS1W4_512",
+    #         "APU_512"
+    #     ],
+    #     [
+    #         "ThreadS_1024",
+    #         "ThreadSW1_1024",
+    #         "ThreadSW2_1024",
+    #         "ThreadSW3_1024",
+    #         "ThreadSW4_1024",
+    #         "Thread6S_1024",
+    #         "ThreadS1W4_1024",
+    #         "APU_1024"
+    #     ],
+    #     [
+    #         "ThreadS_8192",
+    #         "ThreadSW1_8192",
+    #         "ThreadSW2_8192",
+    #         "ThreadSW3_8192",
+    #         "ThreadSW4_8192",
+    #         "Thread6S_8192",
+    #         "ThreadS1W4_8192",
+    #         "APU_8192"
+    #     ],
+    #     [
+    #         "ThreadS_16384",
+    #         "ThreadSW1_16384",
+    #         "ThreadSW2_16384",
+    #         "ThreadSW3_16384",
+    #         "ThreadSW4_16384",
+    #         "Thread6S_16384",
+    #         "ThreadS1W4_16384",
+    #         "APU_16384"
+    #     ],
+    #     [
+    #         "ThreadS_65536",
+    #         "ThreadSW1_65536",
+    #         "ThreadSW2_65536",
+    #         "ThreadSW3_65536",
+    #         "ThreadSW4_65536",
+    #         "Thread6S_65536",
+    #         "ThreadS1W4_65536",
+    #         "APU_65536"
+    #     ]
+    #]
+
     parent_folder = [
-        "results/mibench"
+        "HIP_pthreads_bmrk/bitonic_sort/results"
     ]  
 
     files_check = [
         [
-            "Susan_S",
-            # "Susan_SW",
-            # "Susan_S3W",
-            # "Susan_SW_Split",
-            # "Susan_S3W_Split"
-        ],
-        [
-            "patricia_S",
-            # "patricia_SW",
-            # "patricia_S3W",
-            # "patricia_SW_Split",
-            # "patricia_S3W_Split"
-        ],
-        [
-            "jpeg_S",
-            # "jpeg_SW",
-            # "jpeg_S3W",
-            # "jpeg_SW_Split",
-            # "jpeg_S3W_Split"
-        ],
-        [
-            "apsp_ARMS",
-            # "apsp_ARMSW",
-            # "apsp_ARMS3W",
-            # "apsp_ARMSWSplit",
-            # "apsp_ARMS3WSplit"
-        ],
+            "ThreadStest_4",
+            "ThreadSW1Test_4",
+            "ThreadS2Test_4"
+        ]
     ]
 
     SimStats = ["simTicks"]
 
-    #stat_names = ["numCycles","issueRate"]
-
     # global stats
-    # stat_names = ["numCycles","issueRate","numIssuedDist::mean","statFuBusyPerThreadCollective","statStalledOnControlInstructionPerThread","statNumIssueNotPossiblePerThread","fuBusyS","fuBusyW","totalIpc", "cycleCountS", "cycleCountW","statFuNoFree::IntAlu","statFuNoFree::IntMult","statFuNoFree::IntDiv","statFuNoFree::MemRead","statFuNoFree::MemWrite","numIssuedDist::0","numIssuedDist::1","numIssuedDist::2","numIssuedDist::3","numIssuedDist::4","numIssuedDist::5","numIssuedDist::6","numIssuedDist::7","numIssuedDist::8","numIssuedDist::9","numIssuedDist::10","numIssuedDist::11","numIssuedDist::12","ipc::0"]
 
-    stat_names = ["numCycles","issueRate","totalIpc"]
+    stat_names = ["numCycles","issueRate","totalIpc","ipc::1","ipc::0","TotalInstIssued","TotalOoOInstIssued","TotalInstIssued::0","TotalOoOInstIssued::0","TotalInstIssued::1","TotalOoOInstIssued::1"]
 
-    # fetch_stats = ["cacheStallCycles","icacheStallCycles","icacheStallCyclesSThread","icacheStallCyclesWThread","noActiveThreadStallCycles","blockedCycles","insts","instsSThread","instsWThread","branches","cycles","blockedCycles","noActiveThreadStallCycles","icacheWaitRetryStallCycles","cacheLines","icacheSquashes","tlbSquashes","idleRate","stalledS","stalledW","stalledSNotW","stalledSAndW","notStalled","multipleRunning","nisnDist::0","nisnDist::1","nisnDist::2","nisnDist::3","nisnDist::4","nisnDist::5","nisnDist::6","nisnDist::7","nisnDist::8","nisnDist::9","nisnDist::10","nisnDist::11","nisnDist::12","nisnDist::mean","squashCycles"]
+    stat_names = ["numCycles","issueRate","numIssuedDist::mean","statFuBusyPerThreadCollective","statStalledOnControlInstructionPerThread","statNumIssueNotPossiblePerThread","fuBusyS","fuBusyW","totalIpc", "cycleCountS", "cycleCountW","statFuNoFree::IntAlu","statFuNoFree::IntMult","statFuNoFree::IntDiv","statFuNoFree::MemRead","statFuNoFree::MemWrite","numIssuedDist::0","numIssuedDist::1","numIssuedDist::2","numIssuedDist::3","numIssuedDist::4","numIssuedDist::5","numIssuedDist::6","numIssuedDist::7","numIssuedDist::8","numIssuedDist::9","numIssuedDist::10","numIssuedDist::11","numIssuedDist::12","ipc::0"]
 
-    fetch_stats = ["blockedCycles","noActiveThreadStallCycles","icacheWaitRetryStallCycles","cacheLines","icacheSquashes","tlbSquashes","idleRate","nisnDist::mean"]
-
-    # decode_stats = ["idleCycles","blockedCycles","runCycles","unblockCycles","branchMispred","branchMispredSThread","branchMispredWThread","controlMispred","stalledS","stalledW","notStalled","blocking","blockingS"]
-
-    decode_stats = ["idleCycles","blockedCycles","runCycles","unblockCycles"]
-
-    # rename_stats = ["squashCycles","squashCyclesSThread","squashCyclesWThread","idleCycles","idleCyclesSThread","idleCyclesWThread","blockCycles","blockCyclesSThread","blockCyclesWThread","serializeStallCycles","runCycles","runCyclesSThread","runCyclesWThread","ROBFullEvents","ROBFullEventsS","ROBFullEventsW","IQFullEvents","IQFullEventsS","IQFullEventsW","LQFullEvents","LQFullEventsS","LQFullEventsW","SQFullEvents","SQFullEventsS","SQFullEventW","fullRegistersEvents","fullRegistersEventsS","fullRegistersEventsW","renamedOperands","stalledS","stalledW","stalledSNotW","stalledSAndW","notStalled","blockingIQFull","blockingIQFullS","blockingIQFullW","blockingROBFull","blockingROBFullS","blockingROBFullW","blockingBandwidthFull","blockingBandwidthFullS","blockingBandwidthFullW","blockingRegFull","blockingRegFullS","blockingRegFullW","skidInsts","iewStallS","iewStallW","NoROBFreeS","NoROBFreeW","NoIQFreeS","NoIQFreeW","NoLSQFreeS","NoLSQFreeW","NoRenameFreeS","NoRenameFreeW","SerializeROBFullS","SerializeROBFullW","renameDeactivate","BlockedBecauseOneThread","resumeSerializeS","resumeSerializeW","resumeUnblockingS","resumeUnblockingW","RunningS","RunningW","IdleS","IdleW","StartSquashS","StartSquashW","SquashingS","SquashingW","BlockedS","BlockedW","UnblockingS","UnblockingW","SerializeStallS","SerializeStallW"]
-
-    rename_stats = ["squashCycles","idleCyclesWThread","blockCycles","serializeStallCycles","runCycles","ROBFullEventsW","IQFullEvents"]
-
-    # iew_stats = ["idleCycles","idleCyclesS","idleCyclesW","squashCycles","squashCyclesS","squashCyclesW","blockCycles","blockCyclesS","blockCyclesW","unblockCycles","dispatchedInsts","dispSquashedInsts","dispSquashedInstsS","dispSquashedInstsW","iqFullEvents","iqFullEventsS","iqFullEventsW","lsqFullEvents","lsqFullEventsS","lsqFullEventsW","memOrderViolationEvents","branchMispredicts","instsToCommit","wbRateTotal","wbRateSTotal","wbRateWTotal","stalledS","stalledW","notStalled","blockingS","blockingW","blockingIQFull","blockingIQFullS","blockingLSQFull","blockingLSQFullS","blockingBandwidthFull","blockingBandwidthFullS"]
-
-    iew_stats = ["idleCycles","squashCycles","unblockCycles","iqFullEvents","lsqFullEvents"]
-
-    #commit_stats = ["commitSquashedInsts","branchMispredicts","branchMispredictsS","branchMispredictsW","totalTransitTimeTotal","totalTransitTimeSTotal","totalTransitTimeWTotal","totalInstructionTimeTotal","totalInstructionTimeSTotal","totalInstructionTimeWTotal","IEWTimeTotal","IQTimeTotal","ROBTimeTotal","totalReadyTimeTotal","renameTimeTotal","decodeTimeTotal","fetchTimeTotal","numCommittedDist::mean","totalInstructionTimeS::0","totalInstructionTimeS::1","totalInstructionTimeS::2","totalInstructionTimeS::3","totalInstructionTimeS::12","totalInstructionTimeS::14","totalInstructionTimeS::15","totalInstructionTimeS::47","totalInstructionTimeS::48","totalInstructionTimeS::total","IQTime::0","IQTime::1","IQTime::2","IQTime::3","IQTime::12","IQTime::14","IQTime::15","IQTime::47","IQTime::48","IQTime::total","ROBTime::0","ROBTime::1","ROBTime::2","ROBTime::3","ROBTime::12","ROBTime::14","ROBTime::15","ROBTime::47","ROBTime::48","ROBTime::total","IEWTime::0","IEWTime::1","IEWTime::2","IEWTime::3","IEWTime::12","IEWTime::14","IEWTime::15","IEWTime::47","IEWTime::48","IEWTime::total","totalReadyTime::0","totalReadyTime::1","totalReadyTime::2","totalReadyTime::3","totalReadyTime::12","totalReadyTime::14","totalReadyTime::15","totalReadyTime::47","totalReadyTime::48","totalReadyTime::total","renameTime::0","renameTime::1","renameTime::2","renameTime::3","renameTime::12","renameTime::14","renameTime::15","renameTime::47","renameTime::48","renameTime::total","decodeTime::0","decodeTime::1","decodeTime::2","decodeTime::3","decodeTime::12","decodeTime::14","decodeTime::15","decodeTime::47","decodeTime::48","decodeTime::total","fetchTime::0","fetchTime::1","fetchTime::2","fetchTime::3","fetchTime::12","fetchTime::14","fetchTime::15","fetchTime::47","fetchTime::48","fetchTime::total"]
-
-    commit_stats = []
-
-    dcache_stats = ["overallMissRate::total","overallMissLatency::total"]
-
-    # icache_stats = ["overallMissRate::total","overallMissLatency::total","demandHits::total","overallHits::total","demandMisses::total","overallMisses::total","overallAvgMissLatency::total","blockedCycles::no_mshrs","blockedCycles::no_targets","avgBlocked::no_mshrs","avgBlocked::no_targets","replacements","overallAvgMshrMissLatency::total","tags.warmupTick","tags.avgRefs","tags.totalRefs","tags.avgOccs::total","demandMissLatency::total","demandAccesses::total","demandAvgMissLatency::total","demandMshrMissLatency::total","demandAvgMshrMissLatency::total","tags.avgOccs::total","ReadReq.mshrMissLatency::cpu_cluster.cpus.inst","ReadReq.avgMissLatency::cpu_cluster.cpus.inst","overallAvgMissLatency::cpu_cluster.cpus.inst","overallMshrMisses::total"]
-
-    icache_stats = ["overallMissRate::total","overallMissLatency::total","demandMisses::total","overallMisses::total"]
-
-    l2_stats = ["overallMissRate::total","overallMissLatency::total","demandHits::total","demandMisses::total","demandMissLatency::total","demandAccesses::total","demandAvgMissLatency::total","demandAvgMissLatency::cpu_cluster.cpus.inst","demandAvgMissLatency::cpu_cluster.cpus.data","overallMissRate::cpu_cluster.cpus.inst","overallMissRate::cpu_cluster.cpus.data","demandAccesses::cpu_cluster.cpus.inst",".overallMshrMissLatency::cpu_cluster.cpus.inst","overallMshrMissLatency::cpu_cluster.cpus.inst"]
+    rename_stats = ["FreeIntRegClass"]
 
     l2_stats = ["overallMissRate::total","overallMissLatency::total","demandHits::total","demandMisses::total","demandMissLatency::total","demandAccesses::total"]
 
-    lsq = ["loadToUse::mean"]
+    fetch_stats = ["cacheStallCycles","icacheStallCycles","icacheStallCyclesSThread","icacheStallCyclesWThread","noActiveThreadStallCycles","blockedCycles","insts","instsSThread","instsWThread","branches","cycles","blockedCycles","noActiveThreadStallCycles","icacheWaitRetryStallCycles","cacheLines","icacheSquashes","tlbSquashes","idleRate","stalledS","stalledW","stalledSNotW","stalledSAndW","notStalled","multipleRunning","nisnDist::0","nisnDist::1","nisnDist::2","nisnDist::3","nisnDist::4","nisnDist::5","nisnDist::6","nisnDist::7","nisnDist::8","nisnDist::9","nisnDist::10","nisnDist::11","nisnDist::12","nisnDist::mean","squashCycles"]
 
+
+    decode_stats = ["idleCycles","blockedCycles","runCycles","unblockCycles","branchMispred","branchMispredSThread","branchMispredWThread","controlMispred","stalledS","stalledW","notStalled","blocking","blockingS"]
+
+    rename_stats = ["squashCycles","squashCyclesSThread","squashCyclesWThread","idleCycles","idleCyclesSThread","idleCyclesWThread","blockCycles","blockCyclesSThread","blockCyclesWThread","serializeStallCycles","runCycles","runCyclesSThread","runCyclesWThread","ROBFullEvents","ROBFullEventsS","ROBFullEventsW","IQFullEvents","IQFullEventsS","IQFullEventsW","LQFullEvents","LQFullEventsS","LQFullEventsW","SQFullEvents","SQFullEventsS","SQFullEventW","fullRegistersEvents","fullRegistersEventsS","fullRegistersEventsW","renamedOperands","stalledS","stalledW","stalledSNotW","stalledSAndW","notStalled","blockingIQFull","blockingIQFullS","blockingIQFullW","blockingROBFull","blockingROBFullS","blockingROBFullW","blockingBandwidthFull","blockingBandwidthFullS","blockingBandwidthFullW","blockingRegFull","blockingRegFullS","blockingRegFullW","skidInsts","iewStallS","iewStallW","NoROBFreeS","NoROBFreeW","NoIQFreeS","NoIQFreeW","NoLSQFreeS","NoLSQFreeW","NoRenameFreeS","NoRenameFreeW","SerializeROBFullS","SerializeROBFullW","renameDeactivate","BlockedBecauseOneThread","resumeSerializeS","resumeSerializeW","resumeUnblockingS","resumeUnblockingW","RunningS","RunningW","IdleS","IdleW","StartSquashS","StartSquashW","SquashingS","SquashingW","BlockedS","BlockedW","UnblockingS","UnblockingW","SerializeStallS","SerializeStallW"]
+
+    iew_stats = ["idleCycles","idleCyclesS","idleCyclesW","squashCycles","squashCyclesS","squashCyclesW","blockCycles","blockCyclesS","blockCyclesW","unblockCycles","dispatchedInsts","dispSquashedInsts","dispSquashedInstsS","dispSquashedInstsW","iqFullEvents","iqFullEventsS","iqFullEventsW","lsqFullEvents","lsqFullEventsS","lsqFullEventsW","memOrderViolationEvents","branchMispredicts","instsToCommit","wbRateTotal","wbRateSTotal","wbRateWTotal","stalledS","stalledW","notStalled","blockingS","blockingW","blockingIQFull","blockingIQFullS","blockingLSQFull","blockingLSQFullS","blockingBandwidthFull","blockingBandwidthFullS"]
+
+    commit_stats = ["commitSquashedInsts","branchMispredicts","branchMispredictsS","branchMispredictsW","totalTransitTimeTotal","totalTransitTimeSTotal","totalTransitTimeWTotal","totalInstructionTimeTotal","totalInstructionTimeSTotal","totalInstructionTimeWTotal","IEWTimeTotal","IQTimeTotal","ROBTimeTotal","totalReadyTimeTotal","renameTimeTotal","decodeTimeTotal","fetchTimeTotal","numCommittedDist::mean","totalInstructionTimeS::0","totalInstructionTimeS::1","totalInstructionTimeS::2","totalInstructionTimeS::3","totalInstructionTimeS::12","totalInstructionTimeS::14","totalInstructionTimeS::15","totalInstructionTimeS::47","totalInstructionTimeS::48","totalInstructionTimeS::total","IQTime::0","IQTime::1","IQTime::2","IQTime::3","IQTime::12","IQTime::14","IQTime::15","IQTime::47","IQTime::48","IQTime::total","ROBTime::0","ROBTime::1","ROBTime::2","ROBTime::3","ROBTime::12","ROBTime::14","ROBTime::15","ROBTime::47","ROBTime::48","ROBTime::total","IEWTime::0","IEWTime::1","IEWTime::2","IEWTime::3","IEWTime::12","IEWTime::14","IEWTime::15","IEWTime::47","IEWTime::48","IEWTime::total","totalReadyTime::0","totalReadyTime::1","totalReadyTime::2","totalReadyTime::3","totalReadyTime::12","totalReadyTime::14","totalReadyTime::15","totalReadyTime::47","totalReadyTime::48","totalReadyTime::total","renameTime::0","renameTime::1","renameTime::2","renameTime::3","renameTime::12","renameTime::14","renameTime::15","renameTime::47","renameTime::48","renameTime::total","decodeTime::0","decodeTime::1","decodeTime::2","decodeTime::3","decodeTime::12","decodeTime::14","decodeTime::15","decodeTime::47","decodeTime::48","decodeTime::total","fetchTime::0","fetchTime::1","fetchTime::2","fetchTime::3","fetchTime::12","fetchTime::14","fetchTime::15","fetchTime::47","fetchTime::48","fetchTime::total"]
+
+    icache_stats = ["overallMissRate::total","overallMissLatency::total","demandHits::total","overallHits::total","demandMisses::total","overallMisses::total","overallAvgMissLatency::total","blockedCycles::no_mshrs","blockedCycles::no_targets","avgBlocked::no_mshrs","avgBlocked::no_targets","replacements","overallAvgMshrMissLatency::total","tags.warmupTick","tags.avgRefs","tags.totalRefs","tags.avgOccs::total","demandMissLatency::total","demandAccesses::total","demandAvgMissLatency::total","demandMshrMissLatency::total","demandAvgMshrMissLatency::total","tags.avgOccs::total","ReadReq.mshrMissLatency::cpu_cluster.cpus.inst","ReadReq.avgMissLatency::cpu_cluster.cpus.inst","overallAvgMissLatency::cpu_cluster.cpus.inst","overallMshrMisses::total"]
+
+    dcache_stats = ["overallMissRate::total","overallMissLatency::total"]
+
+    cpu_stage_specfic_stats = [["rename",rename_stats]]
     cpu_stage_specfic_stats = [["commit",commit_stats],["iew",iew_stats],["rename",rename_stats],["decode",decode_stats],["fetch",fetch_stats],["dcache_strong",dcache_stats],["icache_strong",icache_stats],["icache_weak",icache_stats],["l2",l2_stats]]
 
+    lsq = ["loadToUse::mean"]
+
     cpus = []
+
+    stage_specfic_stats = []
+    stage_specfic_stats = [["l2",l2_stats],["lsq0",lsq]]
+
+    output_file = "stats.csv"
+    top_line = "input,benchmark,stat,S,S2W,S2W2,S2W3,S2W4,6S,1S4W,APU"
+    directory = os.getcwd()
+
+    cpulist = []
+
+    get_stats(parent_folder, files_check, stat_names, output_file, directory, stage_specfic_stats, cpu_stage_specfic_stats, top_line, cpulist, SimStats)
+
+    # backup data
 
     # where stats are per CPU
     # cpu_stage_specfic_stats = [["fetch",fetch_stats],["icache_strong",icache_stats],["icache_weak",icache_stats]]
 
-    stage_specfic_stats = [["l2",l2_stats],["lsq0",lsq]]
+    # stage_specfic_stats = [["l2",l2_stats],["lsq0",lsq]]
 
     # cpu_stage_specfic_stats = []
     # stage_specfic_stats = []
 
-    output_file = "stats.csv"
-    #top_line = "input,benchmark,stat,Strong1t,Strongf,Strong+1Weak1tc,Strong+1Weakf,Strong+2Weak1tc,Strong+2Weakf,Strong+7Weak1tc,Strong+7Weakf"
-    top_line = "input,benchmark,stat,S,SW,S3W,SW_Split,S3WSplit"
-    directory = os.getcwd()
-
     # cpulist = ["cpus0","cpus1","cpus2"]
-    cpulist = []
 
-    get_stats(parent_folder, files_check, stat_names, output_file, directory, stage_specfic_stats, cpu_stage_specfic_stats, top_line, cpulist, SimStats)
+    # lsq = ["loadToUse::mean"]
+
+    # cpu_stage_specfic_stats = [["commit",commit_stats],["iew",iew_stats],["rename",rename_stats],["decode",decode_stats],["fetch",fetch_stats],["dcache_strong",dcache_stats],["icache_strong",icache_stats],["icache_weak",icache_stats],["l2",l2_stats]]
+
+    # stat_names = ["numCycles","issueRate","numIssuedDist::mean","statFuBusyPerThreadCollective","statStalledOnControlInstructionPerThread","statNumIssueNotPossiblePerThread","fuBusyS","fuBusyW","totalIpc", "cycleCountS", "cycleCountW","statFuNoFree::IntAlu","statFuNoFree::IntMult","statFuNoFree::IntDiv","statFuNoFree::MemRead","statFuNoFree::MemWrite","numIssuedDist::0","numIssuedDist::1","numIssuedDist::2","numIssuedDist::3","numIssuedDist::4","numIssuedDist::5","numIssuedDist::6","numIssuedDist::7","numIssuedDist::8","numIssuedDist::9","numIssuedDist::10","numIssuedDist::11","numIssuedDist::12","ipc::0"]
+
+
+    # fetch_stats = ["cacheStallCycles","icacheStallCycles","icacheStallCyclesSThread","icacheStallCyclesWThread","noActiveThreadStallCycles","blockedCycles","insts","instsSThread","instsWThread","branches","cycles","blockedCycles","noActiveThreadStallCycles","icacheWaitRetryStallCycles","cacheLines","icacheSquashes","tlbSquashes","idleRate","stalledS","stalledW","stalledSNotW","stalledSAndW","notStalled","multipleRunning","nisnDist::0","nisnDist::1","nisnDist::2","nisnDist::3","nisnDist::4","nisnDist::5","nisnDist::6","nisnDist::7","nisnDist::8","nisnDist::9","nisnDist::10","nisnDist::11","nisnDist::12","nisnDist::mean","squashCycles"]
+
+
+    # decode_stats = ["idleCycles","blockedCycles","runCycles","unblockCycles","branchMispred","branchMispredSThread","branchMispredWThread","controlMispred","stalledS","stalledW","notStalled","blocking","blockingS"]
+
+    # rename_stats = ["squashCycles","squashCyclesSThread","squashCyclesWThread","idleCycles","idleCyclesSThread","idleCyclesWThread","blockCycles","blockCyclesSThread","blockCyclesWThread","serializeStallCycles","runCycles","runCyclesSThread","runCyclesWThread","ROBFullEvents","ROBFullEventsS","ROBFullEventsW","IQFullEvents","IQFullEventsS","IQFullEventsW","LQFullEvents","LQFullEventsS","LQFullEventsW","SQFullEvents","SQFullEventsS","SQFullEventW","fullRegistersEvents","fullRegistersEventsS","fullRegistersEventsW","renamedOperands","stalledS","stalledW","stalledSNotW","stalledSAndW","notStalled","blockingIQFull","blockingIQFullS","blockingIQFullW","blockingROBFull","blockingROBFullS","blockingROBFullW","blockingBandwidthFull","blockingBandwidthFullS","blockingBandwidthFullW","blockingRegFull","blockingRegFullS","blockingRegFullW","skidInsts","iewStallS","iewStallW","NoROBFreeS","NoROBFreeW","NoIQFreeS","NoIQFreeW","NoLSQFreeS","NoLSQFreeW","NoRenameFreeS","NoRenameFreeW","SerializeROBFullS","SerializeROBFullW","renameDeactivate","BlockedBecauseOneThread","resumeSerializeS","resumeSerializeW","resumeUnblockingS","resumeUnblockingW","RunningS","RunningW","IdleS","IdleW","StartSquashS","StartSquashW","SquashingS","SquashingW","BlockedS","BlockedW","UnblockingS","UnblockingW","SerializeStallS","SerializeStallW"]
+
+    # iew_stats = ["idleCycles","idleCyclesS","idleCyclesW","squashCycles","squashCyclesS","squashCyclesW","blockCycles","blockCyclesS","blockCyclesW","unblockCycles","dispatchedInsts","dispSquashedInsts","dispSquashedInstsS","dispSquashedInstsW","iqFullEvents","iqFullEventsS","iqFullEventsW","lsqFullEvents","lsqFullEventsS","lsqFullEventsW","memOrderViolationEvents","branchMispredicts","instsToCommit","wbRateTotal","wbRateSTotal","wbRateWTotal","stalledS","stalledW","notStalled","blockingS","blockingW","blockingIQFull","blockingIQFullS","blockingLSQFull","blockingLSQFullS","blockingBandwidthFull","blockingBandwidthFullS"]
+
+    #commit_stats = ["commitSquashedInsts","branchMispredicts","branchMispredictsS","branchMispredictsW","totalTransitTimeTotal","totalTransitTimeSTotal","totalTransitTimeWTotal","totalInstructionTimeTotal","totalInstructionTimeSTotal","totalInstructionTimeWTotal","IEWTimeTotal","IQTimeTotal","ROBTimeTotal","totalReadyTimeTotal","renameTimeTotal","decodeTimeTotal","fetchTimeTotal","numCommittedDist::mean","totalInstructionTimeS::0","totalInstructionTimeS::1","totalInstructionTimeS::2","totalInstructionTimeS::3","totalInstructionTimeS::12","totalInstructionTimeS::14","totalInstructionTimeS::15","totalInstructionTimeS::47","totalInstructionTimeS::48","totalInstructionTimeS::total","IQTime::0","IQTime::1","IQTime::2","IQTime::3","IQTime::12","IQTime::14","IQTime::15","IQTime::47","IQTime::48","IQTime::total","ROBTime::0","ROBTime::1","ROBTime::2","ROBTime::3","ROBTime::12","ROBTime::14","ROBTime::15","ROBTime::47","ROBTime::48","ROBTime::total","IEWTime::0","IEWTime::1","IEWTime::2","IEWTime::3","IEWTime::12","IEWTime::14","IEWTime::15","IEWTime::47","IEWTime::48","IEWTime::total","totalReadyTime::0","totalReadyTime::1","totalReadyTime::2","totalReadyTime::3","totalReadyTime::12","totalReadyTime::14","totalReadyTime::15","totalReadyTime::47","totalReadyTime::48","totalReadyTime::total","renameTime::0","renameTime::1","renameTime::2","renameTime::3","renameTime::12","renameTime::14","renameTime::15","renameTime::47","renameTime::48","renameTime::total","decodeTime::0","decodeTime::1","decodeTime::2","decodeTime::3","decodeTime::12","decodeTime::14","decodeTime::15","decodeTime::47","decodeTime::48","decodeTime::total","fetchTime::0","fetchTime::1","fetchTime::2","fetchTime::3","fetchTime::12","fetchTime::14","fetchTime::15","fetchTime::47","fetchTime::48","fetchTime::total"]
+
+    # commit_stats = []
+
+    # dcache_stats = ["overallMissRate::total","overallMissLatency::total"]
+
+    # icache_stats = ["overallMissRate::total","overallMissLatency::total","demandHits::total","overallHits::total","demandMisses::total","overallMisses::total","overallAvgMissLatency::total","blockedCycles::no_mshrs","blockedCycles::no_targets","avgBlocked::no_mshrs","avgBlocked::no_targets","replacements","overallAvgMshrMissLatency::total","tags.warmupTick","tags.avgRefs","tags.totalRefs","tags.avgOccs::total","demandMissLatency::total","demandAccesses::total","demandAvgMissLatency::total","demandMshrMissLatency::total","demandAvgMshrMissLatency::total","tags.avgOccs::total","ReadReq.mshrMissLatency::cpu_cluster.cpus.inst","ReadReq.avgMissLatency::cpu_cluster.cpus.inst","overallAvgMissLatency::cpu_cluster.cpus.inst","overallMshrMisses::total"]
+
+    # icache_stats = ["overallMissRate::total","overallMissLatency::total","demandMisses::total","overallMisses::total"]
+
+    # l2_stats = ["overallMissRate::total","overallMissLatency::total","demandHits::total","demandMisses::total","demandMissLatency::total","demandAccesses::total","demandAvgMissLatency::total","demandAvgMissLatency::cpu_cluster.cpus.inst","demandAvgMissLatency::cpu_cluster.cpus.data","overallMissRate::cpu_cluster.cpus.inst","overallMissRate::cpu_cluster.cpus.data","demandAccesses::cpu_cluster.cpus.inst",".overallMshrMissLatency::cpu_cluster.cpus.inst","overallMshrMissLatency::cpu_cluster.cpus.inst"]
 
     # %% plot a graph to see how many instructions is being fetched/decoded/.. etc 
 

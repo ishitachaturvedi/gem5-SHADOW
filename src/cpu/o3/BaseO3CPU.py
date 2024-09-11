@@ -145,6 +145,8 @@ class BaseO3CPU(BaseCPU):
 
     FirstThreadSOtherW = Param.Bool(False,"Run 1 pthread iteration as S thread and all others as W threads")
 
+    MainSAllPW = Param.Bool(False,"Run main S thread and all pthreads W threads")
+
     LQEntries = Param.Unsigned(100, "Number of load queue entries")
     SQEntries = Param.Unsigned(100, "Number of store queue entries")
     LSQDepCheckShift = Param.Unsigned(

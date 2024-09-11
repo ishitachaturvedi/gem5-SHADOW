@@ -81,6 +81,7 @@ CPU::CPU(const BaseO3CPUParams &params)
                 false, Event::CPU_Exit_Pri),
         runTillSThreads(params.runTillSThreads),
         FirstThreadSOtherW(params.FirstThreadSOtherW),
+        MainSAllPW(params.MainSAllPW),
 #ifndef NDEBUG
       instcount(0),
 #endif
@@ -302,9 +303,11 @@ CPU::CPU(const BaseO3CPUParams &params)
                 thread[tid] = new ThreadState(this, tid, params.workload[tid]);
                 //Daniel: push thread to map
                 // Ishita: Make first thread S thread
+                //if(!FirstThreadSOtherW && !MainSAllPW) {
                 if(!FirstThreadSOtherW) {
                     system->threadTypes.push_back((int)(params.workload[tid]->processThreadType));
-                } else {
+                } 
+                else {
                     system->threadTypes.push_back(Strong);
                 }
                 // if(params.workload[tid]->processThreadType == Strong){
@@ -359,6 +362,7 @@ CPU::CPU(const BaseO3CPUParams &params)
         {
             // Ishita: Make first thread S thread
             assert(tid == 0);
+            //if(FirstThreadSOtherW || MainSAllPW) {
             if(FirstThreadSOtherW) {
                 thread[tid]->tc->getProcessPtr()->setprocessThreadType(Strong);
             }
@@ -686,6 +690,11 @@ CPU::activateThread(ThreadID tid)
                 thread[tid]->tc->getProcessPtr()->setprocessThreadType(Weak);
             }
         }
+        // if(MainSAllPW) {
+        //     if(tid > 0) {
+        //         thread[tid]->tc->getProcessPtr()->setprocessThreadType(Weak);
+        //     }
+        // }
 
         DPRINTF(O3CPU, "[tid:%i] Adding to active threads list\n", tid);
 

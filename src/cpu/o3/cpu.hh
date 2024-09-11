@@ -460,6 +460,9 @@ class CPU : public BaseCPU
     /** Run 1 pthread iteration as S thread and all others as W threads**/
     bool FirstThreadSOtherW;
 
+    /** Run main thread as S and all P threads as W */
+    bool MainSAllPW;
+
     /**
      *  This is a list of threads that are trying to exit. Each thread id
      *  is mapped to a boolean value denoting whether the thread is ready
