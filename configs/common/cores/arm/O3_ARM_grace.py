@@ -638,9 +638,9 @@ class Grace12Wide_testConfig(ArmO3CPU):
     SSITSize = 1024
 
     smtLSQPolicy = "Partitioned"
-    smtROBPolicy = "Partitioned"
-    #smtIQPolicy = "Dynamic"
-    smtIQPolicy = "SDynamicWStatic"
+    smtROBPolicy = "Dynamic"
+    smtIQPolicy = "Dynamic"
+    #smtIQPolicy = "SDynamicWStatic"
     # smtFetchPolicy = "SWFetchCount"
     smtFetchPolicy = "IQCount"
 

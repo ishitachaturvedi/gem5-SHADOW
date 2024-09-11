@@ -236,6 +236,8 @@ class SimpleSeSystem(System):
             cpu.SingleThreadFetchIEW = args.SingleThreadFetchIEW
             cpu.UseSplitCache = args.UseSplitCache
             cpu.FirstThreadSOtherW = args.FirstThreadSOtherW
+            cpu.smtIQPolicy = args.smtIQPolicy
+            cpu.MainSAllPW = args.MainSAllPW
 
         # for cpu in self.cpu_cluster.cpus:
         #     cpu.numThreads = numThreads
@@ -398,6 +400,10 @@ def main():
 
     #run first thread as S for ILP and others as W as TLP
     parser.add_argument('-FirstThreadSOtherW', type=bool, default=False)
+
+    parser.add_argument('-smtIQPolicy', type=str, default="Dynamic")
+
+    parser.add_argument('-MainSAllPW', type=bool, default=False)
 
     args = parser.parse_args()
 
