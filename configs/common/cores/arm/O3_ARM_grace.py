@@ -625,7 +625,7 @@ class Grace12Wide_testConfig(ArmO3CPU):
     numPhysIntRegs = 504
     numIQEntries = 300
     numSIQEntries = 300
-    numWIQEntries = 120
+    numWIQEntries = 50
 
     switched_out = False
     branchPred = O3_ARM_Grace_BP()
@@ -638,7 +638,7 @@ class Grace12Wide_testConfig(ArmO3CPU):
     SSITSize = 1024
 
     smtLSQPolicy = "Partitioned"
-    smtROBPolicy = "Dynamic"
+    smtROBPolicy = "Partitioned"
     smtIQPolicy = "Dynamic"
     #smtIQPolicy = "SDynamicWStatic"
     # smtFetchPolicy = "SWFetchCount"

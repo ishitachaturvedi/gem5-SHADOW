@@ -190,7 +190,7 @@ class BaseO3CPU(BaseCPU):
     smtNumDecodingThreads = Param.Unsigned(1, "SMT Number of Decoding Threads")
     smtNumRenamingThreads = Param.Unsigned(1, "SMT Number of Renaming Threads")
     smtNumDispatchingThreads = Param.Unsigned(1, "SMT Number of Dispatching Threads")
-    smtFetchPolicy = Param.SMTFetchPolicy("SWIQCount", "SMT Fetch policy")
+    smtFetchPolicy = Param.SMTFetchPolicy("IQCount", "SMT Fetch policy")
     smtDecodePolicy = Param.SMTFetchPolicy("SWIQCount", "SMT Decode policy")
     smtRenamePolicy = Param.SMTFetchPolicy("SWIQCount", "SMT Rename policy")
     smtDispatchPolicy = Param.SMTFetchPolicy("SWIQCount", "SMT Dispatch policy")
