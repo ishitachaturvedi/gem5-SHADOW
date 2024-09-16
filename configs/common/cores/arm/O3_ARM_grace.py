@@ -618,28 +618,36 @@ class Grace12Wide_testConfig(ArmO3CPU):
     # SSITSize = 1024
 
     # Running config
-    #numROBEntries = 512
-    numROBEntries = 230
+    
     numPhysFloatRegs = 432
     numPhysVecRegs = 432 
     numPhysIntRegs = 504
+
     numIQEntries = 300
     numSIQEntries = 300
-    numWIQEntries = 50
+    numROBEntries = 230
+    numWIQEntries = 120
+    LQEntries = 340
+    SQEntries = 180
+
+    # numIQEntries = 2000
+    # numSIQEntries = 2000
+    # numROBEntries = 2000
+    # numWIQEntries = 120
+    # LQEntries = 2000
+    # SQEntries = 2000
 
     switched_out = False
     branchPred = O3_ARM_Grace_BP()
     fuPool = O3_ARM_Grace_FUP()
 
-    LQEntries = 340
-    SQEntries = 180
     LSQDepCheckShift = 0
     LFSTSize = 1024
     SSITSize = 1024
 
     smtLSQPolicy = "Partitioned"
     smtROBPolicy = "Partitioned"
-    smtIQPolicy = "Dynamic"
+    smtIQPolicy = "SDynamicWStatic"
     #smtIQPolicy = "SDynamicWStatic"
     # smtFetchPolicy = "SWFetchCount"
     smtFetchPolicy = "IQCount"
@@ -878,14 +886,14 @@ class O3_ARM_grace_ICache(Cache):
     writeback_clean = True
 
 class O3_ARM_grace_ICache_Strong(Cache):
-    tag_latency = 2
-    data_latency = 2
-    response_latency = 2
-    mshrs = 6
+    tag_latency = 1
+    data_latency = 1
+    response_latency = 1
+    mshrs = 12
     tgts_per_mshr = 8
     size = "32kB"
     assoc = 2
-    write_buffers = 16
+    # write_buffers = 16
     # Consider the L2 a victim cache also for clean lines
     writeback_clean = True
 
@@ -917,6 +925,9 @@ class O3_ARM_grace_DCache(Cache):
 
 # L2 Cache
 class O3_ARM_grace_L2(Cache):
+    # tag_latency = 12
+    # data_latency = 12
+    # response_latency = 12
     tag_latency = 12
     data_latency = 12
     response_latency = 12

@@ -230,9 +230,9 @@ CPU::CPU(const BaseO3CPUParams &params)
     assert(numThreads == (SThreads + WThreads));
     const auto &regClasses = params.isa[0]->regClasses();
 
-    printf("Per thread Reg size IntRegClass: %ld, FloatRegClass: %ld, VecRegClass: %ld, VecElmClass: %ld, VecPredRegClass: %ld, CCRegClass: %ld\n",regClasses.at(IntRegClass)->numRegs(),regClasses.at(FloatRegClass)->numRegs(),regClasses.at(VecRegClass)->numRegs(),regClasses.at(VecElemClass)->numRegs(),regClasses.at(VecPredRegClass)->numRegs(),regClasses.at(CCRegClass)->numRegs());
+    DPRINTF(O3CPU,"Per thread Reg size IntRegClass: %ld, FloatRegClass: %ld, VecRegClass: %ld, VecElmClass: %ld, VecPredRegClass: %ld, CCRegClass: %ld\n",regClasses.at(IntRegClass)->numRegs(),regClasses.at(FloatRegClass)->numRegs(),regClasses.at(VecRegClass)->numRegs(),regClasses.at(VecElemClass)->numRegs(),regClasses.at(VecPredRegClass)->numRegs(),regClasses.at(CCRegClass)->numRegs());
 
-    printf("Total thread Reg size IntRegClass: %ld, FloatRegClass: %ld, VecRegClass: %ld, VecPredRegClass: %ld, CCRegClass: %ld\n",params.numPhysIntRegs,params.numPhysFloatRegs,params.numPhysVecRegs,params.numPhysVecPredRegs,params.numPhysCCRegs);
+    DPRINTF(O3CPU,"Total thread Reg size IntRegClass: %ld, FloatRegClass: %ld, VecRegClass: %ld, VecPredRegClass: %ld, CCRegClass: %ld\n",params.numPhysIntRegs,params.numPhysFloatRegs,params.numPhysVecRegs,params.numPhysVecPredRegs,params.numPhysCCRegs);
 
 
     if(!(params.numPhysIntRegs >= numThreads * regClasses.at(IntRegClass)->numRegs())) {
@@ -303,8 +303,8 @@ CPU::CPU(const BaseO3CPUParams &params)
                 thread[tid] = new ThreadState(this, tid, params.workload[tid]);
                 //Daniel: push thread to map
                 // Ishita: Make first thread S thread
-                //if(!FirstThreadSOtherW && !MainSAllPW) {
-                if(!FirstThreadSOtherW) {
+                if(!FirstThreadSOtherW && !MainSAllPW) {
+                //if(!FirstThreadSOtherW) {
                     system->threadTypes.push_back((int)(params.workload[tid]->processThreadType));
                 } 
                 else {
@@ -362,8 +362,8 @@ CPU::CPU(const BaseO3CPUParams &params)
         {
             // Ishita: Make first thread S thread
             assert(tid == 0);
-            //if(FirstThreadSOtherW || MainSAllPW) {
-            if(FirstThreadSOtherW) {
+            if(FirstThreadSOtherW || MainSAllPW) {
+            //if(FirstThreadSOtherW) {
                 thread[tid]->tc->getProcessPtr()->setprocessThreadType(Strong);
             }
 
@@ -633,9 +633,9 @@ CPU::tick()
         it++;
     }
     if(!SAppFound && runTillSThreads) {
-        printf("Exit from here\n");
+        DPRINTF(O3CPU,"Exit from here\n");
         exitSimLoop("Exit Sim Loop all S threads done "); 
-        printf("Exit done\n");
+        DPRINTF(O3CPU,"Exit done\n");
     }
 }
 
@@ -690,11 +690,11 @@ CPU::activateThread(ThreadID tid)
                 thread[tid]->tc->getProcessPtr()->setprocessThreadType(Weak);
             }
         }
-        // if(MainSAllPW) {
-        //     if(tid > 0) {
-        //         thread[tid]->tc->getProcessPtr()->setprocessThreadType(Weak);
-        //     }
-        // }
+        if(MainSAllPW) {
+            if(tid > 0) {
+                thread[tid]->tc->getProcessPtr()->setprocessThreadType(Weak);
+            }
+        }
 
         DPRINTF(O3CPU, "[tid:%i] Adding to active threads list\n", tid);
 
@@ -1797,7 +1797,7 @@ CPU::updateThreadPriority()
 void
 CPU::addThreadToExitingList(ThreadID tid)
 {
-    DPRINTF(O3CPU, "[tid:%d] EXITTEST Thread %d is inserted to exitingThreads list size %d\n", tid,tid,exitingThreads.size());
+    DPRINTF(O3CPU,"[tid:%d] EXITTEST Thread tid:%d is inserted to exitingThreads list size %d cycle %d\n", tid,tid,exitingThreads.size(), curCycle());
 
     if(thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
         cpuStats.cycleCountS = curCycle();
@@ -1866,7 +1866,7 @@ CPU::isThreadExiting(ThreadID tid) const
 
 
     for (const ThreadData& data : exitingThreads1) {
-        DPRINTF(O3CPU,"222Current thread tid:%d ready %d curCycle %d curCycle %d nextCycle %d\n",data.thread_id,data.finished,data.cycle_number,curTick(),nextCycle());
+        DPRINTF(O3CPU,"222Current thread tid:%d ready %d finishCycle %d curCycle %d nextCycle %d\n",data.thread_id,data.finished,data.cycle_number,curTick(),nextCycle());
     }
 
     auto it1 = exitingThreads.begin();
@@ -1877,6 +1877,7 @@ CPU::isThreadExiting(ThreadID tid) const
         bool threadIdExists = 0;
         for (const ThreadData& data : exitingThreads1) {
             if (data.thread_id == thread_id) {
+                DPRINTF(O3CPU,"[tid:%d] Thread ready for exit data.finished %d!!\n",thread_id, data.finished);
                 threadIdExists = 1;
                 readyToExit1 = data.finished;
             }
@@ -1912,6 +1913,7 @@ CPU::scheduleThreadExitEvent(ThreadID tid)
     for (ThreadData& data : exitingThreads1) {
         if (data.thread_id == tid) {
             threadIdExists++;
+            DPRINTF(O3CPU,"Exiting threads_here tid:%d data.finished %d\n",data.thread_id,data.finished);
             if(!data.finished)
             {
                 data.finished = true;
@@ -1923,17 +1925,19 @@ CPU::scheduleThreadExitEvent(ThreadID tid)
     assert(threadIdExists==1);
 
     for (const ThreadData& data : exitingThreads1) {
-        DPRINTF(O3CPU,"333Current thread tid:%d ready %d curCycle %d curCycle %d nextCycle %d\n",data.thread_id,data.finished,data.cycle_number,curTick(),nextCycle());
+        DPRINTF(O3CPU,"333Current thread tid:%d ready %d finishcycle %d curCycle %d nextCycle %d\n",data.thread_id,data.finished,data.cycle_number,curTick(),nextCycle());
     }
 
     auto it1 = exitingThreads.begin();
     while (it1 != exitingThreads.end()) {
         ThreadID thread_id = it1->first;
+        DPRINTF(O3CPU,"Exiting threads_2here tid:%d\n",thread_id);
         bool readyToExit = it1->second;
         bool readyToExit1 = 0;
         bool threadIdExists = 0;
         for (const ThreadData& data : exitingThreads1) {
             if (data.thread_id == thread_id) {
+                DPRINTF(O3CPU,"Exiting threads_4here tid:%d data.finished %d\n",thread_id,data.finished);
                 threadIdExists = 1;
                 readyToExit1 = data.finished;
             }
@@ -1976,7 +1980,7 @@ CPU::exitThreads()
     auto it1 = exitingThreads.begin();
     while (it1 != exitingThreads.end()) {
         ThreadID thread_id = it1->first;
-        fprintf(stderr, "[tid:%d] Thread is exiting\n", thread_id);
+        DPRINTF(O3CPU,"[tid:%d] Thread is exiting\n", thread_id);
         if(thread[thread_id]->tc->getProcessPtr()->getprocessThreadType() == Strong){
             cpuStats.cycleCountS = curCycle();
         }
@@ -1988,6 +1992,7 @@ CPU::exitThreads()
         bool threadIdExists = 0;
         for (const ThreadData& data : exitingThreads1) {
             if (data.thread_id == thread_id) {
+                DPRINTF(O3CPU,"[tid:%d] threadIdExists data.finished %d\n", thread_id,data.finished);
                 threadIdExists = 1;
                 readyToExit1 = data.finished;
             }
@@ -2011,9 +2016,8 @@ CPU::exitThreads()
 
     for (auto it = exitingThreads1.begin(); it != exitingThreads1.end();) {
         bool readyToExit = it->finished;
-        //if ((it->cycle_number != curTick() || exit_size == 1) && readyToExit) {
+        DPRINTF(O3CPU,"Entring exit tid:%d it->cycle_number %d curTick() %d exit_size %d readyToExit %d\n",it->thread_id,it->cycle_number,curTick(),exit_size,readyToExit);
         if ((it->cycle_number == curTick() || exit_size == 1) && readyToExit) {
-        //if (readyToExit) {
             DPRINTF(O3CPU,"[tid:%d] EXITTEST actual exit size %d ready %d cycle %d curCycle %d\n",it->thread_id,exitingThreads.size(),it->finished,it->cycle_number,curTick());
 
             haltContext(it->thread_id);
@@ -2033,7 +2037,8 @@ CPU::exitThreads()
     if(!did_thread_exit)
     {
         for (const ThreadData& data : exitingThreads1) {
-            DPRINTF(O3CPU,"444No exit found:%d ready %d cycle %d\n",data.thread_id,data.finished,data.cycle_number);
+            DPRINTF(O3CPU,"444No exit found tid:%d ready %d cycle %d\n",data.thread_id,data.finished,data.cycle_number);
+            DPRINTF(O3CPU,"444No exit found tid:%d ready %d cycle %d\n",data.thread_id,data.finished,data.cycle_number);
         }
     }
     assert(did_thread_exit);
@@ -2050,12 +2055,29 @@ CPU::exitThreads()
             }
         }
         if (readyToExit && found) {
-            DPRINTF(O3CPU, "Exiting thread %d\n", thread_id);
+            DPRINTF(O3CPU,"Exiting thread tid:%d\n", thread_id);
             it = exitingThreads.erase(it);
             //break;
         } else {
             it++;
         }
+    }
+
+    DPRINTF(O3CPU,"*****cycle done exitingThreads1:%d\n",exitingThreads1.size());
+    fflush(stdout);
+
+    // if all threads did not exit and there are still some threads toexit (this happens for ack to back exit cycles), schedule an exit event
+    for (auto it = exitingThreads1.begin(); it != exitingThreads1.end();) {
+        bool readyToExit = it->finished;
+        if (readyToExit) {
+            if (!threadExitEvent.scheduled()) {
+                schedule(threadExitEvent, nextCycle());
+                DPRINTF(O3CPU,"[tid:%d] Scheduling exit event next cycle exit scheduled nextCycle() %d\n",it->thread_id,nextCycle());
+                fflush(stdout);
+                break;
+            }
+        }
+        it++;
     }
 
     // terminate all threads that are ready to exit
