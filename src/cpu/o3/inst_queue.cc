@@ -292,7 +292,11 @@ InstructionQueue::IQStats::IQStats(CPU *cpu, const unsigned &total_width)
     ADD_STAT(TotalInstIssued, statistics::units::Count::get(),
              "Number of instructions issued"),
     ADD_STAT(TotalOoOInstIssued, statistics::units::Count::get(),
-             "Number of instructions issued OoO")
+             "Number of instructions issued OoO"),
+    ADD_STAT(NoReadyInst, statistics::units::Count::get(),
+             "No instructions ready in this cycle"),
+    ADD_STAT(ReadyInstMoreThanBW, statistics::units::Count::get(),
+             "More ready instructions than available bandwidth")
 {
     instsAdded
         .prereq(instsAdded);
@@ -1329,6 +1333,10 @@ InstructionQueue::scheduleReadyInsts()
         cpu->activityThisCycle();
     } else {
         DPRINTF(IQ, "Not able to schedule any instructions.\n");
+        ++iqStats.NoReadyInst;
+    }
+    if(total_issued == totalWidth) {
+        ++iqStats.ReadyInstMoreThanBW;
     }
 
     // check if op is free -> Backend utilization check

@@ -1530,8 +1530,8 @@ IEW::executeInsts()
         // a pending store an lead to a fault and this instruction will be 
         // re-executed. So dont execute anything till we establish no fault.
 
-        DPRINTF(IEW, "Execute: Processing PC %s, [tid:%i] [sn:%llu].\n",
-                inst->pcState(), inst->threadNumber,inst->seqNum);
+        DPRINTF(IEW, "Execute: Processing PC %s, [tid:%i] [sn:%llu] squashed %d.\n",
+                inst->pcState(), inst->threadNumber,inst->seqNum, inst->isSquashed());
 
         int tid = inst->threadNumber;
 

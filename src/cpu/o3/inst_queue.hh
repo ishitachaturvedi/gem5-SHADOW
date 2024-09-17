@@ -542,6 +542,10 @@ class InstructionQueue
         statistics::Scalar intInstsIssued;
         /** Stat for number of floating point instructions issued. */
         statistics::Scalar floatInstsIssued;
+        /** Cycles with no instructions issued **/
+        statistics::Scalar NoReadyInst;
+        /** Cycles with more inst than bandwidth **/
+        statistics::Scalar ReadyInstMoreThanBW;
         /** Stat for number of branch instructions issued. */
         statistics::Scalar branchInstsIssued;
         /** Stat for number of memory instructions issued. */
