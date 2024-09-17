@@ -413,7 +413,7 @@ class Grace4Wide(ArmO3CPU):
     renameToROBDelay = 1
     commitWidth = 8
     squashWidth = 8
-    trapLatency = 13
+    trapLatency = 1
     backComSize = 5
     forwardComSize = 5
 
@@ -579,7 +579,7 @@ class Grace12Wide_testConfig(ArmO3CPU):
     renameToROBDelay = 1
     commitWidth = 8
     squashWidth = 8
-    trapLatency = 13
+    trapLatency = 1
     backComSize = 5
     forwardComSize = 5
 
@@ -681,7 +681,7 @@ class Grace12Wide_1thread(ArmO3CPU):
     renameToROBDelay = 1
     commitWidth = 8
     squashWidth = 8
-    trapLatency = 13
+    trapLatency = 1
     backComSize = 5
     forwardComSize = 5
 
@@ -734,7 +734,7 @@ class Grace12Wide_2thread(ArmO3CPU):
     renameToROBDelay = 1
     commitWidth = 8
     squashWidth = 8
-    trapLatency = 13
+    trapLatency = 1
     backComSize = 5
     forwardComSize = 5
 
@@ -790,7 +790,7 @@ class Grace12Wide_4thread(ArmO3CPU):
     renameToROBDelay = 1
     commitWidth = 8
     squashWidth = 8
-    trapLatency = 13
+    trapLatency = 1
     backComSize = 5
     forwardComSize = 5
 
@@ -844,7 +844,7 @@ class Grace12Wide_8thread(ArmO3CPU):
     renameToROBDelay = 1
     commitWidth = 8
     squashWidth = 8
-    trapLatency = 13
+    trapLatency = 1
     backComSize = 5
     forwardComSize = 5
 

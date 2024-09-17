@@ -131,7 +131,8 @@ class BaseO3CPU(BaseCPU):
     renameToROBDelay = Param.Cycles(1, "Rename to reorder buffer delay")
     commitWidth = Param.Unsigned(8, "Commit width")
     squashWidth = Param.Unsigned(8, "Squash width")
-    trapLatency = Param.Cycles(13, "Trap latency")
+    #trapLatency = Param.Cycles(13, "Trap latency")
+    trapLatency = Param.Cycles(1, "Trap latency")
     fetchTrapLatency = Param.Cycles(1, "Fetch trap latency")
 
     backComSize = Param.Unsigned(

@@ -81,6 +81,7 @@ Commit::processTrapEvent(ThreadID tid)
     // This will get reset by commit if it was switched out at the
     // time of this event processing.
     trapSquash[tid] = true;
+    DPRINTF(Commit,"[tid:%d] trapSquash %d\n",tid,trapSquash[tid]);
 }
 
 Commit::Commit(CPU *_cpu, const BaseO3CPUParams &params)
@@ -560,7 +561,7 @@ Commit::deactivateThread(ThreadID tid)
             priority_list.end(), tid);
 
     if (thread_it != priority_list.end()) {
-        DPRINTF(Commit,"[tid:%d] DEACTIVATING_THREAD rob->isEmpty %d\n",tid,rob->isEmpty(tid));
+        DPRINTF(Commit,"[tid:%d] DEACTIVATING_THREAD rob->isEmpty %d trapSquash %d\n",tid,rob->isEmpty(tid), trapSquash[tid]);
         priority_list.erase(thread_it);
     }
     lastCommitedCycle[tid] = -1;
@@ -574,7 +575,7 @@ Commit::activateThread(ThreadID tid)
 
     if(thread_it == priority_list.end())
     {
-        DPRINTF(Commit,"[tid:%d] FINALLY_ACTIVATING_THREAD\n",tid);
+        DPRINTF(Commit,"[tid:%d] FINALLY_ACTIVATING_THREAD commit status %d trapSquash[tid] %d\n",tid,commitStatus[tid], trapSquash[tid]);
         priority_list.push_back(tid);
     }
     lastCommitedCycle[tid] = -1;
@@ -656,8 +657,6 @@ Commit::numROBFreeEntries(ThreadID tid)
 void
 Commit::generateTrapEvent(ThreadID tid, Fault inst_fault)
 {
-    DPRINTF(Commit, "Generating trap event for [tid:%i]\n", tid);
-
     EventFunctionWrapper *trap = new EventFunctionWrapper(
         [this, tid]{ processTrapEvent(tid); },
         "Trap", true, Event::CPU_Tick_Pri);
@@ -676,6 +675,8 @@ Commit::generateTrapEvent(ThreadID tid, Fault inst_fault)
     cpu->schedule(trap, cpu->clockEdge(latency));
     trapInFlight[tid] = true;
     thread[tid]->trapPending = true;
+
+    DPRINTF(Commit, "Generating trap event for [tid:%i] trapSquash[tid] %d latency %d cpu->syscallRetryLatency %d trapLatency %d\n", tid, trapSquash[tid], latency, cpu->syscallRetryLatency, trapLatency);
 }
 
 void
@@ -705,7 +706,7 @@ Commit::squashAll(ThreadID tid)
     lastCommitedCycle[tid] = curTick();
 
     if(!rob->isEmpty(tid)) {
-        DPRINTF(Commit,"[tid:%d] committing instruction2 [sn:%llu] lastCommitedCycle %llu\n",tid,rob->readHeadInst(tid)->seqNum,lastCommitedCycle[tid]);
+        DPRINTF(Commit,"[tid:%d] committing instruction2 [sn:%llu] lastCommitedCycle %llu trapSquash[tid] %d\n",tid,rob->readHeadInst(tid)->seqNum,lastCommitedCycle[tid], trapSquash[tid]);
     } else {
         DPRINTF(Commit,"[tid:%d] committing instruction3 [sn:EMPTY] lastCommitedCycle %llu\n",tid,lastCommitedCycle[tid]);
     }
@@ -809,6 +810,8 @@ Commit::tick()
     if (activeThreads->empty())
         return;
 
+    DPRINTF(Commit,"[tid:3] Commit status %d\n",commitStatus[3]);
+
     std::list<ThreadID>::iterator threads = activeThreads->begin();
     std::list<ThreadID>::iterator end = activeThreads->end();
 
@@ -821,7 +824,7 @@ Commit::tick()
     while (threads != end) {
 
         ThreadID tid = *threads++;
-        DPRINTF(Commit,"[tid:%d] Commit status: %d lastCommitedCycle %d\n",tid,commitStatus[tid],lastCommitedCycle[tid]);
+        DPRINTF(Commit,"[tid:%d] Commit status: %d lastCommitedCycle %d trapSquash[tid] %d\n",tid,commitStatus[tid],lastCommitedCycle[tid],trapSquash[tid]);
 
 
         if(maxNonCommitCycle < lastCommitedCycle[tid]) {
@@ -885,8 +888,8 @@ Commit::tick()
                     tid, inst->seqNum, inst->pcState(), inst->isMemRef(), inst->isLoad());
         }
 
-        DPRINTF(Commit, "[tid:%i] ROB has %d insts & %d free entries.\n",
-                tid, rob->countInsts(tid), rob->numFreeEntries(tid));
+        DPRINTF(Commit, "[tid:%i] ROB has %d insts & %d free entries trapSquash[tid] %d.\n",
+                tid, rob->countInsts(tid), rob->numFreeEntries(tid), trapSquash[tid]);
     }
 
 
@@ -1492,8 +1495,8 @@ Commit::commitInsts()
                     squashAfter(tid, head_inst);
             } else {
                 DPRINTF(Commit, "Unable to commit head instruction PC:%s "
-                        "[tid:%i] [sn:%llu].\n",
-                        head_inst->pcState(), tid ,head_inst->seqNum);
+                        "[tid:%i] [sn:%llu] trapSquash %d.\n",
+                        head_inst->pcState(), tid ,head_inst->seqNum, trapSquash[tid]);
                 break;
             }
         }
@@ -1795,8 +1798,8 @@ Commit::commitHead(const DynInstPtr &head_inst, unsigned inst_num)
     }
 
     if (inst_fault != NoFault) {
-        DPRINTF(Commit, "Inst [tid:%i] [sn:%llu] PC %s has a fault inst_fault %d\n",
-                tid, head_inst->seqNum, head_inst->pcState(),inst_fault);
+        DPRINTF(Commit, "Inst [tid:%i] [sn:%llu] PC %s has a fault inst_fault %d trapSquash[tid] %d\n",
+                tid, head_inst->seqNum, head_inst->pcState(),inst_fault,trapSquash[tid]);
 
         if (iewStage->hasStoresToWB(tid) || inst_num > 0) {
             DPRINTF(Commit,
@@ -1837,8 +1840,8 @@ Commit::commitHead(const DynInstPtr &head_inst, unsigned inst_num)
         commitStatus[tid] = TrapPending;
 
         DPRINTF(Commit,
-            "[tid:%i] [sn:%llu] Committing instruction with fault\n",
-            tid, head_inst->seqNum);
+            "[tid:%i] [sn:%llu] Committing instruction with fault trapSquash[tid] %d\n",
+            tid, head_inst->seqNum, trapSquash[tid]);
         if (head_inst->traceData) {
             // We ignore ReExecution "faults" here as they are not real
             // (architectural) faults but signal flush/replays.
@@ -1862,8 +1865,8 @@ Commit::commitHead(const DynInstPtr &head_inst, unsigned inst_num)
     updateComInstStats(head_inst);
 
     DPRINTF(Commit,
-            "[tid:%i] [sn:%llu] Committing instruction with PC %s\n",
-            tid, head_inst->seqNum, head_inst->pcState());
+            "[tid:%i] [sn:%llu] Committing instruction with PC %s trapSquash[tid] %d\n",
+            tid, head_inst->seqNum, head_inst->pcState(), trapSquash[tid]);
     if (head_inst->traceData) {
         head_inst->traceData->setFetchSeq(head_inst->seqNum);
         head_inst->traceData->setCPSeq(thread[tid]->numOp);
@@ -1985,6 +1988,8 @@ Commit::getInsts()
         ThreadID tid = inst->threadNumber;
 
         if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+            DPRINTF(Commit, "[tid:%i] [sn:%llu] checking PC %s isExecuted %d op_class %d squashed %d commit status %d changedROBEntries %d TrapPending %d.\n",
+                        tid, inst->seqNum, inst->pcState(), inst->isExecuted(), inst->opClass(), inst->isSquashed(), commitStatus[tid], changedROBNumEntries[tid], TrapPending);
             if (!inst->isSquashed() &&
                 commitStatus[tid] != ROBSquashing &&
                 commitStatus[tid] != TrapPending) {
