@@ -643,6 +643,9 @@ class Fetch
          * the pipeline.
          */
         statistics::Scalar idleCycles;
+        statistics::Scalar NoThreadToFetch;
+        /** # of cycles with no instructions fetched **/
+        statistics::Scalar noInstFetched;
         /** Total number of cycles spent blocked. */
         statistics::Scalar blockedCycles;
         /** Total number of cycles spent in any other state. */
@@ -689,6 +692,20 @@ class Fetch
         statistics::Vector NumFetchCycles;
         statistics::Vector FetchQueueEmpty;
         statistics::Vector DecodeWidthFull;
+
+        statistics::Vector RunningCount;
+        statistics::Vector IdleCount;
+        statistics::Vector SquashingCount;
+        statistics::Vector BlockedCount;
+        statistics::Vector FetchingCount;
+        statistics::Vector TrapPendingCount;
+        statistics::Vector QuiescePendingCount;
+        statistics::Vector ItlbWaitCount;
+        statistics::Vector IcacheWaitResponseCount;
+        statistics::Vector IcacheWaitRetryCount;
+        statistics::Vector IcacheAccessCompleteCount;
+        statistics::Vector NoGoodAddrCount;
+        statistics::Vector BlockedOnBranchCount;
 
     } fetchStats;
 };

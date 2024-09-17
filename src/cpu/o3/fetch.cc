@@ -201,6 +201,8 @@ Fetch::FetchStatGroup::FetchStatGroup(CPU *cpu, Fetch *fetch)
              "Number of cycles fetch has spent waiting for tlb"),
     ADD_STAT(idleCycles, statistics::units::Cycle::get(),
              "Number of cycles fetch was idle"),
+    ADD_STAT(noInstFetched, statistics::units::Cycle::get(),
+             "NUmber of cycles with no instructions fetched"),
     ADD_STAT(blockedCycles, statistics::units::Cycle::get(),
              "Number of cycles fetch has spent blocked"),
     ADD_STAT(miscStallCycles, statistics::units::Cycle::get(),
@@ -250,13 +252,40 @@ Fetch::FetchStatGroup::FetchStatGroup(CPU *cpu, Fetch *fetch)
             "Number of cycles decode is not stalled"),
     ADD_STAT(multipleRunning, statistics::units::Count::get(),
             "Multiple threads running together"),
+    ADD_STAT(NoThreadToFetch, statistics::units::Count::get(),
+            "Cycle with no thread to fetch from"),
     ADD_STAT(NumFetchCycles, statistics::units::Count::get(),
             "Number of fetch cycles for each thread") ,
     ADD_STAT(FetchQueueEmpty, statistics::units::Count::get(),
             "Number of fetch cycles where fetch queue is empty"),
     ADD_STAT(DecodeWidthFull, statistics::units::Count::get(),
-            "Number of fetch cycles thread could not move to decode because decode width full")  
-    
+            "Number of fetch cycles thread could not move to decode because decode width full"),
+    ADD_STAT(RunningCount, statistics::units::Count::get(),
+            "Number of fetch cycles with fetch state Running "),
+    ADD_STAT(IdleCount, statistics::units::Count::get(),
+            "Number of fetch cycles with fetch state Idle "),  
+    ADD_STAT(SquashingCount, statistics::units::Count::get(),
+            "Number of fetch cycles with fetch state Squashing "),  
+    ADD_STAT(BlockedCount, statistics::units::Count::get(),
+            "Number of fetch cycles with fetch state Blocked "),  
+    ADD_STAT(FetchingCount, statistics::units::Count::get(),
+            "Number of fetch cycles with fetch state Fetching "),  
+    ADD_STAT(TrapPendingCount, statistics::units::Count::get(),
+            "Number of fetch cycles with fetch state TrapPending "),  
+    ADD_STAT(QuiescePendingCount, statistics::units::Count::get(),
+            "Number of fetch cycles with fetch state QuiescePending "),  
+    ADD_STAT(ItlbWaitCount, statistics::units::Count::get(),
+            "Number of fetch cycles with fetch state ItlbWait "),  
+    ADD_STAT(IcacheWaitResponseCount, statistics::units::Count::get(),
+            "Number of fetch cycles with fetch state IcacheWaitResponse "),  
+    ADD_STAT(IcacheWaitRetryCount, statistics::units::Count::get(),
+            "Number of fetch cycles with fetch state IcacheWaitRetry "),  
+    ADD_STAT(IcacheAccessCompleteCount, statistics::units::Count::get(),
+            "Number of fetch cycles with fetch state IcacheAccessComplete "),  
+    ADD_STAT(NoGoodAddrCount, statistics::units::Count::get(),
+            "Number of fetch cycles with fetch state NoGoodAddr "),  
+    ADD_STAT(BlockedOnBranchCount, statistics::units::Count::get(),
+            "Number of fetch cycles with fetch state BlockedOnBranch ")  
 {
         NumFetchCycles
             .init(cpu->numThreads)
@@ -265,6 +294,45 @@ Fetch::FetchStatGroup::FetchStatGroup(CPU *cpu, Fetch *fetch)
             .init(cpu->numThreads)
             .flags(statistics::total);
         DecodeWidthFull
+            .init(cpu->numThreads)
+            .flags(statistics::total);
+        RunningCount
+            .init(cpu->numThreads)
+            .flags(statistics::total);
+        IdleCount
+            .init(cpu->numThreads)
+            .flags(statistics::total);
+        SquashingCount
+            .init(cpu->numThreads)
+            .flags(statistics::total);
+        BlockedCount
+            .init(cpu->numThreads)
+            .flags(statistics::total);
+        FetchingCount
+            .init(cpu->numThreads)
+            .flags(statistics::total);
+        TrapPendingCount
+            .init(cpu->numThreads)
+            .flags(statistics::total);
+        QuiescePendingCount
+            .init(cpu->numThreads)
+            .flags(statistics::total);
+        ItlbWaitCount
+            .init(cpu->numThreads)
+            .flags(statistics::total);
+        IcacheWaitResponseCount
+            .init(cpu->numThreads)
+            .flags(statistics::total);
+        IcacheWaitRetryCount
+            .init(cpu->numThreads)
+            .flags(statistics::total);
+        IcacheAccessCompleteCount
+            .init(cpu->numThreads)
+            .flags(statistics::total);
+        NoGoodAddrCount
+            .init(cpu->numThreads)
+            .flags(statistics::total);
+        BlockedOnBranchCount
             .init(cpu->numThreads)
             .flags(statistics::total);
         icacheStallCycles
@@ -289,8 +357,8 @@ Fetch::FetchStatGroup::FetchStatGroup(CPU *cpu, Fetch *fetch)
             .prereq(squashCycles);
         tlbCycles
             .prereq(tlbCycles);
-        idleCycles
-            .prereq(idleCycles);
+        // idleCycles
+        //     .prereq(idleCycles);
         blockedCycles
             .prereq(blockedCycles);
         cacheLines
@@ -733,7 +801,6 @@ Fetch::fetchCacheLine(Addr vaddr, ThreadID tid, Addr pc)
 
     DPRINTF(Fetch, "[tid:%i] Fetching cache line %#x for addr %#x\n",
             tid, fetchBufferBlockPC, vaddr);
-
     // Setup the memReq to do a read of the first instruction's address.
     // Set the appropriate read size and flags as well.
     // Build request here.
@@ -822,6 +889,7 @@ Fetch::finishTranslation(const Fault &fault, const RequestPtr &mem_req)
             DPRINTF(Fetch, "[tid:%i] Doing Icache access.\n", tid);
             DPRINTF(Activity, "[tid:%i] Activity: Waiting on I-cache "
                     "response.\n", tid);
+
             lastIcacheStall[tid] = curTick();
             fetchStatus[tid] = IcacheWaitResponse;
             DPRINTF(Fetch, "(IcacheWaitResponse) FetchStatus Update: fetchStatus[%i] = %d\n", tid, fetchStatus[tid]);
@@ -868,8 +936,7 @@ Fetch::finishTranslation(const Fault &fault, const RequestPtr &mem_req)
         DPRINTF(Fetch, "(TrapPending) FetchStatus Update: fetchStatus[%i] = %d\n", tid, fetchStatus[tid]);
 
         DPRINTF(Fetch, "[tid:%i] Blocked, need to handle the trap.\n", tid);
-        DPRINTF(Fetch, "[tid:%i] fault (%s) detected @ PC %s.\n",
-                tid, fault->name(), *pc[tid]);
+        DPRINTF(Fetch, "[tid:%i] fault (%s) detected @ PC %s.\n",tid, fault->name(), *pc[tid]);
     }
     _status = updateFetchStatus();
 }
@@ -1523,7 +1590,7 @@ Fetch::fetch(bool &status_change)
         if (numThreads == 1) {  // @todo Per-thread stats
             profileStall(0);
         }
-
+        ++fetchStats.NoThreadToFetch;
         return;
     }
 
@@ -1776,6 +1843,10 @@ Fetch::fetch(bool &status_change)
         // Re-evaluate whether the next instruction to fetch is in micro-op ROM
         // or not.
         inRom = isRomMicroPC(this_pc.microPC());
+    }
+
+    if(numInst == 0) {
+        ++fetchStats.noInstFetched;
     }
 
     if (predictedBranch) {
@@ -2075,38 +2146,115 @@ Fetch::SWFetchCount()
 ThreadID
 Fetch::iqCount()
 {
-    //sorted from lowest->highest
-    std::priority_queue<unsigned, std::vector<unsigned>,
-                        std::greater<unsigned> > PQ;
-    std::map<unsigned, ThreadID> threadMap;
+    // Sorted from lowest to highest, now using multimap for handling duplicate iqCount
+    std::priority_queue<unsigned, std::vector<unsigned>, std::greater<unsigned>> PQ;
+    std::multimap<unsigned, ThreadID> threadMap; // Allows multiple threads with the same iqCount
 
     std::list<ThreadID>::iterator threads = activeThreads->begin();
     std::list<ThreadID>::iterator end = activeThreads->end();
 
+    int total_threads = 0;
+    int tid1present = 0;
+    int tidgreat1present = 0;
+    int tid1absent = 0;
+
     while (threads != end) {
         ThreadID tid = *threads++;
         unsigned iqCount = fromIEW->iewInfo[tid].iqCount;
+        //unsigned iqCount = tid;
+        total_threads++;
+        if (tid == 1) {
+            tid1present = 1;
+        } else if (tid > 1) {
+            tidgreat1present = 1;
+        }
 
-        //we can potentially get tid collisions if two threads
-        //have the same iqCount, but this should be rare.
+        // Collect stats
+        switch (fetchStatus[tid]) {
+            case Running:
+                ++fetchStats.RunningCount[tid];
+                break;
+            case Idle:
+                ++fetchStats.IdleCount[tid];
+                break;
+            case Squashing:
+                ++fetchStats.SquashingCount[tid];
+                break;
+            case Blocked:
+                ++fetchStats.BlockedCount[tid];
+                break;
+            case Fetching:
+                ++fetchStats.FetchingCount[tid];
+                break;
+            case TrapPending:
+                ++fetchStats.TrapPendingCount[tid];
+                break;
+            case QuiescePending:
+                ++fetchStats.QuiescePendingCount[tid];
+                break;
+            case ItlbWait:
+                ++fetchStats.ItlbWaitCount[tid];
+                break;
+            case IcacheWaitResponse:
+                ++fetchStats.IcacheWaitResponseCount[tid];
+                break;
+            case IcacheWaitRetry:
+                ++fetchStats.IcacheWaitRetryCount[tid];
+                break;
+            case IcacheAccessComplete:
+                ++fetchStats.IcacheAccessCompleteCount[tid];
+                break;
+            case NoGoodAddr:
+                ++fetchStats.NoGoodAddrCount[tid];
+                break;
+            case BlockedOnBranch:
+                ++fetchStats.BlockedOnBranchCount[tid];
+                break;
+        }
+
+        // Use multimap to handle duplicate iqCount
         PQ.push(iqCount);
-        threadMap[iqCount] = tid;
+        threadMap.insert({iqCount, tid});
     }
 
+    if (!tid1present && tidgreat1present) {
+        tid1absent = 1;
+    }
+
+    // Experimental print
+    // if (total_threads > 1) {
+    //     threads = activeThreads->begin();
+    //     end = activeThreads->end();
+    //     printf("Total threads %d tid1absent %d ", total_threads, tid1absent);
+    //     while (threads != end) {
+    //         ThreadID tid = *threads++;
+    //         unsigned iqCount = fromIEW->iewInfo[tid].iqCount;
+    //         printf("tid:%d status:%d iqCount:%d ", tid, fetchStatus[tid], iqCount);
+    //     }
+    // }
+
+    // Process all threads in ascending order of iqCount
     while (!PQ.empty()) {
-        ThreadID high_pri = threadMap[PQ.top()];
+        unsigned top_iqCount = PQ.top();
+        auto range = threadMap.equal_range(top_iqCount); // Get all threads with the same iqCount
 
-        if (fetchStatus[high_pri] == Running ||
-            fetchStatus[high_pri] == IcacheAccessComplete ||
-            fetchStatus[high_pri] == Idle)
-            return high_pri;
-        else
-            PQ.pop();
-
+        for (auto it = range.first; it != range.second; ++it) {
+            ThreadID high_pri = it->second;
+            if (fetchStatus[high_pri] == Running ||
+                fetchStatus[high_pri] == IcacheAccessComplete ||
+                fetchStatus[high_pri] == Idle) {
+                // if (total_threads > 1)
+                //     printf("issuing thread %d\n", high_pri);
+                return high_pri;
+            }
+        }
+        
+        PQ.pop(); // Remove the processed iqCount
     }
 
     return InvalidThreadID;
 }
+
 
 ThreadID
 Fetch::lsqCount()
@@ -2315,6 +2463,8 @@ Fetch::profileStall(ThreadID tid)
     } else if (fetchStatus[tid] == NoGoodAddr) {
             DPRINTF(Fetch, "[tid:%i] Fetch predicted non-executable address\n",
                     tid);
+            
+    }
     } else {
         DPRINTF(Fetch, "[tid:%i] Unexpected fetch stall reason "
             "(Status: %i)\n",
