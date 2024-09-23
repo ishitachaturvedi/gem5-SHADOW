@@ -266,8 +266,12 @@ MMU::translateSe(const RequestPtr &req, ThreadContext *tc, Mode mode,
     Addr paddr;
     Process *p = tc->getProcessPtr();
 
-    if (!p->pTable->translate(vaddr, paddr))
+    stats.TotalTLBTranslations++;
+
+    if (!p->pTable->translate(vaddr, paddr)) {
+        stats.TotalTLBFaults++;
         return std::make_shared<GenericPageTableFault>(vaddr_tainted);
+    }
     req->setPaddr(paddr);
 
     return finalizePhysical(req, tc, mode);
@@ -1109,7 +1113,7 @@ MMU::translateComplete(const RequestPtr &req, ThreadContext *tc,
     else
         fault = translateSe(req, tc, mode, translation, delay, true, state);
 
-    DPRINTF(TLBVerbose, "Translation returning delay=%d fault=%d\n", delay,
+    DPRINTF(TLBVerbose, "Test Translation returning delay=%d fault=%d\n", delay,
             fault != NoFault);
     // If we have a translation, and we're not in the middle of doing a stage
     // 2 translation tell the translation that we've either finished or its
@@ -1636,7 +1640,11 @@ MMU::Stats::Stats(statistics::Group *parent)
     ADD_STAT(domainFaults, statistics::units::Count::get(),
              "Number of MMU faults due to domain restrictions"),
     ADD_STAT(permsFaults, statistics::units::Count::get(),
-             "Number of MMU faults due to permissions restrictions")
+             "Number of MMU faults due to permissions restrictions"),
+    ADD_STAT(TotalTLBTranslations, statistics::units::Count::get(),
+             "Number of MMU translations"),
+    ADD_STAT(TotalTLBFaults, statistics::units::Count::get(),
+             "Number of MMU Faults")
 {
 }
 

@@ -2462,9 +2462,7 @@ Fetch::profileStall(ThreadID tid)
         }
     } else if (fetchStatus[tid] == NoGoodAddr) {
             DPRINTF(Fetch, "[tid:%i] Fetch predicted non-executable address\n",
-                    tid);
-            
-    }
+                    tid);        
     } else {
         DPRINTF(Fetch, "[tid:%i] Unexpected fetch stall reason "
             "(Status: %i)\n",

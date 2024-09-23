@@ -507,6 +507,8 @@ class MMU : public BaseMMU
         mutable statistics::Scalar prefetchFaults;
         mutable statistics::Scalar domainFaults;
         mutable statistics::Scalar permsFaults;
+        mutable statistics::Scalar TotalTLBTranslations;
+        mutable statistics::Scalar TotalTLBFaults;
     } stats;
 
 };

@@ -160,6 +160,8 @@ TLB::lookup(const Lookup &lookup_data)
 
     TlbEntry *retval = match(lookup_data);
 
+    stats.TLBLookup++;
+
     DPRINTF(TLBVerbose, "Lookup %#x, asn %#x -> %s vmn 0x%x hyp %d secure %d "
             "ppn %#x size: %#x pa: %#x ap:%d ns:%d nstid:%d g:%d asid: %d "
             "el: %d\n",
@@ -341,6 +343,8 @@ TLB::TlbStats::TlbStats(TLB &parent)
   : statistics::Group(&parent), tlb(parent),
     ADD_STAT(partialHits, statistics::units::Count::get(),
              "partial translation hits"),
+    ADD_STAT(TLBLookup, statistics::units::Count::get(),
+            "Number of TLB lookups"),
     ADD_STAT(instHits, statistics::units::Count::get(), "Inst hits"),
     ADD_STAT(instMisses, statistics::units::Count::get(), "Inst misses"),
     ADD_STAT(readHits, statistics::units::Count::get(), "Read hits"),

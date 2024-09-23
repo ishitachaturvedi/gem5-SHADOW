@@ -134,6 +134,7 @@ class TLB : public BaseTLB
         mutable statistics::Scalar partialHits;
         mutable statistics::Scalar instHits;
         mutable statistics::Scalar instMisses;
+        mutable statistics::Scalar TLBLookup;
         mutable statistics::Scalar readHits;
         mutable statistics::Scalar readMisses;
         mutable statistics::Scalar writeHits;

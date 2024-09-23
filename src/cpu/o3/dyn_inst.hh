@@ -1050,6 +1050,15 @@ class DynInst : public ExecContext, public RefCounted
 
     bool squashedInQueue;
 
+    // Instruction timers for various stages
+    Tick LSQpushRequest;
+    Tick LSQStartTranslation;
+    Tick LSQCompleteTranslation;
+    Tick LSQInsert;
+    Tick LSQStartRead; // Entered Mem read can be LSQ forwarding or cache access
+    Tick LSQStartReadMemory; // Start Cache access
+    Tick LSQSendPacketToCache; // Start Cache access
+
   public:
     // monitor/mwait funtions
     void

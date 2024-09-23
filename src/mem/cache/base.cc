@@ -406,6 +406,13 @@ BaseCache::recvTimingReq(PacketPtr pkt)
     // the delay provided by the crossbar
     Tick forward_time = clockEdge(forwardLatency) + pkt->headerDelay;
 
+    // if(strcmp(name(),"system.cpu_cluster.cpus.dcache_strong") == 0) {
+    //     pkt->pktL1recvTimingReqCycle = curTick();
+    // } else if(strcmp(name(),"system.cpu_cluster.l2") == 0) {
+    //     pkt->pktL2recvTimingReqCycle = curTick();
+    // }
+
+
     if (pkt->cmd == MemCmd::LockedRMWWriteReq) {
         // For LockedRMW accesses, we mark the block inaccessible after the
         // read (see below), to make sure no one gets in before the write.
@@ -427,6 +434,13 @@ BaseCache::recvTimingReq(PacketPtr pkt)
         PacketList writebacks;
         // Note that lat is passed by reference here. The function
         // access() will set the lat value.
+
+        // if(strcmp(name(),"system.cpu_cluster.cpus.dcache_strong") == 0) {
+        //     pkt->pktL1CacheHitCheck = curTick();
+        // } else if(strcmp(name(),"system.cpu_cluster.l2") == 0) {
+        //     pkt->pktL2CacheHitCheck = curTick();
+        // }
+
         satisfied = access(pkt, blk, lat, writebacks);
 
         // After the evicted blocks are selected, they must be forwarded
@@ -1237,6 +1251,7 @@ BaseCache::access(PacketPtr pkt, CacheBlk *&blk, Cycles &lat,
 
     // Access block in the tags
     Cycles tag_latency(0);
+
     blk = tags->accessBlock(pkt, tag_latency);
 
     DPRINTF(Cache, "%s for %s %s\n", __func__, pkt->print(),
@@ -2551,6 +2566,11 @@ BaseCache::CpuSidePort::recvTimingReq(PacketPtr pkt)
 {
     assert(pkt->isRequest());
 
+    // if(strcmp(name(),"system.cpu_cluster.cpus.dcache_strong") == 0) {
+    //     pkt->pktL1ReceiveCycle = curTick();
+    // } else if(strcmp(name(),"system.cpu_cluster.l2") == 0) {
+    //     pkt->pktL2ReceiveCycle = curTick();
+    // }
     if (cache->system->bypassCaches()) {
         // Just forward the packet if caches are disabled.
         // @todo This should really enqueue the packet rather

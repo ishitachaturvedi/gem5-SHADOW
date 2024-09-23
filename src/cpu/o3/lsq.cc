@@ -848,6 +848,9 @@ LSQ::pushRequest(const DynInstPtr& inst, bool isLoad, uint8_t *data,
             addr, inst->seqNum, inst->pcState());
     }
 
+    if(inst->LSQpushRequest!= -1)
+        inst->LSQpushRequest = curTick();
+
     if (inst->translationStarted()) {
         request = inst->savedRequest;
         assert(request);
@@ -877,6 +880,8 @@ LSQ::pushRequest(const DynInstPtr& inst, bool isLoad, uint8_t *data,
 
     /* This is the place were instructions get the effAddr. */
     if (request->isTranslationComplete()) {
+        inst->LSQCompleteTranslation = curTick();
+
         if (request->isMemAccessRequired()) {
             inst->effAddr = request->getVaddr();
             inst->effSize = size;
@@ -886,10 +891,12 @@ LSQ::pushRequest(const DynInstPtr& inst, bool isLoad, uint8_t *data,
                 inst->reqToVerify = std::make_shared<Request>(*request->req());
             }
             Fault fault;
-            if (isLoad)
+            if (isLoad) {
                 fault = read(request, inst->lqIdx);
-            else
+            }
+            else {
                 fault = write(request, data, inst->sqIdx);
+            }
             // inst->getFault() may have the first-fault of a
             // multi-access split request at this point.
             // Overwrite that only if we got another type of fault

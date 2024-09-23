@@ -90,6 +90,14 @@ DynInst::DynInst(const Arrays &arrays, const StaticInstPtr &static_inst,
     numWrites.resize(arrays.numDests,0);
     numWARPending.resize(arrays.numDests,0);
 
+    LSQpushRequest = -1;
+    LSQStartTranslation = -1;
+    LSQCompleteTranslation = -1;
+    LSQInsert = -1;
+    LSQStartRead = -1;
+    LSQStartReadMemory = -1;
+    LSQSendPacketToCache = -1;
+
     squashedInQueue = false;
 
     DPRINTF(DynInst,

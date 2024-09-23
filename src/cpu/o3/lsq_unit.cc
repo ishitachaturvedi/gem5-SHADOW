@@ -318,6 +318,7 @@ LSQUnit::insert(const DynInstPtr &inst)
 void
 LSQUnit::insertLoad(const DynInstPtr &load_inst)
 {
+    load_inst->LSQInsert = curTick();
     assert(!loadQueue.full());
     assert(loadQueue.size() < loadQueue.capacity());
 
@@ -1251,6 +1252,7 @@ LSQUnit::trySendPacket(bool isLoad, PacketPtr data_pkt)
             cache_got_blocked = true;
         }
     } else {
+        ++stats.blockedByCache;
         ret = false;
     }
 
@@ -1262,6 +1264,7 @@ LSQUnit::trySendPacket(bool isLoad, PacketPtr data_pkt)
         request->packetSent();
     } else {
         if (cache_got_blocked) {
+
             lsq->cacheBlocked(true);
             ++stats.blockedByCache;
         }
@@ -1364,6 +1367,8 @@ LSQUnit::read(LSQRequest *request, ssize_t load_idx)
     assert(load_inst);
 
     assert(!load_inst->isExecuted());
+
+    load_inst->LSQStartRead = curTick();
 
     // Make sure this isn't a strictly ordered load
     // A bit of a hackish way to get strictly ordered accesses to work
@@ -1612,6 +1617,7 @@ LSQUnit::read(LSQRequest *request, ssize_t load_idx)
 
     // Allocate memory if this is the first time a load is issued.
     if (!load_inst->memData) {
+
         load_inst->memData = new uint8_t[request->mainReq()->getSize()];
     }
 
@@ -1629,6 +1635,8 @@ LSQUnit::read(LSQRequest *request, ssize_t load_idx)
     // stores do).
     // @todo We should account for cache port contention
     // and arbitrate between loads and stores.
+
+    load_inst->LSQStartReadMemory = curTick();
 
     // if we the cache is not blocked, do cache access
     request->buildPackets();

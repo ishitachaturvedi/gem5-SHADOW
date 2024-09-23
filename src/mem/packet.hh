@@ -420,6 +420,14 @@ class Packet : public Printable
 
   public:
 
+    // stat collection
+    uint32_t pktL1ReceiveCycle;
+    uint32_t pktL2ReceiveCycle;
+    uint32_t pktL1recvTimingReqCycle;
+    uint32_t pktL2recvTimingReqCycle;
+    uint32_t pktL1CacheHitCheck;
+    uint32_t pktL2CacheHitCheck;
+
     /**
      * The extra delay from seeing the packet until the header is
      * transmitted. This delay is used to communicate the crossbar
