@@ -701,7 +701,7 @@ InstructionQueue::numFreeEntries(ThreadID tid)
     // if the first 2 threads have dynamic partitioning then we need to ensure that we dont overrun the paritioning
     if(iqPolicy == SMTQueuePolicy::SDynamicWStatic && (tid == 0 || tid == 1)) {
         assert(maxEntries[0] == (freeEntriesS + count[0] + count[1]));
-        return numFreeEntriesS() && (maxEntries[tid] - count[tid]);
+        return std::min(numFreeEntriesS(), maxEntries[tid] - count[tid]);
     }
     // if the assignment is dynamic we need to check for # free entries avaialble
     return maxEntries[tid] - count[tid];

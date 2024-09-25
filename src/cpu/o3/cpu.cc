@@ -774,7 +774,7 @@ CPU::deactivateThread(ThreadID tid)
         else    
             WThreadsAvailable--;
 
-        fprintf(stderr, "[tid:%d] deactivateThread Removing new thread Type: %d Strong ActiveThreads: %d TotalThreads: %d Weak ActiveThreads: %d TotalThreads: %d\n",tid,thread[tid]->tc->getProcessPtr()->getprocessThreadType(),SThreadsAvailable,SThreads,WThreadsAvailable,WThreads);
+        fprintf(stderr, "[tid:%d] deactivateThread Cycle %ld Removing new thread Type: %d Strong ActiveThreads: %d TotalThreads: %d Weak ActiveThreads: %d TotalThreads: %d\n",tid,curCycle(),thread[tid]->tc->getProcessPtr()->getprocessThreadType(),SThreadsAvailable,SThreads,WThreadsAvailable,WThreads);
         assert(SThreadsAvailable>=0);
         assert(WThreadsAvailable>=0);
     }

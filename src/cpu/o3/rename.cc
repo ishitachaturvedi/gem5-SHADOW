@@ -274,6 +274,8 @@ Rename::RenameStats::RenameStats(statistics::Group *parent)
                "Number of cycles all S threads are stalled"),
       ADD_STAT(stalledW, statistics::units::Count::get(),
                "Number of cycles all W threads are stalled"),
+      ADD_STAT(noInstsAvailableW, statistics::units::Count::get(),\
+                "Number of cycles no insts avaialbe for W threads"),
       ADD_STAT(stalledSNotW, statistics::units::Count::get(),
                "Number of cycles all S threads are stalled but not W threads"),
       ADD_STAT(stalledSAndW, statistics::units::Count::get(),
@@ -678,6 +680,7 @@ Rename::tick()
     rename_vals_sent = 0;
     rename_vals_0_sent = 0;
     rename_vals_1_sent = 0;
+    int no_insts_available = 0;
 
     RenamePreference.clear();
     // Check stall and squash signals.
@@ -734,6 +737,9 @@ Rename::tick()
                 ++stats.UnblockingW;
             } else if(renameStatus[tid] == SerializeStall) {
                 ++stats.SerializeStallW;
+            }
+            if(insts_available == 0) {
+                no_insts_available = 1;
             }
             // Always rename W threads
             rename(status_change, tid);
@@ -837,6 +843,9 @@ Rename::tick()
     }
     if (wThreadCount > 0 && notBlockedW == 0){
         ++stats.stalledW;
+    }
+    if(no_insts_available == 0 && wThreadCount > 0) {
+        ++stats.noInstsAvailableW;
     }
     if (sThreadCount > 0 && wThreadCount > 0 && notBlockedS == 0 && notBlockedW > 0){
         ++stats.stalledSNotW;
