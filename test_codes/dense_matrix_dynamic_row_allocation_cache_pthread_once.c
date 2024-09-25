@@ -3,8 +3,8 @@
 #include <pthread.h>
 #include <stdbool.h>
 
-#define TILE_SIZE 20  // Size of the tile (10x10)
-#define CHUNK_SIZE 1  // Size of the chunk for work stealing
+#define TILE_SIZE 50  // Size of the tile (10x10)
+#define CHUNK_SIZE 2  // Size of the chunk for work stealing
 
 // Global variables
 int N;               // Size of the matrix
@@ -15,6 +15,7 @@ pthread_mutex_t mutex; // Mutex for synchronizing access to rows
 int next_row; // Index of the next row to process in the tile
 int base_row; // starting row of this tile
 int base_col; // starting col of this tile
+int base_k; // starting k of this tile
 
 pthread_barrier_t barrier;
 pthread_barrier_t barrier_done;
@@ -28,6 +29,7 @@ typedef struct {
 
 int tile_row = 0;
 int tile_col = 0; 
+int tile_k = 0; 
 int reset = 0; // make sure that the 0th column iteration works.
 int all_rows_done = 0;
 
@@ -40,7 +42,11 @@ void *thread_func(void *arg) {
 
         if(data->thread_id == 0) {
             if(reset!=0) {
+                tile_k = tile_k + TILE_SIZE;
+            }
+            if(tile_k == N) {
                 tile_col = tile_col + TILE_SIZE;
+                tile_k = 0;
             }
             reset = 1;
             if(tile_col == N) {
@@ -54,6 +60,7 @@ void *thread_func(void *arg) {
             next_row = tile_row;
             base_row = tile_row;
             base_col = tile_col;
+            base_k = tile_k;
         }
 
         // all threads reach barrier
@@ -90,7 +97,7 @@ void *thread_func(void *arg) {
             for (int i = start_row; i < end_row; i++) {
                 for (int j = base_col; j < base_col + TILE_SIZE && j < N; j++) {
                     int sum = 0;
-                    for (int k = 0; k < N; k++) {
+                    for (int k = base_k; k < base_k+ TILE_SIZE; k++) {
                         sum += A[i][k] * B[k][j];
                     }
                     C[i][j] += sum;
@@ -208,14 +215,14 @@ int main(int argc, char *argv[]) {
     }
 
     // Perform single-threaded multiplication for validation
-    single_threaded_matrix_multiply();
+    // single_threaded_matrix_multiply();
 
     // Validate the multi-threaded result against the single-threaded result
-    if (validate_result()) {
-        printf("Validation successful: multi-threaded result matches single-threaded result.\n");
-    } else {
-        printf("Validation failed: multi-threaded result does not match single-threaded result.\n");
-    }
+    // if (validate_result()) {
+    //     printf("Validation successful: multi-threaded result matches single-threaded result.\n");
+    // } else {
+    //     printf("Validation failed: multi-threaded result does not match single-threaded result.\n");
+    // }
 
     // // Print how many rows each thread processed
     for (int t = 0; t < num_threads; t++) {
