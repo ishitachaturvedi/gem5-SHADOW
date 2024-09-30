@@ -1206,7 +1206,7 @@ Commit::commitInsts()
 
     DynInstPtr head_inst;
 
-    std::vector<int> commitheadSeq(numThreads,-1);
+    std::vector<InstSeqNum> commitheadSeq(numThreads,-1);
 
     // remove all squashed instructions
     // All threads can remove squashed instructions in a cycle.
