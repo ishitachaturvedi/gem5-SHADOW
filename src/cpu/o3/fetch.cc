@@ -106,6 +106,7 @@ Fetch::Fetch(CPU *_cpu, const BaseO3CPUParams &params)
       fetchQueueSize(params.fetchQueueSize),
       numThreads(params.numThreads),
       numFetchingThreads(params.smtNumFetchingThreads),
+      predictOnWThreads(params.predictOnWThreads),
     //   icachePort(this, _cpu, "strong", params.UseSplitCache),
     //   icachePortS(this, _cpu, "strong", params.UseSplitCache),
     //   icachePortW(this, _cpu, "strong", params.UseSplitCache),
@@ -285,7 +286,9 @@ Fetch::FetchStatGroup::FetchStatGroup(CPU *cpu, Fetch *fetch)
     ADD_STAT(NoGoodAddrCount, statistics::units::Count::get(),
             "Number of fetch cycles with fetch state NoGoodAddr "),  
     ADD_STAT(BlockedOnBranchCount, statistics::units::Count::get(),
-            "Number of fetch cycles with fetch state BlockedOnBranch ")  
+            "Number of fetch cycles with fetch state BlockedOnBranch "),
+    ADD_STAT(BlockedOnBranchCountNoSThread, statistics::units::Count::get(),
+            "Number of fetch cycles with fetch state BlockedOnBranch and no S threads are active")
 {
         NumFetchCycles
             .init(cpu->numThreads)
@@ -333,6 +336,9 @@ Fetch::FetchStatGroup::FetchStatGroup(CPU *cpu, Fetch *fetch)
             .init(cpu->numThreads)
             .flags(statistics::total);
         BlockedOnBranchCount
+            .init(cpu->numThreads)
+            .flags(statistics::total);
+        BlockedOnBranchCountNoSThread
             .init(cpu->numThreads)
             .flags(statistics::total);
         icacheStallCycles
@@ -738,7 +744,7 @@ Fetch::lookupAndUpdateNextPC(const DynInstPtr &inst, PCStateBase &next_pc)
 
     ThreadID tid = inst->threadNumber;
 
-    if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
+    if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong || predictOnWThreads){
         predict_taken = branchPred->predict(inst->staticInst, inst->seqNum,
                                         next_pc, tid);
     } else {
@@ -1055,7 +1061,7 @@ Fetch::squashFromDecode(const PCStateBase &new_pc, const DynInstPtr squashInst,
     // till the branch is resolved in the iew state
 
     // OFF_BP
-    if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+    if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak && !predictOnWThreads) {
         assert(fetchStatus[tid] == BlockedOnBranch);
 
         if(fromDecode->decodeInfo[tid].isConditionalBranch) {
@@ -1408,7 +1414,7 @@ Fetch::checkSignalsAndUpdate(ThreadID tid)
         // branch predictor with that instruction, otherwise just kill the
         // invalid state we generated in after sequence number
         // update BP only for S threads
-        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong || predictOnWThreads) {
             if (fromCommit->commitInfo[tid].mispredictInst &&
                 fromCommit->commitInfo[tid].mispredictInst->isControl()) {
                 branchPred->squash(fromCommit->commitInfo[tid].doneSeqNum,
@@ -1422,7 +1428,7 @@ Fetch::checkSignalsAndUpdate(ThreadID tid)
         }
 
         return true;
-    } else if (fromCommit->commitInfo[tid].doneSeqNum && cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+    } else if (fromCommit->commitInfo[tid].doneSeqNum && cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong || predictOnWThreads) {
         // Update the branch predictor if it wasn't a squashed instruction
         // that was broadcasted.
         branchPred->update(fromCommit->commitInfo[tid].doneSeqNum, tid);
@@ -1434,7 +1440,7 @@ Fetch::checkSignalsAndUpdate(ThreadID tid)
                 "from decode.\n",tid);
 
         // Update the branch predictor.
-        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong || predictOnWThreads) {
             if (fromDecode->decodeInfo[tid].branchMispredict) {
                 branchPred->squash(fromDecode->decodeInfo[tid].doneSeqNum,
                         *fromDecode->decodeInfo[tid].nextPC,
@@ -1800,7 +1806,7 @@ Fetch::fetch(bool &status_change)
 
             //DPRINTFN("Inst_fetch [sn:%llu] PC %s isCondCtrl %d isDirectCtrl %d isIndirectCtrl %d isUncondCtrl %d\n",instruction->seqNum,instruction->pcState(),instruction->isCondCtrl(),instruction->isDirectCtrl(),instruction->isIndirectCtrl(),instruction->isUncondCtrl());
 
-            condititional_branch_inst_issued  = (instruction->isCondCtrl() || instruction->isDirectCtrl() ||  instruction->isIndirectCtrl() || instruction->isUncondCtrl()) && cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak;
+            condititional_branch_inst_issued  = (instruction->isCondCtrl() || instruction->isDirectCtrl() ||  instruction->isIndirectCtrl() || instruction->isUncondCtrl()) && cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak && !predictOnWThreads;
 
             newMacro |= this_pc.instAddr() != next_pc->instAddr();
 
@@ -2143,12 +2149,138 @@ Fetch::SWFetchCount()
 
 }
 
+// ThreadID
+// Fetch::iqCount()
+// {
+//     // Sorted from lowest to highest, now using multimap for handling duplicate iqCount
+//     std::priority_queue<float, std::vector<float>, std::greater<float>> PQ;
+//     std::multimap<float, ThreadID> threadMap; // Allows multiple threads with the same iqCount
+
+//     std::list<ThreadID>::iterator threads = activeThreads->begin();
+//     std::list<ThreadID>::iterator end = activeThreads->end();
+
+//     int total_threads = 0;
+//     int tid1present = 0;
+//     int tidgreat1present = 0;
+//     int tid1absent = 0;
+
+//     while (threads != end) {
+//         ThreadID tid = *threads++;
+//         float iqCount = fromIEW->iewInfo[tid].iqCount;
+//         float freeIQEntries = fromIEW->iewInfo[tid].freeIQEntries;
+//         float ratio_free_entries = iqCount / (freeIQEntries + iqCount);
+
+//         printf("checkRatio tid:%d iqCount %f freeIQEntries %f ratio_free_entries %f\n",tid,iqCount,freeIQEntries,ratio_free_entries);
+
+//         iqCount = ratio_free_entries;
+
+//         //unsigned iqCount = tid;
+//         total_threads++;
+//         if (tid == 1) {
+//             tid1present = 1;
+//         } else if (tid > 1) {
+//             tidgreat1present = 1;
+//         }
+
+//         // Collect stats
+//         switch (fetchStatus[tid]) {
+//             case Running:
+//                 ++fetchStats.RunningCount[tid];
+//                 break;
+//             case Idle:
+//                 ++fetchStats.IdleCount[tid];
+//                 break;
+//             case Squashing:
+//                 ++fetchStats.SquashingCount[tid];
+//                 break;
+//             case Blocked:
+//                 ++fetchStats.BlockedCount[tid];
+//                 break;
+//             case Fetching:
+//                 ++fetchStats.FetchingCount[tid];
+//                 break;
+//             case TrapPending:
+//                 ++fetchStats.TrapPendingCount[tid];
+//                 break;
+//             case QuiescePending:
+//                 ++fetchStats.QuiescePendingCount[tid];
+//                 break;
+//             case ItlbWait:
+//                 ++fetchStats.ItlbWaitCount[tid];
+//                 break;
+//             case IcacheWaitResponse:
+//                 ++fetchStats.IcacheWaitResponseCount[tid];
+//                 break;
+//             case IcacheWaitRetry:
+//                 ++fetchStats.IcacheWaitRetryCount[tid];
+//                 break;
+//             case IcacheAccessComplete:
+//                 ++fetchStats.IcacheAccessCompleteCount[tid];
+//                 break;
+//             case NoGoodAddr:
+//                 ++fetchStats.NoGoodAddrCount[tid];
+//                 break;
+//             case BlockedOnBranch:
+//                 ++fetchStats.BlockedOnBranchCount[tid];
+//                 if(!tid1present)
+//                     ++fetchStats.BlockedOnBranchCountNoSThread[tid];
+//                 break;
+//         }
+
+//         // Use multimap to handle duplicate iqCount
+//         PQ.push(iqCount);
+//         threadMap.insert({iqCount, tid});
+//     }
+
+//     if (!tid1present && tidgreat1present) {
+//         tid1absent = 1;
+//     }
+
+//     // Experimental print
+//     if (total_threads > 1) {
+//         threads = activeThreads->begin();
+//         end = activeThreads->end();
+//         printf("Total threads %d tid1absent %d ", total_threads, tid1absent);
+//         while (threads != end) {
+//             ThreadID tid = *threads++;
+//             unsigned iqCount = fromIEW->iewInfo[tid].iqCount;
+//             printf("tid:%d status:%d iqCount:%d ", tid, fetchStatus[tid], iqCount);
+//         }
+//     }
+
+//     // Process all threads in ascending order of iqCount
+//     while (!PQ.empty()) {
+//         float top_iqCount = PQ.top();
+//         auto range = threadMap.equal_range(top_iqCount); // Get all threads with the same iqCount
+
+//         for (auto it = range.first; it != range.second; ++it) {
+//             printf("Thread %d, Status: %d, IQCount: %f\n", it->second, fetchStatus[it->second], top_iqCount);
+//             ThreadID high_pri = it->second;                       
+//             if (fetchStatus[high_pri] == Running ||
+//                 fetchStatus[high_pri] == IcacheAccessComplete ||
+//                 fetchStatus[high_pri] == Idle) {
+//                 if (total_threads > 1)
+//                     printf("issuing thread %d\n", high_pri);
+//                 return high_pri;
+//             }
+//         }
+        
+//         PQ.pop(); // Remove the processed iqCount
+//     }
+
+//     if (total_threads > 1)
+//         printf(" no thread issued\n");
+
+//     return InvalidThreadID;
+// }
+
 ThreadID
 Fetch::iqCount()
 {
-    // Sorted from lowest to highest, now using multimap for handling duplicate iqCount
-    std::priority_queue<unsigned, std::vector<unsigned>, std::greater<unsigned>> PQ;
-    std::multimap<unsigned, ThreadID> threadMap; // Allows multiple threads with the same iqCount
+    //sorted from lowest->highest
+    std::priority_queue<float, std::vector<float>,
+                        std::greater<float> > PQ;
+    std::map<float, ThreadID> threadMap;
 
     std::list<ThreadID>::iterator threads = activeThreads->begin();
     std::list<ThreadID>::iterator end = activeThreads->end();
@@ -2160,7 +2292,15 @@ Fetch::iqCount()
 
     while (threads != end) {
         ThreadID tid = *threads++;
-        unsigned iqCount = fromIEW->iewInfo[tid].iqCount;
+        float iqCount = fromIEW->iewInfo[tid].iqCount;
+
+        float freeIQEntries = fromIEW->iewInfo[tid].freeIQEntries;
+        float ratio_free_entries = iqCount / (freeIQEntries + iqCount);
+
+        //printf("checkRatio tid:%d iqCount %f freeIQEntries %f ratio_free_entries %f\n",tid,iqCount,freeIQEntries,ratio_free_entries);
+
+        iqCount = ratio_free_entries;
+
         //unsigned iqCount = tid;
         total_threads++;
         if (tid == 1) {
@@ -2209,19 +2349,34 @@ Fetch::iqCount()
                 break;
             case BlockedOnBranch:
                 ++fetchStats.BlockedOnBranchCount[tid];
+                if(!tid1present)
+                    ++fetchStats.BlockedOnBranchCountNoSThread[tid];
                 break;
         }
 
-        // Use multimap to handle duplicate iqCount
+        //we can potentially get tid collisions if two threads
+        //have the same iqCount, but this should be rare.
         PQ.push(iqCount);
-        threadMap.insert({iqCount, tid});
+        // Check if this iqCount is already in the map
+        if (threadMap.find(iqCount) == threadMap.end()) {
+            // If not in the map, add it
+            threadMap[iqCount] = tid;
+        } else {
+            // If it's already in the map, keep the lower ThreadID
+            if (tid < threadMap[iqCount] && 
+                    (fetchStatus[tid] == Running ||
+                fetchStatus[tid] == IcacheAccessComplete ||
+                fetchStatus[tid] == Idle)) {
+                threadMap[iqCount] = tid;
+            }
+        }
     }
 
     if (!tid1present && tidgreat1present) {
         tid1absent = 1;
     }
 
-    // Experimental print
+    // // Experimental print
     // if (total_threads > 1) {
     //     threads = activeThreads->begin();
     //     end = activeThreads->end();
@@ -2233,27 +2388,29 @@ Fetch::iqCount()
     //     }
     // }
 
-    // Process all threads in ascending order of iqCount
     while (!PQ.empty()) {
-        unsigned top_iqCount = PQ.top();
-        auto range = threadMap.equal_range(top_iqCount); // Get all threads with the same iqCount
-
-        for (auto it = range.first; it != range.second; ++it) {
-            ThreadID high_pri = it->second;
-            if (fetchStatus[high_pri] == Running ||
-                fetchStatus[high_pri] == IcacheAccessComplete ||
-                fetchStatus[high_pri] == Idle) {
-                // if (total_threads > 1)
-                //     printf("issuing thread %d\n", high_pri);
-                return high_pri;
-            }
+        ThreadID high_pri = threadMap[PQ.top()];
+        float top_iqCount = PQ.top();
+        //printf("Thread %d, Status: %d, IQCount: %f\n",high_pri, fetchStatus[high_pri], top_iqCount);
+        if (fetchStatus[high_pri] == Running ||
+            fetchStatus[high_pri] == IcacheAccessComplete ||
+            fetchStatus[high_pri] == Idle) {
+            // if (total_threads > 1) {
+            //     printf("issuing thread %d\n", high_pri);
+            // }
+            return high_pri;
         }
-        
-        PQ.pop(); // Remove the processed iqCount
+        else
+            PQ.pop();
+
     }
+
+    // if (total_threads > 1)
+    //     printf(" no thread issued\n");
 
     return InvalidThreadID;
 }
+
 
 
 ThreadID

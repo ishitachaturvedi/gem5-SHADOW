@@ -595,6 +595,9 @@ class Fetch
     /** Number of threads that are actively fetching. */
     ThreadID numFetchingThreads;
 
+    /** Is W Thread allowed to predict branch **/
+    bool predictOnWThreads;
+
     /** Thread ID being fetched. */
     ThreadID threadFetched;
 
@@ -706,6 +709,7 @@ class Fetch
         statistics::Vector IcacheAccessCompleteCount;
         statistics::Vector NoGoodAddrCount;
         statistics::Vector BlockedOnBranchCount;
+        statistics::Vector BlockedOnBranchCountNoSThread;
 
     } fetchStats;
 };

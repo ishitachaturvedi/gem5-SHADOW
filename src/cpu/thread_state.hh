@@ -94,8 +94,8 @@ struct ThreadState : public Serializable
     /* Is the thread issuing a memory instruction */
     bool MemInstIssued;
 
-    int ControlInstSeq;
-    int MemInstSeq;
+    InstSeqNum ControlInstSeq;
+    InstSeqNum MemInstSeq;
     // Defining the stat group
     struct ThreadStateStats : public statistics::Group
     {

@@ -104,6 +104,8 @@ InstructionQueue::InstructionQueue(CPU *cpu_ptr, IEW *iew_ptr,
 {
     assert(fuPool);
 
+    printf("iqPolicy %d SDynamicWStatic %d\n",iqPolicy, SMTQueuePolicy::SDynamicWStatic);
+
     const auto &reg_classes = params.isa[0]->regClasses();
     // Set the number of total physical registers
     // As the vector registers have two addressing modes, they are added twice

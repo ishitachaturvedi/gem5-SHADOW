@@ -1748,6 +1748,10 @@ Rename::calcFreeROBEntries(ThreadID tid)
 
     DPRINTF(Rename,"[tid:%i] %i rob free\n",tid,num_free);
 
+    // if(tid == 1) {
+    //     printf("[tid:%i] %i rob free robEntries %d instsInProgress[tid] %d dispatched %d\n",tid,num_free,freeEntries[tid].robEntries,instsInProgress[tid],fromIEW->iewInfo[tid].dispatched);
+    // }
+
     return num_free;
 }
 

@@ -242,6 +242,9 @@ class IEW
     /** Returns the appropriate thread to fetch, given the fetch policy. */
     void getDispatchingThread();
 
+    /** Get order in which threads are to be considered for dispatch **/
+    std::vector<ThreadID> getThreadsForDispatch();
+
     /** Returns the appropriate thread to fetch using a round robin policy. */
     ThreadID roundRobin();
 
@@ -488,6 +491,8 @@ class IEW
     ThreadID numThreadsS;
     ThreadID numThreadsW;
 
+    bool predictOnWThreads;
+
     /** Pointer to list of active threads. */
     std::list<ThreadID> *activeThreads;
 
@@ -574,6 +579,8 @@ class IEW
         statistics::Vector NoIntructionsAvailable;
         statistics::Vector InstructionDispatched;
         statistics::Vector InstructionAvaialbleNoneIssued;
+        statistics::Scalar NoSInstFromRename;
+        statistics::Scalar NoWInstFromRename;
 
         struct ExecutedInstStats : public statistics::Group
         {

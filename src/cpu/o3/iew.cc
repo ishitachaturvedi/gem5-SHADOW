@@ -88,6 +88,7 @@ IEW::IEW(CPU *_cpu, const BaseO3CPUParams &params)
       numThreadsS(params.SThreads),
       numThreadsW(params.WThreads),
       numDispatchingThreads(params.smtNumDispatchingThreads),
+      predictOnWThreads(params.predictOnWThreads),
       iewStats(cpu),
       SingleThreadFetchiew(params.SingleThreadFetchIEW)
 {
@@ -277,7 +278,11 @@ IEW::IEWStats::IEWStats(CPU *cpu)
     ADD_STAT(InstructionDispatched, statistics::units::Count::get(),
             "Number of instructions dispatched by thread"),
     ADD_STAT(InstructionAvaialbleNoneIssued, statistics::units::Count::get(),
-            "Instructions avaialble but none dispatched by thread")
+            "Instructions avaialble but none dispatched by thread"),
+    ADD_STAT(NoSInstFromRename, statistics::units::Count::get(),
+            "No Instructions sent from Rename for S thread"),
+    ADD_STAT(NoWInstFromRename, statistics::units::Count::get(),
+            "No Instructions sent from Rename for W thread")
 {
     instsToCommit
         .init(cpu->numThreads)
@@ -1013,6 +1018,13 @@ IEW::sortInsts()
             insts[fromRename_W->insts[i]->threadNumber].push(fromRename_W->insts[i]);
             DPRINTF(IEW, "[tid:%d] Inserting inst in instqueue\n",tid);
         }
+    }
+
+    if(insts_from_rename_S == 0) {
+        iewStats.NoSInstFromRename++;
+    }
+    if(insts_from_rename_W == 0) {
+        iewStats.NoWInstFromRename++;
     }
 }
 
@@ -1756,7 +1768,7 @@ IEW::executeInsts()
         //     // DPRINTFN("EXECUTED STATUS exec %d mispred %d oldPC %s newPC %s\n",inst->isExecuted(),inst->mispredicted(), inst->readPredTarg(), inst->pcState());
         // }
 
-        if((inst->isCondCtrl() || inst->isReturn() || inst->isIndirectCtrl()) && cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak && inst->isExecuted())
+        if((inst->isCondCtrl() || inst->isReturn() || inst->isIndirectCtrl()) && cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak && inst->isExecuted() && !predictOnWThreads)
         {
             // Ishita OFF_BP
             // send signal to fetch:
@@ -1806,7 +1818,7 @@ IEW::executeInsts()
                 cpu->thread[tid]->ControlInstSeq = -1;
             }
 
-            if (inst->mispredicted() && !loadNotExecuted && !(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak)) { // OFF_BP
+            if (inst->mispredicted() && !loadNotExecuted && ((cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) || predictOnWThreads)) { // OFF_BP
             //if (inst->mispredicted() && !loadNotExecuted) { // ON_BP
                 //assert(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() != Weak);// OFF_BP
                 fetchRedirect[tid] = true;
@@ -2001,7 +2013,14 @@ IEW::tick()
     std::list<ThreadID>::iterator threads = activeThreads->begin();
     std::list<ThreadID>::iterator end = activeThreads->end();
 
+    std::vector<ThreadID> ThreadOrder = getThreadsForDispatch();
+
     // Check stall and squash signals, dispatch any instructions.
+
+    bool SThreadHasInst = false;
+    bool WThreadHasInst = false;
+
+    //for (auto tid:ThreadOrder) {
     while (threads != end) {
         ThreadID tid = *threads++;
 
@@ -2021,6 +2040,8 @@ IEW::tick()
             }
             if(insts_available == 0) {
                 ++iewStats.NoIntructionsAvailable[tid];
+            } else {
+                SThreadHasInst = true;
             }
         }
         if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
@@ -2033,6 +2054,8 @@ IEW::tick()
             }
             if(insts_available == 0) {
                 ++iewStats.NoIntructionsAvailable[tid];
+            } else {
+                WThreadHasInst = true;
             }
         }
         if(!SingleThreadFetchiew) {
@@ -2137,10 +2160,10 @@ IEW::tick()
             }
         }
     }
-    if (sThreadCount > 0 && notBlockedS == 0){
+    if (SThreadHasInst && notBlockedS == 0){
         ++iewStats.stalledS;
     }
-    if (wThreadCount > 0 && notBlockedW == 0){
+    if (WThreadHasInst && notBlockedW == 0){
         ++iewStats.stalledW;
     }
     if (sThreadCount > 0 && wThreadCount > 0 && notBlockedS == 0 && notBlockedW > 0){
@@ -2220,11 +2243,14 @@ IEW::tick()
             }
         }
 
-        if (broadcast_free_entries) {
+        //if (broadcast_free_entries) {
+        {
             toFetch->iewInfo[tid].iqCount =
                 instQueue.getCount(tid);
             toFetch->iewInfo[tid].ldstqCount =
                 ldstQueue.getCount(tid);
+            toFetch->iewInfo[tid].freeIQEntries =
+                instQueue.numFreeEntries(tid);
 
             toRename->iewInfo[tid].usedIQ = true;
             toRename->iewInfo[tid].freeIQEntries =
@@ -2371,6 +2397,58 @@ IEW::getDispatchingThread()
         case SMTFetchPolicy::SWIQCount:
         SWiqCountPriority();
     }
+}
+
+std::vector<ThreadID> IEW::getThreadsForDispatch() {
+    std::vector<ThreadID> ThreadsForDispatch;
+
+    std::priority_queue<unsigned, std::vector<unsigned>,
+                        std::less<unsigned> > SQ;
+    std::priority_queue<unsigned, std::vector<unsigned>,
+                        std::less<unsigned> > WQ;
+    std::map<unsigned, ThreadID> SthreadMap;
+    std::map<unsigned, ThreadID> WthreadMap;
+
+    std::list<ThreadID>::iterator threads = activeThreads->begin();
+    std::list<ThreadID>::iterator end = activeThreads->end();
+
+    std::vector<std::pair<int, int>> ThreadAvailICountS;
+    std::vector<std::pair<int, int>> ThreadAvailICountW;
+
+    // create 2 lists for S threads and W threads 
+    while (threads != end) {
+        ThreadID tid = *threads++;
+        unsigned iqCount = dispatchStatus[tid] == Unblocking ?
+        skidBuffer[tid].size() : insts[tid].size();
+
+        //we can potentially get tid collisions if two threads
+        //have the same iqCount, but this should be rare.
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
+        {
+            SQ.push(iqCount);
+            SthreadMap[iqCount] = tid;
+            ThreadAvailICountS.push_back(std::make_pair(iqCount,tid));
+        }
+        else
+        {
+            WQ.push(iqCount);
+            WthreadMap[iqCount] = tid;
+            ThreadAvailICountW.push_back(std::make_pair(iqCount,tid));
+        }
+    }
+
+    std::sort(ThreadAvailICountS.begin(), ThreadAvailICountS.end(), comparePairsIEW);
+    std::sort(ThreadAvailICountW.begin(), ThreadAvailICountW.end(), comparePairsIEW);
+
+    for (const auto& pair : ThreadAvailICountS) {
+        ThreadsForDispatch.push_back(pair.second);
+    }
+    for (const auto& pair : ThreadAvailICountW) {
+        ThreadsForDispatch.push_back(pair.second);
+    }
+
+    return ThreadsForDispatch;
+
 }
 
 

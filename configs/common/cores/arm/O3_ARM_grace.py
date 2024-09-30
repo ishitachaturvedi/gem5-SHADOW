@@ -554,6 +554,7 @@ class Grace12Wide_testConfig(ArmO3CPU):
     # def __init__(self):
     #     super().__init__()
 
+    # 12 wide
     commitToIEWDelay = 1
     commitToRenameDelay = 1
     iewToRenameDelay = 1
@@ -582,6 +583,36 @@ class Grace12Wide_testConfig(ArmO3CPU):
     trapLatency = 1
     backComSize = 5
     forwardComSize = 5
+
+    # 4 wide
+    # commitToIEWDelay = 1
+    # commitToRenameDelay = 1
+    # iewToRenameDelay = 1
+    # commitToDecodeDelay = 1
+    # iewToDecodeDelay = 1
+    # renameToDecodeDelay = 1
+    # commitToFetchDelay = 1
+    # iewToFetchDelay = 1
+    # renameToFetchDelay = 1
+    # decodeToFetchDelay = 1
+    # fetchWidth = 12
+    # fetchBufferSize = 64
+    # fetchToDecodeDelay = 1
+    # decodeWidth = 8
+    # decodeToRenameDelay = 1
+    # renameWidth = 4
+    # renameToIEWDelay = 1
+    # issueToExecuteDelay = 1
+    # dispatchWidth = 4
+    # issueWidth = 4
+    # wbWidth = 4
+    # iewToCommitDelay = 1
+    # renameToROBDelay = 1
+    # commitWidth = 4
+    # squashWidth = 4
+    # trapLatency = 1
+    # backComSize = 5
+    # forwardComSize = 5
 
     # 1 thread values
     # numROBEntries = 512
@@ -626,7 +657,8 @@ class Grace12Wide_testConfig(ArmO3CPU):
     numIQEntries = 300
     numSIQEntries = 300
     numROBEntries = 230
-    numWIQEntries = 120
+    #numWIQEntries = 120
+    numWIQEntries = 10
     LQEntries = 340
     SQEntries = 180
 
@@ -916,7 +948,8 @@ class O3_ARM_grace_DCache(Cache):
     response_latency = 2
     mshrs = 6
     tgts_per_mshr = 8
-    size = "32kB"
+    #size = "32kB"
+    size = "64kB"
     assoc = 2
     write_buffers = 16
     # Consider the L2 a victim cache also for clean lines

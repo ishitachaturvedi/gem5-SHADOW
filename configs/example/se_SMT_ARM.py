@@ -228,6 +228,9 @@ class SimpleSeSystem(System):
             self, args.num_cpus, args.cpu_freq, "1.2V", *cpu_type[args.cpu], args.t
         )
 
+        if(args.FirstThreadSOtherW == True):
+            args.smtIQPolicy = "SDynamicWStatic"
+
         for cpu in self.cpu_cluster.cpus:
             cpu.numThreads = args.t
             cpu.SThreads = args.SThreads
@@ -238,6 +241,7 @@ class SimpleSeSystem(System):
             cpu.FirstThreadSOtherW = args.FirstThreadSOtherW
             cpu.smtIQPolicy = args.smtIQPolicy
             cpu.MainSAllPW = args.MainSAllPW
+            cpu.predictOnWThreads = args.predictOnWThreads
 
         # for cpu in self.cpu_cluster.cpus:
         #     cpu.numThreads = numThreads
@@ -393,6 +397,8 @@ def main():
     parser.add_argument('-runTillSThreads', type=bool, default=False)
 
     parser.add_argument('-env', type=str)
+
+    parser.add_argument('-predictOnWThreads', type=bool, default=False)
 
     parser.add_argument('-SingleThreadFetchIEW', type=bool, default=False)
 

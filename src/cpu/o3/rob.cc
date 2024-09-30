@@ -85,13 +85,13 @@ ROB::ROB(CPU *_cpu, const BaseO3CPUParams &params)
             numThreadsS = 1;
         }
         
-        // int part_amt = numEntries / numThreadsS;
-        int part_amt = numEntries / numThreads;
+        int part_amt = numEntries / numThreadsS;
 
         //Divide ROB up evenly
         for (ThreadID tid = 0; tid < numThreads; tid++) {
             maxEntries[tid] = part_amt;
         }
+
     } else if (robPolicy == SMTQueuePolicy::Static) {
         DPRINTF(Fetch, "ROB sharing policy set to Static\n");
 

@@ -212,6 +212,9 @@ class BaseO3CPU(BaseCPU):
     branchPred = Param.BranchPredictor(
         TournamentBP(numThreads=Parent.numThreads), "Branch Predictor"
     )
+
+    predictOnWThreads = Param.Bool(True, "Allow W threads to predict branch")
+
     needsTSO = Param.Bool(False, "Enable TSO Memory model")
 
     SingleThreadFetchiew = Param.Bool(False, "Only 1 thread fetches and decodes in a cycle")
