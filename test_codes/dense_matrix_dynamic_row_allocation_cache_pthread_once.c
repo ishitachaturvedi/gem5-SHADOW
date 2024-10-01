@@ -2,9 +2,13 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <stdbool.h>
+#include <stdatomic.h>
 
 #define TILE_SIZE 50  // Size of the tile (10x10)
-#define CHUNK_SIZE 2  // Size of the chunk for work stealing
+#define CHUNK_SIZE 5  // Size of the chunk for work stealing
+
+// #define TILE_SIZE 50  // Size of the tile (10x10)
+// #define CHUNK_SIZE 5  // Size of the chunk for work stealing
 
 // Global variables
 int N;               // Size of the matrix
@@ -12,7 +16,7 @@ int num_threads;     // Number of threads
 int **A, **B, **C, **C_single; // Matrices
 int *rows_processed; // Array to count processed rows by each thread
 pthread_mutex_t mutex; // Mutex for synchronizing access to rows
-int next_row; // Index of the next row to process in the tile
+atomic_int next_row; // Index of the next row to process in the tile
 int base_row; // starting row of this tile
 int base_col; // starting col of this tile
 int base_k; // starting k of this tile
@@ -93,11 +97,24 @@ void *thread_func(void *arg) {
 
             pthread_mutex_unlock(&mutex);
 
+            // Atomically fetch and increment next_row
+            // int start_row = atomic_fetch_add(&next_row, CHUNK_SIZE);
+
+            // // Check if we exceed the tile boundaries
+            // if (start_row >= base_row + TILE_SIZE) {
+            //     break;  // No more rows in the tile
+            // }
+
+            // int end_row = start_row + CHUNK_SIZE;
+            // if (end_row > base_row + TILE_SIZE) {
+            //     end_row = base_row + TILE_SIZE; // Adjust to tile boundary
+            // }
+
             // Process the assigned chunk of rows
             for (int i = start_row; i < end_row; i++) {
                 for (int j = base_col; j < base_col + TILE_SIZE && j < N; j++) {
                     int sum = 0;
-                    for (int k = base_k; k < base_k+ TILE_SIZE; k++) {
+                    for (int k = base_k; k < base_k + TILE_SIZE; k++) {
                         sum += A[i][k] * B[k][j];
                     }
                     C[i][j] += sum;
@@ -184,55 +201,59 @@ int main(int argc, char *argv[]) {
         printf("Matrix size must be divisible by %d\n", TILE_SIZE);
         return -1;
     }
+    for(int i = 0; i < 1; i++) {
 
-    // Initialize matrices
-    initialize_matrices();
+        // Initialize matrices
+        initialize_matrices();
 
-    // Allocate memory for row counters
-    rows_processed = (int *)calloc(num_threads, sizeof(int));
-    next_row = 0; // Initialize the next row index
+        // Allocate memory for row counters
+        rows_processed = (int *)calloc(num_threads, sizeof(int));
+        next_row = 0; // Initialize the next row index
 
-    // Create a mutex
-    pthread_mutex_init(&mutex, NULL);
+        // Create a mutex
+        pthread_mutex_init(&mutex, NULL);
 
-    pthread_barrier_init(&barrier, NULL, num_threads);
-    pthread_barrier_init(&barrier_done, NULL, num_threads);
+        pthread_barrier_init(&barrier, NULL, num_threads);
+        pthread_barrier_init(&barrier_done, NULL, num_threads);
 
-    // Create threads
-    pthread_t threads[num_threads];
-    thread_data_t thread_data[num_threads];
+        // Create threads
+        pthread_t threads[num_threads];
+        thread_data_t thread_data[num_threads];
 
-    for (int t = 0; t < num_threads; t++) {
-        thread_data[t].thread_id = t;
-        thread_data[t].tile_row = 0; // Starting row of the tile
-        thread_data[t].tile_col = 0; // Starting column of the tile
-        pthread_create(&threads[t], NULL, thread_func, (void *)&thread_data[t]);
+
+        for (int t = 0; t < num_threads; t++) {
+            thread_data[t].thread_id = t;
+            thread_data[t].tile_row = 0; // Starting row of the tile
+            thread_data[t].tile_col = 0; // Starting column of the tile
+            rows_processed[t] = 0;
+            pthread_create(&threads[t], NULL, thread_func, (void *)&thread_data[t]);
+        }
+
+        // Join threads after processing the tile
+        for (int t = 0; t < num_threads; t++) {
+            pthread_join(threads[t], NULL);
+        }
+
+        // Perform single-threaded multiplication for validation
+        // single_threaded_matrix_multiply();
+
+        // // Validate the multi-threaded result against the single-threaded result
+        // if (validate_result()) {
+        //     printf("Validation successful: multi-threaded result matches single-threaded result.\n");
+        // } else {
+        //     printf("Validation failed: multi-threaded result does not match single-threaded result.\n");
+        // }
+
+        // // // Print how many rows each thread processed
+        // for (int t = 0; t < num_threads; t++) {
+        //     printf("Thread %d processed %d rows.\n", t, rows_processed[t]);
+        // }
+
+        // Clean up resources
+        cleanup();
+        free(rows_processed);
+        pthread_mutex_destroy(&mutex);
     }
-
-    // Join threads after processing the tile
-    for (int t = 0; t < num_threads; t++) {
-        pthread_join(threads[t], NULL);
-    }
-
-    // Perform single-threaded multiplication for validation
-    // single_threaded_matrix_multiply();
-
-    // Validate the multi-threaded result against the single-threaded result
-    // if (validate_result()) {
-    //     printf("Validation successful: multi-threaded result matches single-threaded result.\n");
-    // } else {
-    //     printf("Validation failed: multi-threaded result does not match single-threaded result.\n");
-    // }
-
-    // // Print how many rows each thread processed
-    for (int t = 0; t < num_threads; t++) {
-        printf("Thread %d processed %d rows.\n", t, rows_processed[t]);
-    }
-
-    // Clean up resources
-    cleanup();
-    free(rows_processed);
-    pthread_mutex_destroy(&mutex);
 
     printf("Matrix multiplication completed.\n");
 
