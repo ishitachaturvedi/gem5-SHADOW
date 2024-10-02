@@ -254,6 +254,14 @@ do_work_end(lua_State *L)
     return 0;
 }
 
+static int
+do_numitert(lua_State *L)
+{
+    uint64_t threadid = lua_tointeger(L, 1);
+    m5_numiter(threadid);
+    return 0;
+}
+
 extern "C"
 {
 
@@ -295,6 +303,7 @@ luaopen_gem5OpLua(lua_State *L)
     ADD_FUNC(do_panic);
     ADD_FUNC(do_work_begin);
     ADD_FUNC(do_work_end);
+    ADD_FUNC(do_numitert);
 #undef ADD_FUNC
     return 1;
 }

@@ -201,6 +201,8 @@ class SimpleThread : public ThreadState, public ThreadContext
     ContextID contextId() const override { return ThreadState::contextId(); }
     void setContextId(ContextID id) override { ThreadState::setContextId(id); }
 
+    void increaseNumIter() override { ThreadState::increaseNumIter(); }
+
     BaseMMU *getMMUPtr() override { return mmu; }
 
     CheckerCPU *getCheckerCpuPtr() override { return NULL; }

@@ -62,6 +62,8 @@ struct ThreadState : public Serializable
 
     ContextID contextId() const { return _contextId; }
 
+    void increaseNumIter() { threadStats.numIters++; }
+
     void setContextId(ContextID id) { _contextId = id; }
 
     void setThreadId(ThreadID id) { _threadId = id; }
@@ -96,6 +98,7 @@ struct ThreadState : public Serializable
 
     InstSeqNum ControlInstSeq;
     InstSeqNum MemInstSeq;
+
     // Defining the stat group
     struct ThreadStateStats : public statistics::Group
     {
@@ -106,6 +109,8 @@ struct ThreadState : public Serializable
         statistics::Scalar numOps;
         /** Stat for number of memory references. */
         statistics::Scalar numMemRefs;
+        // number of iterations of the chunk done by this thread
+        statistics::Scalar numIters;
     } threadStats;
 
     /** Number of simulated loads, used for tracking events based on

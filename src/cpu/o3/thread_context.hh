@@ -130,6 +130,8 @@ class ThreadContext : public gem5::ThreadContext
 
     void setContextId(ContextID id) override { thread->setContextId(id); }
 
+    void increaseNumIter() override { thread->increaseNumIter(); }
+
     /** Returns this thread's ID number. */
     int threadId() const override { return thread->threadId(); }
     void setThreadId(int id) override { return thread->setThreadId(id); }

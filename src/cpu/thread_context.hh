@@ -152,6 +152,8 @@ class ThreadContext : public PCEventScope
 
     virtual void setStatus(Status new_status) = 0;
 
+    virtual void increaseNumIter() = 0;
+
     /// Set the status to Active.
     virtual void activate() = 0;
 

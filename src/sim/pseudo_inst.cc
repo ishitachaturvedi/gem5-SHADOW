@@ -604,5 +604,10 @@ workend(ThreadContext *tc, uint64_t workid, uint64_t threadid)
     }
 }
 
+// this function counts the number of iterations done by each thread
+void m5numiter(ThreadContext *tc, uint64_t threadid) {
+    tc->increaseNumIter();
+}
+
 } // namespace pseudo_inst
 } // namespace gem5

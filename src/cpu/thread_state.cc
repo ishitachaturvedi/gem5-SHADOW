@@ -70,7 +70,9 @@ ThreadState::ThreadStateStats::ThreadStateStats(BaseCPU *cpu,
       ADD_STAT(numOps, statistics::units::Count::get(),
         "Number of Ops committed"),
       ADD_STAT(numMemRefs, statistics::units::Count::get(),
-               "Number of Memory References")
+               "Number of Memory References"),
+      ADD_STAT(numIters, statistics::units::Count::get(),
+               "Number of of iterations of this chunk done by the thread")
 {
 }
 
