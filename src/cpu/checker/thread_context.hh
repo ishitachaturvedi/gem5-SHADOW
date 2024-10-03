@@ -123,7 +123,15 @@ class CheckerThreadContext : public ThreadContext
 
     ContextID contextId() const override { return actualTC->contextId(); }
 
-    void increaseNumIter() override { int a  = 0; }
+    void increaseNumIter() override { ; }
+
+    void mutex_start_cycle() override { ; }
+
+    void mutex_end_cycle() override { ; }
+
+    void barrier_start_cycle() override { ; }
+
+    void barrier_end_cycle() override { ; }
 
     void
     setContextId(ContextID id) override

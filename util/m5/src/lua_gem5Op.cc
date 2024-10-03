@@ -255,10 +255,42 @@ do_work_end(lua_State *L)
 }
 
 static int
-do_numitert(lua_State *L)
+do_numiter(lua_State *L)
 {
     uint64_t threadid = lua_tointeger(L, 1);
     m5_numiter(threadid);
+    return 0;
+}
+
+static int
+do_startmutex(lua_State *L)
+{
+    uint64_t threadid = lua_tointeger(L, 1);
+    m5_start_mutex(threadid);
+    return 0;
+}
+
+static int
+do_endmutex(lua_State *L)
+{
+    uint64_t threadid = lua_tointeger(L, 1);
+    m5_end_mutex(threadid);
+    return 0;
+}
+
+static int
+do_startbarrier(lua_State *L)
+{
+    uint64_t threadid = lua_tointeger(L, 1);
+    m5_start_barrier(threadid);
+    return 0;
+}
+
+static int
+do_endbarrier(lua_State *L)
+{
+    uint64_t threadid = lua_tointeger(L, 1);
+    m5_end_barrier(threadid);
     return 0;
 }
 
@@ -303,7 +335,7 @@ luaopen_gem5OpLua(lua_State *L)
     ADD_FUNC(do_panic);
     ADD_FUNC(do_work_begin);
     ADD_FUNC(do_work_end);
-    ADD_FUNC(do_numitert);
+    ADD_FUNC(do_numiter);
 #undef ADD_FUNC
     return 1;
 }

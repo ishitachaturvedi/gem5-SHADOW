@@ -67,6 +67,10 @@ void m5_panic(void);
 void m5_work_begin(uint64_t workid, uint64_t threadid);
 void m5_work_end(uint64_t workid, uint64_t threadid);
 void m5_numiter(uint64_t threadid);
+void m5_start_mutex(uint64_t threadid);
+void m5_end_mutex(uint64_t threadid);
+void m5_start_barrier(uint64_t threadid);
+void m5_end_barrier(uint64_t threadid);
 
 /*
  * Send a very generic poke to the workload so it can do something. It's up to

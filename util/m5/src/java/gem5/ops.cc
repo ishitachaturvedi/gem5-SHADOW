@@ -230,6 +230,36 @@ Java_gem5_Ops_numiter(JNIEnv *env, jobject obj,
     getDispatchTable(env, obj)->m5_numiter(j_ns_delay, j_ns_period);
 }
 
+
+JNIEXPORT void JNICALL
+Java_gem5_Ops_startmutex(JNIEnv *env, jobject obj,
+                           jlong j_ns_delay, jlong j_ns_period)
+{
+    getDispatchTable(env, obj)->m5_start_mutex(j_ns_delay, j_ns_period);
+}
+
+JNIEXPORT void JNICALL
+Java_gem5_Ops_endmutex(JNIEnv *env, jobject obj,
+                           jlong j_ns_delay, jlong j_ns_period)
+{
+    getDispatchTable(env, obj)->m5_end_mutex(j_ns_delay, j_ns_period);
+}
+
+
+JNIEXPORT void JNICALL
+Java_gem5_Ops_startbarrier(JNIEnv *env, jobject obj,
+                           jlong j_ns_delay, jlong j_ns_period)
+{
+    getDispatchTable(env, obj)->m5_start_barrier(j_ns_delay, j_ns_period);
+}
+
+JNIEXPORT void JNICALL
+Java_gem5_Ops_endbarrier(JNIEnv *env, jobject obj,
+                           jlong j_ns_delay, jlong j_ns_period)
+{
+    getDispatchTable(env, obj)->m5_end_barrier(j_ns_delay, j_ns_period);
+}
+
 JNIEXPORT void JNICALL
 Java_gem5_Ops_reset_1stats(JNIEnv *env, jobject obj,
                              jlong j_ns_delay, jlong j_ns_period)

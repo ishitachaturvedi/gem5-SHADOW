@@ -609,5 +609,25 @@ void m5numiter(ThreadContext *tc, uint64_t threadid) {
     tc->increaseNumIter();
 }
 
+// this functions registers cycle at which mutex was encountered
+void m5_start_mutex(ThreadContext *tc, uint64_t threadid) {
+    tc->mutex_start_cycle();
+}
+
+// this functions registers cycle at which mutex was finished 
+void m5_end_mutex(ThreadContext *tc, uint64_t threadid) {
+    tc->mutex_end_cycle();
+}
+
+// this functions registers cycle at which barrier was encountered
+void m5_start_barrier(ThreadContext *tc, uint64_t threadid) {
+    tc->barrier_start_cycle();
+}
+
+// this functions registers cycle at which barrier was finished 
+void m5_end_barrier(ThreadContext *tc, uint64_t threadid) {
+    tc->barrier_end_cycle();
+}
+
 } // namespace pseudo_inst
 } // namespace gem5

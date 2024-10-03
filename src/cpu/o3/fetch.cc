@@ -2149,131 +2149,6 @@ Fetch::SWFetchCount()
 
 }
 
-// ThreadID
-// Fetch::iqCount()
-// {
-//     // Sorted from lowest to highest, now using multimap for handling duplicate iqCount
-//     std::priority_queue<float, std::vector<float>, std::greater<float>> PQ;
-//     std::multimap<float, ThreadID> threadMap; // Allows multiple threads with the same iqCount
-
-//     std::list<ThreadID>::iterator threads = activeThreads->begin();
-//     std::list<ThreadID>::iterator end = activeThreads->end();
-
-//     int total_threads = 0;
-//     int tid1present = 0;
-//     int tidgreat1present = 0;
-//     int tid1absent = 0;
-
-//     while (threads != end) {
-//         ThreadID tid = *threads++;
-//         float iqCount = fromIEW->iewInfo[tid].iqCount;
-//         float freeIQEntries = fromIEW->iewInfo[tid].freeIQEntries;
-//         float ratio_free_entries = iqCount / (freeIQEntries + iqCount);
-
-//         printf("checkRatio tid:%d iqCount %f freeIQEntries %f ratio_free_entries %f\n",tid,iqCount,freeIQEntries,ratio_free_entries);
-
-//         iqCount = ratio_free_entries;
-
-//         //unsigned iqCount = tid;
-//         total_threads++;
-//         if (tid == 1) {
-//             tid1present = 1;
-//         } else if (tid > 1) {
-//             tidgreat1present = 1;
-//         }
-
-//         // Collect stats
-//         switch (fetchStatus[tid]) {
-//             case Running:
-//                 ++fetchStats.RunningCount[tid];
-//                 break;
-//             case Idle:
-//                 ++fetchStats.IdleCount[tid];
-//                 break;
-//             case Squashing:
-//                 ++fetchStats.SquashingCount[tid];
-//                 break;
-//             case Blocked:
-//                 ++fetchStats.BlockedCount[tid];
-//                 break;
-//             case Fetching:
-//                 ++fetchStats.FetchingCount[tid];
-//                 break;
-//             case TrapPending:
-//                 ++fetchStats.TrapPendingCount[tid];
-//                 break;
-//             case QuiescePending:
-//                 ++fetchStats.QuiescePendingCount[tid];
-//                 break;
-//             case ItlbWait:
-//                 ++fetchStats.ItlbWaitCount[tid];
-//                 break;
-//             case IcacheWaitResponse:
-//                 ++fetchStats.IcacheWaitResponseCount[tid];
-//                 break;
-//             case IcacheWaitRetry:
-//                 ++fetchStats.IcacheWaitRetryCount[tid];
-//                 break;
-//             case IcacheAccessComplete:
-//                 ++fetchStats.IcacheAccessCompleteCount[tid];
-//                 break;
-//             case NoGoodAddr:
-//                 ++fetchStats.NoGoodAddrCount[tid];
-//                 break;
-//             case BlockedOnBranch:
-//                 ++fetchStats.BlockedOnBranchCount[tid];
-//                 if(!tid1present)
-//                     ++fetchStats.BlockedOnBranchCountNoSThread[tid];
-//                 break;
-//         }
-
-//         // Use multimap to handle duplicate iqCount
-//         PQ.push(iqCount);
-//         threadMap.insert({iqCount, tid});
-//     }
-
-//     if (!tid1present && tidgreat1present) {
-//         tid1absent = 1;
-//     }
-
-//     // Experimental print
-//     if (total_threads > 1) {
-//         threads = activeThreads->begin();
-//         end = activeThreads->end();
-//         printf("Total threads %d tid1absent %d ", total_threads, tid1absent);
-//         while (threads != end) {
-//             ThreadID tid = *threads++;
-//             unsigned iqCount = fromIEW->iewInfo[tid].iqCount;
-//             printf("tid:%d status:%d iqCount:%d ", tid, fetchStatus[tid], iqCount);
-//         }
-//     }
-
-//     // Process all threads in ascending order of iqCount
-//     while (!PQ.empty()) {
-//         float top_iqCount = PQ.top();
-//         auto range = threadMap.equal_range(top_iqCount); // Get all threads with the same iqCount
-
-//         for (auto it = range.first; it != range.second; ++it) {
-//             printf("Thread %d, Status: %d, IQCount: %f\n", it->second, fetchStatus[it->second], top_iqCount);
-//             ThreadID high_pri = it->second;                       
-//             if (fetchStatus[high_pri] == Running ||
-//                 fetchStatus[high_pri] == IcacheAccessComplete ||
-//                 fetchStatus[high_pri] == Idle) {
-//                 if (total_threads > 1)
-//                     printf("issuing thread %d\n", high_pri);
-//                 return high_pri;
-//             }
-//         }
-        
-//         PQ.pop(); // Remove the processed iqCount
-//     }
-
-//     if (total_threads > 1)
-//         printf(" no thread issued\n");
-
-//     return InvalidThreadID;
-// }
-
 ThreadID
 Fetch::iqCount()
 {
@@ -2297,7 +2172,12 @@ Fetch::iqCount()
         float freeIQEntries = fromIEW->iewInfo[tid].freeIQEntries;
         float ratio_free_entries = iqCount / (freeIQEntries + iqCount);
 
-        //printf("checkRatio tid:%d iqCount %f freeIQEntries %f ratio_free_entries %f\n",tid,iqCount,freeIQEntries,ratio_free_entries);
+        // bias towards S threads
+        // if(tid == 0 || tid == 1) {
+        //     ratio_free_entries = ratio_free_entries * 10;
+        // }
+
+        // printf("checkRatio tid:%d iqCount %f freeIQEntries %f ratio_free_entries %f\n",tid,iqCount,freeIQEntries,ratio_free_entries);
 
         iqCount = ratio_free_entries;
 

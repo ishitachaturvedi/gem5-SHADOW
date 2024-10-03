@@ -40,7 +40,11 @@ command_ccs = [
     'writefile.cc',
     'workbegin.cc',
     'workend.cc',
-    'numiter.cc'
+    'numiter.cc',
+    'start_barrier.cc',
+    'end_barrier.cc',
+    'start_mutex.cc',
+    'end_mutex.cc'
 ]
 
 command_objs = list(map(env.StaticObject, command_ccs))

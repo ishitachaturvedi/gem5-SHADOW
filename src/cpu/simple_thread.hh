@@ -203,6 +203,14 @@ class SimpleThread : public ThreadState, public ThreadContext
 
     void increaseNumIter() override { ThreadState::increaseNumIter(); }
 
+    void mutex_start_cycle() override { ThreadState::mutex_start_cycle(); }
+
+    void mutex_end_cycle() override { ThreadState::mutex_end_cycle(); }
+
+    void barrier_start_cycle() override { ThreadState::barrier_start_cycle(); }
+
+    void barrier_end_cycle() override { ThreadState::barrier_end_cycle(); }
+
     BaseMMU *getMMUPtr() override { return mmu; }
 
     CheckerCPU *getCheckerCpuPtr() override { return NULL; }

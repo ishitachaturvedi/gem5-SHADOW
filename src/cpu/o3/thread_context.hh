@@ -132,6 +132,14 @@ class ThreadContext : public gem5::ThreadContext
 
     void increaseNumIter() override { thread->increaseNumIter(); }
 
+    void mutex_start_cycle() override { thread->mutex_start_cycle(); }
+
+    void mutex_end_cycle() override { thread->mutex_end_cycle(); }
+
+    void barrier_start_cycle() override { thread->barrier_start_cycle(); }
+
+    void barrier_end_cycle() override { thread->barrier_end_cycle(); }
+
     /** Returns this thread's ID number. */
     int threadId() const override { return thread->threadId(); }
     void setThreadId(int id) override { return thread->setThreadId(id); }

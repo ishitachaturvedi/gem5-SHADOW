@@ -154,6 +154,14 @@ class ThreadContext : public PCEventScope
 
     virtual void increaseNumIter() = 0;
 
+    virtual void mutex_start_cycle() = 0;
+
+    virtual void mutex_end_cycle() = 0;
+
+    virtual void barrier_start_cycle() = 0;
+
+    virtual void barrier_end_cycle() = 0;
+
     /// Set the status to Active.
     virtual void activate() = 0;
 

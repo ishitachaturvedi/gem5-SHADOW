@@ -34,17 +34,17 @@ namespace
 {
 
 bool
-do_numiter(const DispatchTable &dt, Args &args)
+do_startbarrier(const DispatchTable &dt, Args &args)
 {
     uint64_t threadid;
     if (!args.pop(threadid, 0))
         return false;
 
-    (*dt.m5_numiter)(threadid);
+    (*dt.m5_start_barrier)(threadid);
     return true;
 }
 
-Command numiter = {
-    "numiter", 0, 2, do_numiter, "Number of iterations of this thread for the chunk being processed" };
+Command startbarrier = {
+    "startbarrier", 0, 2, do_startbarrier, "Start barrier cycle" };
 
 } // anonymous namespace

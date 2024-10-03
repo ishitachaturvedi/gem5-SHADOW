@@ -46,7 +46,8 @@ ThreadState::ThreadState(BaseCPU *cpu, ThreadID _tid, Process *_process)
       numLoad(0), startNumLoad(0),
       _status(ThreadContext::Halted), baseCpu(cpu),
       _contextId(0), _threadId(_tid), lastActivate(0), lastSuspend(0),
-      process(_process), storeCondFailures(0), ControlInstIssued(false), ControlInstSeq(-1), MemInstIssued(false), MemInstSeq(-1)
+      process(_process), storeCondFailures(0), ControlInstIssued(false), ControlInstSeq(-1), MemInstIssued(false), MemInstSeq(-1), 
+      cycle_barrier_start(-1), cycle_mutex_start(-1)
 {
 }
 
@@ -72,7 +73,11 @@ ThreadState::ThreadStateStats::ThreadStateStats(BaseCPU *cpu,
       ADD_STAT(numMemRefs, statistics::units::Count::get(),
                "Number of Memory References"),
       ADD_STAT(numIters, statistics::units::Count::get(),
-               "Number of of iterations of this chunk done by the thread")
+               "Number of iterations of this chunk done by the thread"),
+      ADD_STAT(MutexOverhead, statistics::units::Count::get(),
+               "Number of cycles spent on waiting for Mutex"),
+      ADD_STAT(BarrierOverhead, statistics::units::Count::get(),
+               "Number of cycles of spend spinning on barrier")
 {
 }
 

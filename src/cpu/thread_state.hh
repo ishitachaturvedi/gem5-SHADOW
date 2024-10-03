@@ -64,6 +64,29 @@ struct ThreadState : public Serializable
 
     void increaseNumIter() { threadStats.numIters++; }
 
+    void mutex_start_cycle() { 
+      assert(cycle_mutex_start == -1);
+      cycle_mutex_start = curTick(); 
+    }
+
+    void mutex_end_cycle() { 
+      Tick mutexCycles = curTick() - cycle_mutex_start;
+      threadStats.MutexOverhead += mutexCycles;
+      cycle_mutex_start = -1;
+    }
+
+    void barrier_start_cycle() { 
+      assert(cycle_barrier_start == -1);
+      cycle_barrier_start = curTick(); 
+    }
+
+    void barrier_end_cycle() { 
+      Tick barrierCycles = curTick() - cycle_barrier_start;
+      threadStats.BarrierOverhead += barrierCycles;
+      cycle_barrier_start = -1; 
+    }
+
+
     void setContextId(ContextID id) { _contextId = id; }
 
     void setThreadId(ThreadID id) { _threadId = id; }
@@ -111,6 +134,10 @@ struct ThreadState : public Serializable
         statistics::Scalar numMemRefs;
         // number of iterations of the chunk done by this thread
         statistics::Scalar numIters;
+        // number of cycles spent on waiting for mutex by this thread
+        statistics::Scalar MutexOverhead;
+        // number of spend spinning on barrier by this thread
+        statistics::Scalar BarrierOverhead;
     } threadStats;
 
     /** Number of simulated loads, used for tracking events based on
@@ -120,6 +147,12 @@ struct ThreadState : public Serializable
 
     /** The number of simulated loads committed prior to this run. */
     Counter startNumLoad;
+
+    /** Cycle in which barrier was started **/
+    Tick cycle_barrier_start;
+
+    /** Cycle in which mutex wait was started **/
+    Tick cycle_mutex_start;
 
   protected:
     ThreadContext::Status _status;

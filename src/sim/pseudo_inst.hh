@@ -96,6 +96,10 @@ void m5Syscall(ThreadContext *tc);
 void togglesync(ThreadContext *tc);
 void triggerWorkloadEvent(ThreadContext *tc);
 void m5numiter(ThreadContext *tc, uint64_t threadid);
+void m5_start_mutex(ThreadContext *tc, uint64_t threadid);
+void m5_end_mutex(ThreadContext *tc, uint64_t threadid);
+void m5_start_barrier(ThreadContext *tc, uint64_t threadid);
+void m5_end_barrier(ThreadContext *tc, uint64_t threadid);
 
 /**
  * Execute a decoded M5 pseudo instruction
@@ -219,12 +223,21 @@ pseudoInstWork(ThreadContext *tc, uint8_t func, uint64_t &result)
         invokeSimcall<ABI>(tc, m5numiter);
         return true;
 
-      case M5OP_RESERVED2:
-      case M5OP_RESERVED3:
-      case M5OP_RESERVED4:
-      case M5OP_RESERVED5:
-        warn("Unimplemented m5 op (%#x)\n", func);
-        return false;
+      case M5OP_STARTMUTEX:
+        invokeSimcall<ABI>(tc, m5_start_mutex);
+        return true;
+
+      case M5OP_ENDMUTEX:
+        invokeSimcall<ABI>(tc, m5_end_mutex);
+        return true;
+
+      case M5OP_STARTBARRIER:
+        invokeSimcall<ABI>(tc, m5_start_barrier);
+        return true;
+
+      case M5OP_ENDBARRIER:
+        invokeSimcall<ABI>(tc, m5_end_barrier);
+        return true;
 
       /* dist-gem5 functions */
       case M5OP_DIST_TOGGLE_SYNC:
