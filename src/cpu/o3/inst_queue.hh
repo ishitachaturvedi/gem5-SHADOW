@@ -618,6 +618,8 @@ class InstructionQueue
         statistics::Vector TotalOoOInstIssued;
         /** Number of times the FU was busy per instruction issued. */
         statistics::Formula fuBusyRate;
+
+        statistics::Vector TimeSpentWaitingOnMem;
     } iqStats;
 
    public:

@@ -151,6 +151,15 @@ class DynInst : public ExecContext, public RefCounted
     int cycleCommitted = 0;
     int cycleExecuted = 0;
 
+    // Depends on memory instruction
+    bool depends_on_mem_inst;
+
+    // Cycle added to dependence chain
+    Tick added_to_dep_chain;
+
+    // Cycle woken up from Dependence chain
+    Tick removed_from_dep_chain;
+
   protected:
     enum Status
     {

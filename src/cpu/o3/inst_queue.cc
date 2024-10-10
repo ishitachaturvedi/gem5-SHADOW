@@ -298,7 +298,9 @@ InstructionQueue::IQStats::IQStats(CPU *cpu, const unsigned &total_width)
     ADD_STAT(NoReadyInst, statistics::units::Count::get(),
              "No instructions ready in this cycle"),
     ADD_STAT(ReadyInstMoreThanBW, statistics::units::Count::get(),
-             "More ready instructions than available bandwidth")
+             "More ready instructions than available bandwidth"),
+    ADD_STAT(TimeSpentWaitingOnMem, statistics::units::Count::get(),
+             "Time spent by instructions waiting on memory")
 {
     instsAdded
         .prereq(instsAdded);
@@ -426,6 +428,11 @@ InstructionQueue::IQStats::IQStats(CPU *cpu, const unsigned &total_width)
         ;
 
     TotalOoOInstIssued
+        .init(cpu->numThreads)
+        .flags(statistics::total)
+        ;
+
+    TimeSpentWaitingOnMem
         .init(cpu->numThreads)
         .flags(statistics::total)
         ;
@@ -1463,6 +1470,8 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
     int dependents = 0;
     ThreadID tid = completed_inst->threadNumber;
 
+    bool is_mem = completed_inst->isLoad();
+
     // wake dependents if they have not been woken already during squash
     if(!(completed_inst->HasWokenDependents() && cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak)) {
         int8_t total_src_regs1 = completed_inst->numSrcRegs();
@@ -1600,6 +1609,7 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
                 DynInstPtr dep_inst = dependGraph.pop(dest_reg->flatIndex()); 
 
                 while (dep_inst) { 
+
                     DPRINTF(IQ, "[tid:%d] ***Waking up a dependent instruction, [sn:%llu] "
                             "PC %s.\n", tid,dep_inst->seqNum, dep_inst->pcState());
 
@@ -1612,6 +1622,12 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
 
                     DPRINTF(IQ, "[tid:%d] addIfReady3 Adding instruction [sn:%llu] PC %s to the IQ.\n",tid, dep_inst->seqNum, dep_inst->pcState());
                     addIfReady(dep_inst);
+
+                    if(is_mem && !dep_inst->depends_on_mem_inst && dep_inst->readyToIssue()) {
+                        dep_inst->depends_on_mem_inst = true;
+                        Tick MemCycles = cpu->curCycle() - dep_inst->added_to_dep_chain;
+                        iqStats.TimeSpentWaitingOnMem[tid] += MemCycles;
+                    }
 
                     dep_inst = dependGraph.pop(dest_reg->flatIndex());
 
@@ -1650,6 +1666,12 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
 
                     DPRINTF(IQ, "[tid:%d] addIfReady4 Adding instruction [sn:%llu] PC %s to the IQ.\n", tid, dep_inst->seqNum, dep_inst->pcState());
                     addIfReady(dep_inst);
+                    
+                    if(is_mem && !dep_inst->depends_on_mem_inst && dep_inst->readyToIssue()) {
+                        dep_inst->depends_on_mem_inst = true;
+                        Tick MemCycles = cpu->curCycle() - dep_inst->added_to_dep_chain;
+                        iqStats.TimeSpentWaitingOnMem[tid] += MemCycles;
+                    }
 
                     dep_inst = dependGraph.popRAW(dest_reg->flatIndex());
 
@@ -1706,6 +1728,12 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
 
                         DPRINTF(IQ, "[tid:%d] addIfReady5 Adding instruction [sn:%llu] PC %s to the IQ numWARPending[0] %d.\n", tid, dep_inst->seqNum, dep_inst->pcState(), dep_inst->numWARPending[0]);
                         addIfReady(dep_inst);
+
+                        if(is_mem && !dep_inst->depends_on_mem_inst && dep_inst->readyToIssue()) {
+                            dep_inst->depends_on_mem_inst = true;
+                            Tick MemCycles = cpu->curCycle() - dep_inst->added_to_dep_chain;
+                            iqStats.TimeSpentWaitingOnMem[tid] += MemCycles;
+                        }
                     }
 
                     DPRINTF(IQ, "[tid:%d] WAW_INSTS_HERE4 %d, [sn:%llu] "
@@ -1763,6 +1791,12 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
 
                             DPRINTF(IQ, "[tid:%d] addIfReady6 Adding instruction [sn:%llu] PC %s to the IQ.\n", tid, dep_inst->seqNum, dep_inst->pcState());
                             addIfReady(dep_inst);
+
+                            if(is_mem && !dep_inst->depends_on_mem_inst && dep_inst->readyToIssue()) {
+                                dep_inst->depends_on_mem_inst = true;
+                                Tick MemCycles = cpu->curCycle() - dep_inst->added_to_dep_chain;
+                                iqStats.TimeSpentWaitingOnMem[tid] += MemCycles;
+                            }
 
                             DPRINTF(IQ, "[tid:%d] PLACE6 WAR STARTING TO WAKE INSTS, [sn:%llu] "
                                     "PC %s insts_left %d.\n", tid, dep_inst->seqNum, dep_inst->pcState(),dependGraph.countNodes(src_reg->flatIndex(), locInVec));
@@ -2302,6 +2336,8 @@ InstructionQueue::addToDependents(const DynInstPtr &new_inst)
 
                     dependGraph.insert(src_reg->flatIndex(), new_inst);
 
+                    new_inst->added_to_dep_chain = cpu->curCycle();
+
                     // Change the return value to indicate that something
                     // was added to the dependency graph.
                     return_val = true;
@@ -2327,6 +2363,8 @@ InstructionQueue::addToDependents(const DynInstPtr &new_inst)
                     int index = dependGraph.insertBehindRAW(src_reg->flatIndex(), new_inst);
                     
                     DPRINTF(IQ,"[tid:%d] SIZE_OF_ENTRIES1 %d ENTRY %d\n",tid,dependGraph.sizeofRAWFull(src_reg->flatIndex()),dependGraph.sizeofRAWEntry(src_reg->flatIndex()));
+
+                    new_inst->added_to_dep_chain = cpu->curCycle();
 
                     DPRINTF(IQ, "[tid:%d] PLACE8 RAW_NOT_READY, [sn:%llu] "
                         "PC %s index_placed %d depends on seqNum:%llu reg %d.\n", tid,new_inst->seqNum, new_inst->pcState(),index,dependGraph.getRAWSeqNum(src_reg->flatIndex()),src_reg->flatIndex()); 
@@ -2394,6 +2432,8 @@ InstructionQueue::addToDependents(const DynInstPtr &new_inst)
                             dest_reg->className());
                 // add the inst as a dependence on the last entry of the dependence graph
                 dependGraph.insertBehindWAR(dest_reg->flatIndex(), new_inst, dest_reg_idx);
+
+                new_inst->added_to_dep_chain = cpu->curCycle();
 
                 DPRINTF(IQ,"[tid:%d] SIZE_OF_ENTRIES4 %d ENTRY %d numWARPending %d\n",tid,dependGraph.sizeofWAWFull(dest_reg->flatIndex()),dependGraph.sizeofWAWEntry(dest_reg->flatIndex()),new_inst->numWARPending[dest_reg_idx]);
 
@@ -2514,6 +2554,8 @@ InstructionQueue::addToProducers(const DynInstPtr &new_inst)
                 
                 if(!dest_reg->isFixedMapping()) {
                     entry_num = dependGraph.insertBehindWAW(dest_reg->flatIndex(), new_inst);
+
+                    new_inst->added_to_dep_chain = cpu->curCycle();
 
                     DPRINTF(IQ,"[tid:%d] [sn:%d] WAW_DEST_NUM_CHECK REG %d SIZE_OF_ENTRIES6 %d ENTRY %d entry_num %d\n",tid,new_inst->seqNum,dest_reg->flatIndex(),dependGraph.sizeofWAWFull(dest_reg->flatIndex()),dependGraph.sizeofWAWEntry(dest_reg->flatIndex()),entry_num);
 

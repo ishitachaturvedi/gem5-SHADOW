@@ -66,22 +66,22 @@ struct ThreadState : public Serializable
 
     void mutex_start_cycle() { 
       assert(cycle_mutex_start == -1);
-      cycle_mutex_start = curTick(); 
+      cycle_mutex_start = baseCpu->curCycle(); 
     }
 
     void mutex_end_cycle() { 
-      Tick mutexCycles = curTick() - cycle_mutex_start;
+      Tick mutexCycles = baseCpu->curCycle() - cycle_mutex_start;
       threadStats.MutexOverhead += mutexCycles;
       cycle_mutex_start = -1;
     }
 
     void barrier_start_cycle() { 
       assert(cycle_barrier_start == -1);
-      cycle_barrier_start = curTick(); 
+      cycle_barrier_start = baseCpu->curCycle(); 
     }
 
     void barrier_end_cycle() { 
-      Tick barrierCycles = curTick() - cycle_barrier_start;
+      Tick barrierCycles = baseCpu->curCycle() - cycle_barrier_start;
       threadStats.BarrierOverhead += barrierCycles;
       cycle_barrier_start = -1; 
     }
