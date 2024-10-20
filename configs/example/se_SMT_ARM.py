@@ -90,7 +90,7 @@ m5.util.addToPath("..")
 from common import Options
 from common import ObjectList
 from common import MemConfig
-from common.cores.arm import O3_ARM_v7a, HPI, O3_Novocore, O3_ARM_grace
+from common.cores.arm import O3_ARM_v7a, HPI, O3_Novocore, O3_ARM_grace, ex5_big
 from common import Simulation
 
 import sys
@@ -106,6 +106,7 @@ cpu_type = {
     "minor": (MinorCPU, devices.L1I, devices.L1D, devices.L2),
     "hpi": (HPI.HPI, HPI.HPI_ICache, HPI.HPI_DCache, HPI.HPI_L2),
     "O3CPU":(DerivO3CPU,devices.L1I, devices.L1D, devices.L2),
+    "big_core":(ex5_big.ex5_big,ex5_big.L1I,ex5_big.L1I, ex5_big.L1D, ex5_big.L2),
     "o3": (
         O3_ARM_v7a.O3_ARM_v7a_3,
         O3_ARM_v7a.O3_ARM_v7a_ICache_Strong,
@@ -186,8 +187,11 @@ cpu_type = {
         O3_ARM_grace.Grace12Wide_testConfig,
         O3_ARM_grace.O3_ARM_grace_ICache,
         O3_ARM_grace.O3_ARM_grace_ICache,
+        # O3_ARM_grace.O3_ARM_grace_ICache_Perfect,
+        # O3_ARM_grace.O3_ARM_grace_ICache_Perfect,
         O3_ARM_grace.O3_ARM_grace_DCache,
         O3_ARM_grace.O3_ARM_grace_L2,
+        #O3_ARM_grace.O3_ARM_grace_L2_Perfect,
     ),
 }
 
