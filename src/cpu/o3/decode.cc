@@ -148,11 +148,19 @@ Decode::DecodeStats::DecodeStats(CPU *cpu)
                "Number of cycles decode is idle"),
       ADD_STAT(blockedCycles, statistics::units::Cycle::get(),
                "Number of cycles decode is blocked"),
+      ADD_STAT(idleCyclesPerThread, statistics::units::Cycle::get(),
+               "Number of cycles decode is idle"),
+      ADD_STAT(blockedCyclesPerThread, statistics::units::Cycle::get(),
+               "Number of cycles decode is blocked"),
+      ADD_STAT(DecodeWidthUtilization, statistics::units::Cycle::get(),
+               "Distribution of how much decode width is utilized"),
       ADD_STAT(runCycles, statistics::units::Cycle::get(),
                "Number of cycles decode is running"),
       ADD_STAT(unblockCycles, statistics::units::Cycle::get(),
                "Number of cycles decode is unblocking"),
       ADD_STAT(squashCycles, statistics::units::Cycle::get(),
+               "Number of cycles decode is squashing"),
+      ADD_STAT(squashCyclesPerThread, statistics::units::Cycle::get(),
                "Number of cycles decode is squashing"),
       ADD_STAT(branchResolved, statistics::units::Count::get(),
                "Number of times decode resolved a branch"),
@@ -183,6 +191,8 @@ Decode::DecodeStats::DecodeStats(CPU *cpu)
                "Multiple threads running together"),
       ADD_STAT(blocking, statistics::units::Count::get(),
                "Decode causes a block"),
+      ADD_STAT(blockedFromRename, statistics::units::Count::get(),
+               "Decode blocked because of rename"),
       ADD_STAT(blockingS, statistics::units::Count::get(),
                "Decode causes a block in an s thread")                                             
 {
@@ -206,6 +216,26 @@ Decode::DecodeStats::DecodeStats(CPU *cpu)
     multipleRunning.prereq(multipleRunning);
     blocking.prereq(blocking);
     blockingS.prereq(blockingS);
+
+    idleCyclesPerThread
+        .init(cpu->numThreads)
+        .flags(statistics::total);
+
+    blockedCyclesPerThread
+        .init(cpu->numThreads)
+        .flags(statistics::total);
+
+    DecodeWidthUtilization
+        .init(20)
+        .flags(statistics::total);
+
+    squashCyclesPerThread
+        .init(cpu->numThreads)
+        .flags(statistics::total);
+
+    blockedFromRename
+        .init(cpu->numThreads)
+        .flags(statistics::total);
 }
 
 void
@@ -332,8 +362,6 @@ Decode::block(ThreadID tid)
             toFetch->decodeBlock[tid] = true;
             wroteToTimeBuffer = true;
         }
-
-        //printf("SkidInset tid %d stall %d toFetch->decodeUnblock[tid] %d\n",tid,toFetch->decodeBlock[tid],toFetch->decodeUnblock[tid]);
 
         return true;
     }
@@ -568,6 +596,7 @@ Decode::readStallSignals(ThreadID tid)
     if (fromRename->renameBlock[tid]) {
         DPRINTF(Decode,"[tid:%d] renameUnblockBlock\n",tid);
         stalls[tid].rename = true;
+        ++stats.blockedFromRename[tid];
     }
 
     if (fromRename->renameUnblock[tid]) {
@@ -682,6 +711,10 @@ Decode::tick()
     decode_vals_0_sent = 0;
     decode_vals_1_sent = 0;
 
+    bool all_threads_blocked = true;
+    bool all_threads_idle = true;
+    bool all_threads_squash = true;
+
     //Check stall and squash signals.
     while (threads != end) {
         ThreadID tid = *threads++;
@@ -689,9 +722,31 @@ Decode::tick()
         DPRINTF(Decode,"Processing [tid:%i]\n",tid);
         status_change =  checkSignalsAndUpdate(tid) || status_change;
 
+        if (decodeStatus[tid] == Blocked) {
+            ++stats.blockedCyclesPerThread[tid];
+        } else if (decodeStatus[tid] == Squashing) {
+            ++stats.squashCyclesPerThread[tid];
+        }
+
+        if (decodeStatus[tid] != Blocked) {
+            all_threads_blocked = false;
+        }
+        if(decodeStatus[tid] != Squashing) {
+            all_threads_squash = false;
+        }
+
         // Daniel checking decode blocks
         int insts_available = decodeStatus[tid] == Unblocking ?
         skidBuffer[tid].size() : insts[tid].size();
+
+        if (insts_available != 0 || decodeStatus[tid] == Blocked) {
+            all_threads_idle = false;
+        }
+
+        else if (insts_available == 0 && decodeStatus[tid] != Blocked) {
+            ++stats.idleCyclesPerThread[tid];
+        }
+        
         if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
             sThreadCount++;
             if(insts_available != 0 && (decodeStatus[tid] == Idle || decodeStatus[tid] == Unblocking || decodeStatus[tid] == Running)){
@@ -709,6 +764,16 @@ Decode::tick()
         }
     }
 
+    if (all_threads_blocked) {
+        ++stats.blockedCycles;
+    } 
+    if (all_threads_idle) {
+       ++stats.idleCycles;
+    } 
+    if(all_threads_squash) {
+        ++stats.squashCycles;
+    }
+
     // use a scheduling policy here to only decode 1 thread in 1 cycle
     // only 1 thread decodes in a cycle
     if(SingleThreadFetchiew) {
@@ -716,11 +781,6 @@ Decode::tick()
         getDecodingThread();
         for(int i = 0; i < DecodePreference.size() ; i++) {
             ThreadID tid = DecodePreference[i];
-            if (decodeStatus[tid] == Blocked) {
-            ++stats.blockedCycles;
-            } else if (decodeStatus[tid] == Squashing) {
-                ++stats.squashCycles;
-            }
             
             // have only 1 thread issue in a cycle
             if(thread_decoded){
@@ -800,6 +860,8 @@ Decode::tick()
         assert(numDecodedThreads <= 1);
     }
 
+    ++stats.DecodeWidthUtilization[decode_vals_sent];
+
     // printf("exiting thread0 entries %d\n",insts[0].size());
 }
 
@@ -812,12 +874,6 @@ Decode::decode(bool &status_change, ThreadID tid)
     //     buffer any instructions coming from fetch
     //     continue trying to empty skid buffer
     //     check if stall conditions have passed
-
-    if (decodeStatus[tid] == Blocked) {
-        ++stats.blockedCycles;
-    } else if (decodeStatus[tid] == Squashing) {
-        ++stats.squashCycles;
-    }
 
     // Decode should try to decode as many instructions as its bandwidth
     // will allow, as long as it is not currently blocked.
@@ -860,7 +916,6 @@ Decode::decodeInsts(ThreadID tid)
         DPRINTF(Decode, "[tid:%i] Nothing to do, breaking out"
                 " early.\n",tid);
         // Should I change the status to idle?
-        ++stats.idleCycles;
         return;
     } else if (decodeStatus[tid] == Unblocking) {
         DPRINTF(Decode, "[tid:%i] Unblocking, removing insts from skid "

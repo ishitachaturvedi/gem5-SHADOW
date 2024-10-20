@@ -711,6 +711,14 @@ class Fetch
         statistics::Vector BlockedOnBranchCount;
         statistics::Vector BlockedOnBranchCountNoSThread;
 
+        statistics::Vector FetchNotValid;
+        statistics::Vector FetchBufferExceeded;
+        statistics::Vector FetchQueueFull;
+        statistics::Vector NeedToFetchMoreMemory;
+        statistics::Vector QuiescePendingForThread;
+        statistics::Vector FetchQueueTryingToDecode;
+        statistics::Vector FetchQueueSendingToDecode;
+
     } fetchStats;
 };
 

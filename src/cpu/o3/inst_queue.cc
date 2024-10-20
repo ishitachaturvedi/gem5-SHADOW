@@ -1069,6 +1069,17 @@ InstructionQueue::scheduleReadyInsts()
     // Need to really think about this for in-order.
     // Merge issue and execute?
 
+    // check if op is free -> Backend utilization check
+    for(int i = 0; i < OpClass::Num_OpClass; i++) {
+        int idx = FUPool::NoCapableFU;
+        OpClass op_class1 = OpClass(i);
+        idx = fuPool->getUnit(op_class1);
+        // check if we have insts and no structures to execute it
+        if(idx == FUPool::NoFreeFU && !readyInsts[op_class1].empty()) {
+            iqStats.statFuNoFree[op_class1]++;
+        }
+    }
+
     while (total_issued < totalWidth && order_it != order_end_it) {
         OpClass op_class = (*order_it).queueType;
 
@@ -1088,7 +1099,6 @@ InstructionQueue::scheduleReadyInsts()
             iqIOStats.intInstQueueReads++;
         }
 
-        
         if(!issuing_inst->isInROB())
         {
             DPRINTF(IQ, "[tid:%d] : instruction is not in ROB PC %s prior issued %d "
@@ -1346,16 +1356,6 @@ InstructionQueue::scheduleReadyInsts()
     }
     if(total_issued == totalWidth) {
         ++iqStats.ReadyInstMoreThanBW;
-    }
-
-    // check if op is free -> Backend utilization check
-    for(int i = 0; i < OpClass::Num_OpClass; i++) {
-        int idx = FUPool::NoCapableFU;
-        OpClass op_class1 = OpClass(i);
-        idx = fuPool->getUnit(op_class1);
-        if(idx == FUPool::NoFreeFU) {
-            iqStats.statFuNoFree[op_class1]++;
-        }
     }
 }
 

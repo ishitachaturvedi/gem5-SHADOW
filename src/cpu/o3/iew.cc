@@ -159,8 +159,10 @@ IEW::regProbePoints()
 
 IEW::IEWStats::IEWStats(CPU *cpu)
     : statistics::Group(cpu, "iew"),
-    ADD_STAT(idleCycles, statistics::units::Cycle::get(),
-             "Number of cycles IEW is idle"),
+    ADD_STAT(idleCyclesDispatch, statistics::units::Cycle::get(),
+             "Number of cycles IEW dispatch is idle (no instructions)"),
+    ADD_STAT(ExecuteInstsIdle, statistics::units::Cycle::get(),
+             "Number of cycles IEW Execute is idle (no instructions)"),
     ADD_STAT(squashCycles, statistics::units::Cycle::get(),
              "Number of cycles IEW is squashing"),
     ADD_STAT(squashCyclesS, statistics::units::Cycle::get(),
@@ -274,7 +276,7 @@ IEW::IEWStats::IEWStats(CPU *cpu)
     ADD_STAT(blockingBandwidthFullS, statistics::units::Count::get(),
             "Blocking from bandwidth Full S"),  
     ADD_STAT(NoIntructionsAvailable, statistics::units::Count::get(),
-            "Number of instructions available in thread"),
+            "Number of instructions available in thread for execution"),
     ADD_STAT(InstructionDispatched, statistics::units::Count::get(),
             "Number of instructions dispatched by thread"),
     ADD_STAT(InstructionAvaialbleNoneIssued, statistics::units::Count::get(),
@@ -1170,7 +1172,6 @@ IEW::dispatchInsts(ThreadID tid)
     bool add_to_iq = false;
     int dis_num_inst = 0;
 
-
     int dispatchWidthUse = dispatchWidth; // Ishita
     // for W threads, we allow all w threads to use dispatchwidth/(num W threads)
     // if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
@@ -1178,6 +1179,7 @@ IEW::dispatchInsts(ThreadID tid)
     // }
     // Loop through the instructions, putting them in the instruction
     // queue.
+
     for ( ; dis_num_inst < insts_to_add &&
               dis_num_inst < dispatchWidthUse;
           ++dis_num_inst)
@@ -1529,7 +1531,13 @@ IEW::executeInsts()
 //    printAvailableInsts();
 
     // Execute/writeback any instructions that are available.
+
     int insts_to_execute = fromIssue->size;
+
+    if(insts_to_execute == 0) {
+        ++iewStats.ExecuteInstsIdle;
+    }
+
     int inst_num = 0;
     for (; inst_num < insts_to_execute;
           ++inst_num) {
@@ -2020,6 +2028,8 @@ IEW::tick()
     bool SThreadHasInst = false;
     bool WThreadHasInst = false;
 
+    int noIdle = 0;
+
     //for (auto tid:ThreadOrder) {
     while (threads != end) {
         ThreadID tid = *threads++;
@@ -2039,9 +2049,10 @@ IEW::tick()
                 ++iewStats.blockingS;
             }
             if(insts_available == 0) {
-                ++iewStats.NoIntructionsAvailable[tid];
+                //+iewStats.NoIntructionsAvailable[tid];
             } else {
                 SThreadHasInst = true;
+                noIdle++;
             }
         }
         if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
@@ -2053,17 +2064,20 @@ IEW::tick()
                 ++iewStats.blockingW;
             }
             if(insts_available == 0) {
-                ++iewStats.NoIntructionsAvailable[tid];
+                //++iewStats.NoIntructionsAvailable[tid];
             } else {
                 WThreadHasInst = true;
+                noIdle++;
             }
         }
         if(!SingleThreadFetchiew) {
             dispatch(tid);
-            if(insts_available != 0 && !instIssuedByThread[tid]) {
-                ++iewStats.InstructionAvaialbleNoneIssued[tid];
-            }
         }
+        
+    }
+
+    if(noIdle == 0) {
+        ++iewStats.idleCyclesDispatch;
     }
 
     bool SThreadSent = false;

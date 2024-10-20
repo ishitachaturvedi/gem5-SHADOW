@@ -121,6 +121,9 @@ class Decode
     int decode_vals_0_sent;
     int decode_vals_1_sent;
 
+    int decode_inst_to_decode;
+    int decode_bandwidth_full;
+    
     /** Returns the name of decode. */
     std::string name() const;
 
@@ -385,12 +388,20 @@ class Decode
         statistics::Scalar idleCycles;
         /** Stat for total number of blocked cycles. */
         statistics::Scalar blockedCycles;
+        /** Stat for total number of idle cycles. */
+        statistics::Vector idleCyclesPerThread;
+        /** Stat for how much decode width is utilized **/
+        statistics::Vector DecodeWidthUtilization;
+        /** Stat for total number of blocked cycles. */
+        statistics::Vector blockedCyclesPerThread;
         /** Stat for total number of normal running cycles. */
         statistics::Scalar runCycles;
         /** Stat for total number of unblocking cycles. */
         statistics::Scalar unblockCycles;
         /** Stat for total number of squashing cycles. */
         statistics::Scalar squashCycles;
+        /** Stat for total number of squashing cycles. */
+        statistics::Vector squashCyclesPerThread;
         /** Stat for number of times a branch is resolved at decode. */
         statistics::Scalar branchResolved;
         /** Stat for number of times a branch mispredict is detected. */
@@ -415,6 +426,8 @@ class Decode
         statistics::Scalar multipleRunning;
         statistics::Scalar blocking;
         statistics::Scalar blockingS;
+
+        statistics::Vector blockedFromRename;
     } stats;
 };
 

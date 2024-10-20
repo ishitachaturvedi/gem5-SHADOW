@@ -50,6 +50,7 @@
 #include "debug/Activity.hh"
 #include "debug/O3PipeView.hh"
 #include "debug/Rename.hh"
+#include "decode.hh"
 #include "params/BaseO3CPU.hh"
 #include "debug/IQ.hh"
 #include "debug/pipelineView.hh"
@@ -116,11 +117,15 @@ Rename::RenameStats::RenameStats(statistics::Group *parent)
                "Number of cycles rename is squashing W Thread"),
       ADD_STAT(idleCycles, statistics::units::Cycle::get(),
                "Number of cycles rename is idle"),
+      ADD_STAT(idleCyclesPerThread, statistics::units::Cycle::get(),
+               "Number of cycles rename is idle"),
       ADD_STAT(idleCyclesSThread, statistics::units::Cycle::get(),
                "Number of cycles rename is idle S Thread"),
       ADD_STAT(idleCyclesWThread, statistics::units::Cycle::get(),
                "Number of cycles rename is idle W Thread"),
       ADD_STAT(blockCycles, statistics::units::Cycle::get(),
+               "Number of cycles rename is blocking"),
+      ADD_STAT(blockCyclesPerThread, statistics::units::Cycle::get(),
                "Number of cycles rename is blocking"),
       ADD_STAT(blockCyclesSThread, statistics::units::Cycle::get(),
                "Number of cycles rename is blocking S Thread"),
@@ -387,6 +392,14 @@ Rename::RenameStats::RenameStats(statistics::Group *parent)
     blockingSerialized.prereq(blockingSerialized);
     blockingSerializedS.prereq(blockingSerializedS);
     blockingSerializedW.prereq(blockingSerializedW);
+
+    idleCyclesPerThread
+        .init(10)
+        .flags(statistics::total);
+
+    blockCyclesPerThread
+        .init(10)
+        .flags(statistics::total);
 }
 
 void
@@ -685,6 +698,9 @@ Rename::tick()
     RenamePreference.clear();
     // Check stall and squash signals.
 
+    bool all_threads_idle = true;
+    bool all_threads_blocked = true;
+
     while (threads != end) {
         ThreadID tid = *threads++;
 
@@ -695,6 +711,24 @@ Rename::tick()
         // Daniel checking rename blocks
         int insts_available = renameStatus[tid] == Unblocking ?
         skidBuffer[tid].size() : insts[tid].size();
+
+        if(renameStatus[tid] != Blocked) {
+            all_threads_blocked= false;
+        } else {
+            ++stats.blockCyclesPerThread[tid];
+        }
+
+        int free_rob_entries = calcFreeROBEntries(tid);
+        int free_iq_entries  = calcFreeIQEntries(tid);
+        int min_free_entries = free_rob_entries;
+
+        FullSource source = ROB;
+
+        if (free_iq_entries < min_free_entries) {
+            min_free_entries = free_iq_entries;
+            source = IQ;
+        }
+
         if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
             sThreadCount++;
             if(insts_available != 0 && (renameStatus[tid] == Unblocking || renameStatus[tid] == Running)){
@@ -717,6 +751,13 @@ Rename::tick()
             } else {
                 ++stats.unknownStallS;
             }
+            if(insts_available != 0) {
+                all_threads_idle = false;
+            }
+            if(insts_available == 0 && min_free_entries > 0) {
+                no_insts_available = 1;
+                ++stats.idleCyclesPerThread[tid];
+            }
         }
         if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
             wThreadCount++;
@@ -738,14 +779,24 @@ Rename::tick()
             } else if(renameStatus[tid] == SerializeStall) {
                 ++stats.SerializeStallW;
             }
-            if(insts_available == 0) {
+            if(insts_available == 0 && min_free_entries > 0) {
                 no_insts_available = 1;
+                ++stats.idleCyclesPerThread[tid];
+            }
+            if(insts_available != 0) {
+                all_threads_idle = false;
             }
             // Always rename W threads
             rename(status_change, tid);
         }
+    }
 
+    if(all_threads_idle) {
+        ++stats.idleCycles;
+    }
 
+    if(all_threads_blocked) {
+        ++stats.blockCycles;
     }
 
     // use a scheduling policy here to only rename 1 thread in 1 cycle
@@ -763,7 +814,6 @@ Rename::tick()
             block(tid);
         }
         if (renameStatus[tid] == Blocked) {
-            ++stats.blockCycles;
             if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
                 ++stats.blockCyclesSThread;
             } else {
@@ -807,6 +857,25 @@ Rename::tick()
         }
         int insts_available = renameStatus[tid] == Unblocking ?
         skidBuffer[tid].size() : insts[tid].size();
+
+        // Check the decode queue to see if instructions are available.
+        // If there are no available instructions to rename, then do nothing.
+        if (insts_available == 0) {
+            if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
+                ++stats.idleCyclesSThread;
+            } else {
+                ++stats.idleCyclesWThread;
+            }
+        } else if (renameStatus[tid] == Unblocking) {
+            ++stats.unblockCycles;
+        } else if (renameStatus[tid] == Running) {
+            ++stats.runCycles;
+            if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
+                ++stats.runCyclesSThread;
+            } else {
+                ++stats.runCyclesWThread;
+            }
+        }
 
         if (insts_available != 0 && (renameStatus[tid] == Running ||
             renameStatus[tid] == Idle)) {
@@ -913,7 +982,6 @@ Rename::rename(bool &status_change, ThreadID tid)
     //     check if stall conditions have passed
 
     if (renameStatus[tid] == Blocked) {
-        ++stats.blockCycles;
         if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
             ++stats.blockCyclesSThread;
         } else {
@@ -982,7 +1050,6 @@ Rename::renameInsts(ThreadID tid)
     if (insts_available == 0) {
         DPRINTF(Rename, "[tid:%i] Nothing to do, breaking out early.\n",
                 tid);
-        ++stats.idleCycles;
         if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
             ++stats.idleCyclesSThread;
         } else {

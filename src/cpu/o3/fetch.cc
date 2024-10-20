@@ -196,6 +196,20 @@ Fetch::FetchStatGroup::FetchStatGroup(CPU *cpu, Fetch *fetch)
     ADD_STAT(cycles, statistics::units::Cycle::get(),
              "Number of cycles fetch has run and was not squashing or "
              "blocked"),
+    ADD_STAT(FetchNotValid, statistics::units::Count::get(),
+             "How many times the fetch block is invalid"),
+    ADD_STAT(FetchBufferExceeded, statistics::units::Count::get(),
+             "Fetch Buffer Size Exceeded"),
+    ADD_STAT(FetchQueueFull, statistics::units::Count::get(),
+             "Fetch Queue full for a thread"),
+    ADD_STAT(NeedToFetchMoreMemory, statistics::units::Count::get(),
+             "Fetch needs more memory"),
+    ADD_STAT(QuiescePendingForThread, statistics::units::Count::get(),
+             "Quisence made fetch stop"),
+    ADD_STAT(FetchQueueTryingToDecode, statistics::units::Count::get(),
+             "Trying to send Fetch to Decode"),
+    ADD_STAT(FetchQueueSendingToDecode, statistics::units::Count::get(),
+             "Sending Fetch to Decode"),
     ADD_STAT(squashCycles, statistics::units::Cycle::get(),
              "Number of cycles fetch has spent squashing"),
     ADD_STAT(tlbCycles, statistics::units::Cycle::get(),
@@ -302,7 +316,28 @@ Fetch::FetchStatGroup::FetchStatGroup(CPU *cpu, Fetch *fetch)
         RunningCount
             .init(cpu->numThreads)
             .flags(statistics::total);
+        FetchNotValid
+            .init(cpu->numThreads)
+            .flags(statistics::total);
+        FetchBufferExceeded
+            .init(cpu->numThreads)
+            .flags(statistics::total);
         IdleCount
+            .init(cpu->numThreads)
+            .flags(statistics::total);
+        FetchQueueFull
+            .init(cpu->numThreads)
+            .flags(statistics::total);
+        NeedToFetchMoreMemory
+            .init(cpu->numThreads)
+            .flags(statistics::total);
+        FetchQueueTryingToDecode
+            .init(cpu->numThreads)
+            .flags(statistics::total);
+        FetchQueueSendingToDecode
+            .init(cpu->numThreads)
+            .flags(statistics::total);
+        QuiescePendingForThread
             .init(cpu->numThreads)
             .flags(statistics::total);
         SquashingCount
@@ -1188,6 +1223,8 @@ Fetch::tick()
         }
     }
 
+    // NoGoodAddrCount
+
     if (sThreadCount > 0 && notBlockedS == 0){
         ++fetchStats.stalledS;
     }
@@ -1286,10 +1323,13 @@ Fetch::tick()
     } else {
             for(int i = 0; i < numThreads; i++) {
             ThreadID tid = ToDecodePreference[i];
+            if(tid >= 0) 
+                ++fetchStats.FetchQueueTryingToDecode[tid];
             if (!stalls[tid].decode) {
+                if(tid >= 0) 
+                    ++fetchStats.FetchQueueSendingToDecode[tid];
                 // get stats if fetchQueue Empty or decode width exhasted
                 if(fetchQueue[tid].empty() && tid > 0) {
-
                     ++fetchStats.FetchQueueEmpty[tid];
                 }
                 if(insts_to_decode >= decodeWidth && tid > 0) {
@@ -1706,6 +1746,10 @@ Fetch::fetch(bool &status_change)
          DPRINTFR(Fetch, "\n");
      }
 
+    if(fetchQueue[tid].size() >= fetchQueueSize) {
+        ++fetchStats.FetchQueueFull[tid];
+    }
+
     while (numInst < fetchWidth && fetchQueue[tid].size() < fetchQueueSize
            && !predictedBranch && !quiesce) {
         // We need to process more memory if we aren't going to get a
@@ -1715,14 +1759,17 @@ Fetch::fetch(bool &status_change)
         fetchAddr = (this_pc.instAddr() + pcOffset) & pc_mask;
         Addr fetchBufferBlockPC = fetchBufferAlignPC(fetchAddr);
 
-        if (needMem) {
+        if (needMem) { 
             // If buffer is no longer valid or fetchAddr has moved to point
             // to the next cache block then start fetch from icache.
             if (!fetchBufferValid[tid] ||
                 fetchBufferBlockPC != fetchBufferPC[tid])
+            {
+                ++fetchStats.FetchNotValid[tid];
                 break;
-
+            }
             if (blkOffset >= numInsts) {
+                ++fetchStats.FetchBufferExceeded[tid];
                 // We need to process more memory, but we've run out of the
                 // current block.
                 break;
@@ -1760,6 +1807,7 @@ Fetch::fetch(bool &status_change)
                 } else {
                     // We need more bytes for this instruction so blkOffset and
                     // pcOffset will be updated
+                    ++fetchStats.NeedToFetchMoreMemory[tid];
                     break;
                 }
             }
@@ -1839,6 +1887,7 @@ Fetch::fetch(bool &status_change)
                 DPRINTF(Fetch, "(QuiescePending) FetchStatus Update: fetchStatus[%i] = %d\n", tid, fetchStatus[tid]);
                 status_change = true;
                 quiesce = true;
+                ++fetchStats.QuiescePendingForThread[tid];
                 break;
             }
 

@@ -517,7 +517,8 @@ class IEW
         IEWStats(CPU *cpu);
 
         /** Stat for total number of idle cycles. */
-        statistics::Scalar idleCycles;
+        statistics::Scalar idleCyclesDispatch;
+        statistics::Scalar ExecuteInstsIdle;
         statistics::Scalar idleCyclesS;
         statistics::Scalar idleCyclesW;
         /** Stat for total number of squashing cycles. */

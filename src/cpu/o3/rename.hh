@@ -574,10 +574,12 @@ class Rename
         statistics::Scalar squashCyclesWThread;
         /** Stat for total number of cycles spent idle. */
         statistics::Scalar idleCycles;
+        statistics::Vector idleCyclesPerThread;
         statistics::Scalar idleCyclesSThread;
         statistics::Scalar idleCyclesWThread;
         /** Stat for total number of cycles spent blocking. */
         statistics::Scalar blockCycles;
+        statistics::Vector blockCyclesPerThread;
         statistics::Scalar blockCyclesSThread;
         statistics::Scalar blockCyclesWThread;
         /** Stat for total number of cycles spent stalling for a serializing
