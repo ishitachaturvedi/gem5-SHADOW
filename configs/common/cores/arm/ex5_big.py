@@ -132,9 +132,9 @@ class ex5_big(ArmO3CPU):
     commitToIEWDelay = 1
     fetchWidth = 3
     fetchBufferSize = 16
-    fetchToDecodeDelay = 3
+    fetchToDecodeDelay = 1
     decodeWidth = 3
-    decodeToRenameDelay = 2
+    decodeToRenameDelay = 1
     renameWidth = 3
     renameToIEWDelay = 1
     issueToExecuteDelay = 1
@@ -149,13 +149,22 @@ class ex5_big(ArmO3CPU):
     trapLatency = 13
     backComSize = 5
     forwardComSize = 5
-    numPhysIntRegs = 90
-    numPhysFloatRegs = 256
+    numPhysIntRegs = 264 #90
+    numPhysFloatRegs = 264 #90
+    numPhysVecRegs = 264
     numIQEntries = 48
     numROBEntries = 60
+    numWIQEntries = 10
 
     switched_out = False
     branchPred = ex5_big_BP()
+
+    smtLSQPolicy = "Partitioned"
+    smtROBPolicy = "Partitioned"
+    smtIQPolicy = "SDynamicWStatic"
+    #smtIQPolicy = "SDynamicWStatic"
+    # smtFetchPolicy = "SWFetchCount"
+    smtFetchPolicy = "IQCount"
 
 
 class L1Cache(Cache):

@@ -4,8 +4,8 @@
 #include <stdbool.h>
 #include <stdatomic.h>
 
-#define TILE_SIZE 50  // Size of the tile (10x10)
-#define CHUNK_SIZE 5  // Size of the chunk for work stealing
+#define TILE_SIZE 200  // Size of the tile (10x10)
+#define CHUNK_SIZE 20  // Size of the chunk for work stealing
 
 // #define TILE_SIZE 50  // Size of the tile (10x10)
 // #define CHUNK_SIZE 5  // Size of the chunk for work stealing
