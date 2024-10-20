@@ -656,7 +656,8 @@ class Grace12Wide_testConfig(ArmO3CPU):
 
     numIQEntries = 300
     numSIQEntries = 300
-    numROBEntries = 230
+    #numROBEntries = 230
+    numROBEntries = 500
     #numWIQEntries = 120
     numWIQEntries = 10
     LQEntries = 340
@@ -917,6 +918,19 @@ class O3_ARM_grace_ICache(Cache):
     # Writeback clean lines as well
     writeback_clean = True
 
+# Instruction Cache
+class O3_ARM_grace_ICache_Perfect(Cache):
+    tag_latency = 0
+    data_latency = 0
+    response_latency = 10
+    mshrs = 12
+    tgts_per_mshr = 8
+    size = "32kB"
+    assoc = 2
+    is_read_only = True
+    # Writeback clean lines as well
+    writeback_clean = True
+
 class O3_ARM_grace_ICache_Strong(Cache):
     tag_latency = 1
     data_latency = 1
@@ -964,6 +978,26 @@ class O3_ARM_grace_L2(Cache):
     tag_latency = 12
     data_latency = 12
     response_latency = 12
+    mshrs = 16
+    tgts_per_mshr = 8
+    size = "1MB"
+    assoc = 16
+    write_buffers = 8
+    prefetch_on_access = True
+    clusivity = "mostly_excl"
+    # Simple stride prefetcher
+    prefetcher = StridePrefetcher(degree=8, latency=1)
+    tags = BaseSetAssoc()
+    replacement_policy = RandomRP()
+
+# L2 Cache
+class O3_ARM_grace_L2_Perfect(Cache):
+    # tag_latency = 12
+    # data_latency = 12
+    # response_latency = 12
+    tag_latency = 0
+    data_latency = 0
+    response_latency = 0
     mshrs = 16
     tgts_per_mshr = 8
     size = "1MB"
