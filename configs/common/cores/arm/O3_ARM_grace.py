@@ -567,27 +567,36 @@ class Grace12Wide_testConfig(ArmO3CPU):
     fetchWidth = 12
     fetchBufferSize = 64
     fetchToDecodeDelay = 1
-    decodeWidth = 8
     decodeToRenameDelay = 1
-    renameWidth = 8
     renameToIEWDelay = 1
     issueToExecuteDelay = 1
-    dispatchWidth = 8
-    issueWidth = 12
-    wbWidth = 8
     iewToCommitDelay = 1
     renameToROBDelay = 1
-    commitWidth = 8
-    squashWidth = 8
     trapLatency = 1
     backComSize = 5
     forwardComSize = 5
+
+    # decodeWidth = 8
+    # renameWidth = 8
+    # dispatchWidth = 8
+    # issueWidth = 8
+    # wbWidth = 8
+    # commitWidth = 8
+    # squashWidth = 8
+
+    decodeWidth = 4
+    renameWidth = 4
+    dispatchWidth = 4
+    issueWidth = 4
+    wbWidth = 4
+    commitWidth = 4
+    squashWidth = 4
     
     numPhysFloatRegs = 264
     numPhysVecRegs = 264 
     numPhysIntRegs = 264
 
-    numIQEntries = 120
+    numIQEntries = 60
     numSIQEntries = 120
     numROBEntries = 60
     numWIQEntries = 10
