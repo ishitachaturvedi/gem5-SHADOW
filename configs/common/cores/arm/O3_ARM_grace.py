@@ -385,8 +385,7 @@ class O3_ARM_Grace_BP(BiModeBP):
 
 
 class Grace4Wide(ArmO3CPU):
-    #def __init__(self):
-    #    super().__init__()
+    #super().__init__()
 
     commitToIEWDelay = 1
     commitToRenameDelay = 1
@@ -413,7 +412,7 @@ class Grace4Wide(ArmO3CPU):
     renameToROBDelay = 1
     commitWidth = 8
     squashWidth = 8
-    trapLatency = 1
+    trapLatency = 13
     backComSize = 5
     forwardComSize = 5
 
@@ -583,92 +582,17 @@ class Grace12Wide_testConfig(ArmO3CPU):
     trapLatency = 1
     backComSize = 5
     forwardComSize = 5
-
-    # 4 wide
-    # commitToIEWDelay = 1
-    # commitToRenameDelay = 1
-    # iewToRenameDelay = 1
-    # commitToDecodeDelay = 1
-    # iewToDecodeDelay = 1
-    # renameToDecodeDelay = 1
-    # commitToFetchDelay = 1
-    # iewToFetchDelay = 1
-    # renameToFetchDelay = 1
-    # decodeToFetchDelay = 1
-    # fetchWidth = 12
-    # fetchBufferSize = 64
-    # fetchToDecodeDelay = 1
-    # decodeWidth = 8
-    # decodeToRenameDelay = 1
-    # renameWidth = 4
-    # renameToIEWDelay = 1
-    # issueToExecuteDelay = 1
-    # dispatchWidth = 4
-    # issueWidth = 4
-    # wbWidth = 4
-    # iewToCommitDelay = 1
-    # renameToROBDelay = 1
-    # commitWidth = 4
-    # squashWidth = 4
-    # trapLatency = 1
-    # backComSize = 5
-    # forwardComSize = 5
-
-    # 1 thread values
-    # numROBEntries = 512
-    # numPhysFloatRegs = 250
-    # numPhysVecRegs = 250 
-    # numPhysIntRegs = 250
-    # numIQEntries = 120
-
-    # switched_out = False
-    # branchPred = O3_ARM_Grace_BP()
-    # fuPool = O3_ARM_Grace_FUP()
-
-    # LQEntries = 68
-    # SQEntries = 72
-    # LSQDepCheckShift = 0
-    # LFSTSize = 1024
-    # SSITSize = 1024
-
-    # 4 thread values
-    # numROBEntries = 1280
-    # numPhysFloatRegs = 432
-    # numPhysVecRegs = 432 
-    # numPhysIntRegs = 504
-    # numIQEntries = 480
-
-    # switched_out = False
-    # branchPred = O3_ARM_Grace_BP()
-    # fuPool = O3_ARM_Grace_FUP()
-
-    # LQEntries = 170
-    # SQEntries = 180
-    # LSQDepCheckShift = 0
-    # LFSTSize = 1024
-    # SSITSize = 1024
-
-    # Running config
     
-    numPhysFloatRegs = 432
-    numPhysVecRegs = 432 
-    numPhysIntRegs = 504
+    numPhysFloatRegs = 264
+    numPhysVecRegs = 264 
+    numPhysIntRegs = 264
 
-    numIQEntries = 300
-    numSIQEntries = 300
-    #numROBEntries = 230
-    numROBEntries = 500
-    #numWIQEntries = 120
+    numIQEntries = 120
+    numSIQEntries = 120
+    numROBEntries = 60
     numWIQEntries = 10
-    LQEntries = 340
-    SQEntries = 180
-
-    # numIQEntries = 2000
-    # numSIQEntries = 2000
-    # numROBEntries = 2000
-    # numWIQEntries = 120
-    # LQEntries = 2000
-    # SQEntries = 2000
+    LQEntries = 68
+    SQEntries = 72
 
     switched_out = False
     branchPred = O3_ARM_Grace_BP()
@@ -681,10 +605,7 @@ class Grace12Wide_testConfig(ArmO3CPU):
     smtLSQPolicy = "Partitioned"
     smtROBPolicy = "Partitioned"
     smtIQPolicy = "SDynamicWStatic"
-    #smtIQPolicy = "SDynamicWStatic"
-    # smtFetchPolicy = "SWFetchCount"
     smtFetchPolicy = "IQCount"
-
 class Grace12Wide_1thread(ArmO3CPU):
     # def __init__(self):
     #     super().__init__()
