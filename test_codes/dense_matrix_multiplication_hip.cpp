@@ -2,6 +2,7 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
+#include <cstdlib> // For std::atoi
 
 #define TILE_SIZE 16
 
@@ -55,8 +56,19 @@ bool verifyResults(const std::vector<float>& C1, const std::vector<float>& C2, i
     return true;
 }
 
-int main() {
-    const int width = 1024;
+int main(int argc, char* argv[]) {
+    if (argc != 2) {
+        std::cerr << "Usage: " << argv[0] << " <matrix_size>" << std::endl;
+        return -1;
+    }
+
+    int width = std::atoi(argv[1]);
+
+    if (width <= 0 || width % TILE_SIZE != 0) {
+        std::cerr << "Error: Matrix size must be a positive multiple of " << TILE_SIZE << "." << std::endl;
+        return -1;
+    }
+
     size_t size = width * width * sizeof(float);
 
     // Unified memory allocation using hipMallocManaged
