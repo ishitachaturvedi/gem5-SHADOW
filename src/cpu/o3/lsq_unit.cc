@@ -197,6 +197,7 @@ LSQUnit::LSQUnit(uint32_t lqEntries, uint32_t sqEntries)
       cacheBlockMask(0), stalled(false),
       isStoreBlocked(false), storeInFlight(false), stats(nullptr)
 {
+    ldStCounter.resize(10,0);
 }
 
 void
@@ -270,7 +271,9 @@ LSQUnit::LSQUnitStats::LSQUnitStats(statistics::Group *parent)
                "Number of times an access to memory failed due to the cache "
                "being blocked"),
       ADD_STAT(loadToUse, "Distribution of cycle latency between the "
-                "first time a load is issued and its completion")
+                "first time a load is issued and its completion"),
+      ADD_STAT(LoadQueueUtilization, statistics::units::Count::get(), "Average utilization of the load queue"),
+      ADD_STAT(StoreQueueUtilization, statistics::units::Count::get(), "Average utilization of the store queue")
 {
     loadToUse
         .init(0, 299, 10)
@@ -1692,6 +1695,19 @@ LSQUnit::getStoreHeadSeqNum()
         return storeQueue.front().instruction()->seqNum;
     else
         return 0;
+}
+
+void
+LSQUnit::ldstQueueAverage(int tid) {
+    ldStCounter[tid]++;
+    
+    LoadQueueUtilizationVec += (numLoads() - LoadQueueUtilizationVec) / ldStCounter[tid];
+
+    StoreQueueUtilizationVec += (numStores() - StoreQueueUtilizationVec) / ldStCounter[tid];
+
+    stats.LoadQueueUtilization = LoadQueueUtilizationVec;
+
+    stats.StoreQueueUtilization = StoreQueueUtilizationVec;
 }
 
 } // namespace o3

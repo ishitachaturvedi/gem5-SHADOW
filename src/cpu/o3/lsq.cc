@@ -115,16 +115,35 @@ LSQ::LSQ(CPU *cpu_ptr, IEW *iew_ptr, const BaseO3CPUParams &params)
         DPRINTF(LSQ, "LSQ sharing policy set to Threshold: "
                 "%i entries per LQ | %i entries per SQ\n",
                 maxLQEntries,maxSQEntries);
+    } else if (lsqPolicy == SMTQueuePolicy::SDynamicWStatic) {
+        DPRINTF(Fetch, "LSQ sharing policy set to SDynamicWStatic: "
+                "%i entries per LQ | %i entries per SQ\n",
+                maxLQEntries,maxSQEntries);
     } else {
         panic("Invalid LSQ sharing policy. Options are: Dynamic, "
                     "Partitioned, Threshold");
     }
 
     thread.reserve(numThreads);
-    for (ThreadID tid = 0; tid < numThreads; tid++) {
-        thread.emplace_back(maxLQEntries, maxSQEntries);
-        thread[tid].init(cpu, iew_ptr, params, this, tid);
-        thread[tid].setDcachePort(&dcachePort);
+
+    if (lsqPolicy == SMTQueuePolicy::SDynamicWStatic) {
+        for (ThreadID tid = 0; tid < numThreads; tid++) {
+            if(tid < 2) {
+                thread.emplace_back(maxLQEntries, maxSQEntries);
+                thread[tid].init(cpu, iew_ptr, params, this, tid);
+                thread[tid].setDcachePort(&dcachePort);
+            } else {
+                thread.emplace_back(5, 5);
+                thread[tid].init(cpu, iew_ptr, params, this, tid);
+                thread[tid].setDcachePort(&dcachePort);
+            } 
+        }
+    } else {
+        for (ThreadID tid = 0; tid < numThreads; tid++) {
+            thread.emplace_back(maxLQEntries, maxSQEntries);
+            thread[tid].init(cpu, iew_ptr, params, this, tid);
+            thread[tid].setDcachePort(&dcachePort);
+        }
     }
 }
 
@@ -189,6 +208,14 @@ LSQ::tick()
 
     usedLoadPorts = 0;
     usedStorePorts = 0;
+
+    std::list<ThreadID>::iterator threads = activeThreads->begin();
+    std::list<ThreadID>::iterator end = activeThreads->end();
+
+    while (threads != end) {
+        ThreadID tid = *threads++;
+        thread[tid].ldstQueueAverage(tid);
+    }
 
     // for (ThreadID tid = 0; tid < numThreads; tid++) {
     //     DPRINTF(LSQ,"[tid:%d] Dumping memory queue%d\n",tid);

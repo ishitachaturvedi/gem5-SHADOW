@@ -544,6 +544,10 @@ class LSQUnit
         /** Distribution of cycle latency between the first time a load
          * is issued and its completion */
         statistics::Distribution loadToUse;
+
+        /** Average utilization of LS and SQ per thread **/
+        statistics::Scalar LoadQueueUtilization; 
+        statistics::Scalar StoreQueueUtilization;  
     } stats;
 
   public:
@@ -564,8 +568,15 @@ class LSQUnit
     /** Returns the sequence number of the head store instruction. */
     InstSeqNum getStoreHeadSeqNum();
 
+    // average utilization of ldst queue
+    void ldstQueueAverage(int tid);
+
     /** Returns whether or not the LSQ unit is stalled. */
     bool isStalled()  { return stalled; }
+
+    std::vector<int> ldStCounter;
+    double LoadQueueUtilizationVec;
+    double StoreQueueUtilizationVec;
   public:
     typedef typename CircularQueue<LQEntry>::iterator LQIterator;
     typedef typename CircularQueue<SQEntry>::iterator SQIterator;

@@ -2073,6 +2073,8 @@ IEW::tick()
         if(!SingleThreadFetchiew) {
             dispatch(tid);
         }
+
+        instQueue.AverageIQInsts(tid);
         
     }
 

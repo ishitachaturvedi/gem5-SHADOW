@@ -310,6 +310,11 @@ class InstructionQueue
     /** Debug function to print all instructions. */
     void printInsts();
 
+    std::vector<float> AverageInstinIQVec;
+    std::vector<int> tidCounter;
+
+    void AverageIQInsts(int tid);
+
   private:
     /** Does the actual squashing. */
     void doSquash(ThreadID tid);
@@ -620,6 +625,8 @@ class InstructionQueue
         statistics::Formula fuBusyRate;
 
         statistics::Vector TimeSpentWaitingOnMem;
+
+        statistics::Vector AverageInstinIQ;
     } iqStats;
 
    public:

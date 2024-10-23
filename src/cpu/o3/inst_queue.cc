@@ -116,6 +116,9 @@ InstructionQueue::InstructionQueue(CPU *cpu_ptr, IEW *iew_ptr,
                             reg_classes.at(VecRegClass)->numRegs()) +
                     params.numPhysVecPredRegs +
                     params.numPhysCCRegs;
+    
+    AverageInstinIQVec.resize(numThreads,0);
+    tidCounter.resize(numThreads,0);
 
     //Create an entry for each physical register within the
     //dependency graph.
@@ -300,7 +303,9 @@ InstructionQueue::IQStats::IQStats(CPU *cpu, const unsigned &total_width)
     ADD_STAT(ReadyInstMoreThanBW, statistics::units::Count::get(),
              "More ready instructions than available bandwidth"),
     ADD_STAT(TimeSpentWaitingOnMem, statistics::units::Count::get(),
-             "Time spent by instructions waiting on memory")
+             "Time spent by instructions waiting on memory"),
+    ADD_STAT(AverageInstinIQ, statistics::units::Count::get(),
+             "Average insts in IQ for each tid")
 {
     instsAdded
         .prereq(instsAdded);
@@ -433,6 +438,11 @@ InstructionQueue::IQStats::IQStats(CPU *cpu, const unsigned &total_width)
         ;
 
     TimeSpentWaitingOnMem
+        .init(cpu->numThreads)
+        .flags(statistics::total)
+        ;
+
+    AverageInstinIQ
         .init(cpu->numThreads)
         .flags(statistics::total)
         ;
@@ -2747,6 +2757,13 @@ InstructionQueue::dumpLists()
     }
 
     cprintf("\n");
+}
+
+void
+InstructionQueue::AverageIQInsts(int tid) {
+    tidCounter[tid]++;
+    AverageInstinIQVec[tid] += (count[tid] - AverageInstinIQVec[tid]) / tidCounter[tid];
+    iqStats.AverageInstinIQ[tid] = AverageInstinIQVec[tid];
 }
 
 

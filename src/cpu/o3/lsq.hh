@@ -941,6 +941,12 @@ class LSQ
             //@todo: Should threads check the max and the total
             //amount of the LSQ
             return SMTThreshold;
+        } else if (pol == SMTQueuePolicy::SDynamicWStatic) {
+            if(numThreads > 2) {
+                return entries / 2;
+            } else {
+                return entries / numThreads;
+            }
         }
         return 0;
     }

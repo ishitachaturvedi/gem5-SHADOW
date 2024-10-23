@@ -549,6 +549,7 @@ class Grace12Wide(ArmO3CPU):
     SSITSize = 1024
 
 
+# Modeled after Novocore
 class Grace12Wide_testConfig(ArmO3CPU):
     # def __init__(self):
     #     super().__init__()
@@ -564,44 +565,37 @@ class Grace12Wide_testConfig(ArmO3CPU):
     iewToFetchDelay = 1
     renameToFetchDelay = 1
     decodeToFetchDelay = 1
-    fetchWidth = 12
-    fetchBufferSize = 64
     fetchToDecodeDelay = 1
     decodeToRenameDelay = 1
     renameToIEWDelay = 1
     issueToExecuteDelay = 1
     iewToCommitDelay = 1
     renameToROBDelay = 1
+    
+
+    fetchWidth = 12
+    fetchBufferSize = 64
+    decodeWidth = 8
+    renameWidth = 8
+    dispatchWidth = 8
+    issueWidth = 8
+    wbWidth = 8
+    commitWidth = 8
+    squashWidth = 8
     trapLatency = 1
     backComSize = 5
     forwardComSize = 5
 
-    # decodeWidth = 8
-    # renameWidth = 8
-    # dispatchWidth = 8
-    # issueWidth = 8
-    # wbWidth = 8
-    # commitWidth = 8
-    # squashWidth = 8
-
-    decodeWidth = 4
-    renameWidth = 4
-    dispatchWidth = 4
-    issueWidth = 4
-    wbWidth = 4
-    commitWidth = 4
-    squashWidth = 4
-    
     numPhysFloatRegs = 264
     numPhysVecRegs = 264 
     numPhysIntRegs = 264
 
-    numIQEntries = 60
+    numIQEntries = 120
     numSIQEntries = 120
     numROBEntries = 60
     numWIQEntries = 10
-    LQEntries = 68
-    SQEntries = 72
+    LQEntries = 72
+    SQEntries = 68
 
     switched_out = False
     branchPred = O3_ARM_Grace_BP()
@@ -611,7 +605,7 @@ class Grace12Wide_testConfig(ArmO3CPU):
     LFSTSize = 1024
     SSITSize = 1024
 
-    smtLSQPolicy = "Partitioned"
+    smtLSQPolicy = "SDynamicWStatic"
     smtROBPolicy = "Partitioned"
     smtIQPolicy = "SDynamicWStatic"
     smtFetchPolicy = "IQCount"
@@ -890,6 +884,20 @@ class O3_ARM_grace_DCache(Cache):
     tag_latency = 2
     data_latency = 2
     response_latency = 2
+    mshrs = 6
+    tgts_per_mshr = 8
+    #size = "32kB"
+    size = "64kB"
+    assoc = 2
+    write_buffers = 16
+    # Consider the L2 a victim cache also for clean lines
+    writeback_clean = True
+
+
+class O3_ARM_grace_DCache_Perfect(Cache):
+    tag_latency = 0
+    data_latency = 0
+    response_latency = 0
     mshrs = 6
     tgts_per_mshr = 8
     #size = "32kB"
