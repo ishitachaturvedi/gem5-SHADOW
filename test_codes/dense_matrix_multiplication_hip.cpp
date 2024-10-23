@@ -1,149 +1,140 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include <hip/hip_runtime.h>
+#include <iostream>
+#include <vector>
+#include <cmath>
 
-#define NUM_THREADS 256 // Number of threads per block
+#define TILE_SIZE 16
 
-// Structure to represent a dense matrix
-typedef struct {
-    int rows;
-    int cols;
-    float *values;
-} DenseMatrix;
+// HIP kernel for tiled matrix multiplication
+__global__ void tiledMatrixMultiply(const float* A, const float* B, float* C, int width) {
+    __shared__ float tileA[TILE_SIZE][TILE_SIZE];
+    __shared__ float tileB[TILE_SIZE][TILE_SIZE];
 
-#define CHECK(cmd) \
-{\
-    hipError_t error  = cmd;\
-    if (error != hipSuccess) { \
-        fprintf(stderr, "error: '%s'(%d) at %s:%d\n", hipGetErrorString(error), error,__FILE__, __LINE__); \
-        exit(EXIT_FAILURE);\
-    }\
+    int row = blockIdx.y * TILE_SIZE + threadIdx.y;
+    int col = blockIdx.x * TILE_SIZE + threadIdx.x;
+
+    float temp = 0.0f;
+
+    for (int i = 0; i < width / TILE_SIZE; ++i) {
+        tileA[threadIdx.y][threadIdx.x] = A[row * width + (i * TILE_SIZE + threadIdx.x)];
+        tileB[threadIdx.y][threadIdx.x] = B[(i * TILE_SIZE + threadIdx.y) * width + col];
+
+        __syncthreads();
+
+        for (int j = 0; j < TILE_SIZE; ++j) {
+            temp += tileA[threadIdx.y][j] * tileB[j][threadIdx.x];
+        }
+
+        __syncthreads();
+    }
+
+    C[row * width + col] = temp;
 }
 
-// Function to create a dense matrix
-DenseMatrix createDenseMatrix(int rows, int cols) {
-    DenseMatrix mat;
-    mat.rows = rows;
-    mat.cols = cols;
-    mat.values = (float *)malloc(rows * cols * sizeof(float));
-    return mat;
-}
-
-// Function to free the memory allocated for a dense matrix
-void freeDenseMatrix(DenseMatrix *mat) {
-    free(mat->values);
-}
-
-// Device kernel for dense matrix multiplication
-__global__ void denseMatMulKernel(DenseMatrix A, DenseMatrix B, float *C, int B_cols) {
-    int row = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (row < A.rows) {
-        for (int col = 0; col < B.cols; col++) {
-            float sum = 0;
-
-            for (int k = 0; k < A.cols; k++) {
-                float A_value = A.values[row * A.cols + k];
-                float B_value = B.values[k * B.cols + col];
-
-                float rowSum = 0;
-                float randomValue = 111 % 100 + 1;  // Pseudo-random number
-
-                // More complex bitwise and arithmetic operations
-                A_value = ((A_value * 30) / (A_value * 20)) + randomValue;
-                A_value = (A_value * 3 - 5 + rowSum) * 1000;
-                rowSum += A_value;
-
-                // Introduce more complex dependencies
-                B_value = (B_value * rowSum + randomValue) / (A_value + 1);
-                B_value = ((B_value * 0xFF) + 8) / ((B_value * 8) + 0xFF);
-
-                // Complex arithmetic operations with conditional logic
-                int tempResult = (rowSum * B_value + A_value) * 500;
-
-                if (tempResult > 250) {
-                    B_value = tempResult + A_value;
-                } else {
-                    B_value = tempResult + (A_value * 10);
-                }
-
-                sum += A_value * B_value;
+// Single-threaded CPU matrix multiplication for verification
+void matrixMultiplyCPU(const std::vector<float>& A, const std::vector<float>& B, std::vector<float>& C, int width) {
+    for (int i = 0; i < width; ++i) {
+        for (int j = 0; j < width; ++j) {
+            float sum = 0.0f;
+            for (int k = 0; k < width; ++k) {
+                sum += A[i * width + k] * B[k * width + j];
             }
-
-            C[row * B.cols + col] = sum;
+            C[i * width + j] = sum;
         }
     }
 }
 
-int main(int argc, char *argv[]) {
-    if (argc != 5) {
-        printf("Usage: %s <ROWS_A> <COLS_A> <ROWS_B> <COLS_B>\n", argv[0]);
-        return -1;
-    }
-
-    int ROWS_A = atoi(argv[1]);
-    int COLS_A = atoi(argv[2]);
-    int ROWS_B = atoi(argv[3]);
-    int COLS_B = atoi(argv[4]);
-
-    if (COLS_A != ROWS_B) {
-        printf("Invalid matrix dimensions! Number of columns in A must match the number of rows in B.\n");
-        return -1;
-    }
-
-    hipDeviceProp_t props;
-    CHECK(hipGetDeviceProperties(&props, 0/*deviceID*/));
-    printf("info: running on device %s\n", props.name);
-
-    DenseMatrix A = createDenseMatrix(ROWS_A, COLS_A);
-    DenseMatrix B = createDenseMatrix(ROWS_B, COLS_B);
-
-    // Initialize matrices A and B with random values
-    for (int i = 0; i < ROWS_A * COLS_A; i++) {
-        A.values[i] = (float)(rand() % 100 + 1);
-    }
-
-    for (int i = 0; i < ROWS_B * COLS_B; i++) {
-        B.values[i] = (float)(rand() % 100 + 1);
-    }
-
-    float *C = (float *)calloc(ROWS_A * COLS_B, sizeof(float));
-
-    DenseMatrix d_A, d_B;
-    float *d_C;
-    CHECK(hipMalloc(&d_A.values, ROWS_A * COLS_A * sizeof(float)));
-    CHECK(hipMalloc(&d_B.values, ROWS_B * COLS_B * sizeof(float)));
-    CHECK(hipMalloc(&d_C, ROWS_A * COLS_B * sizeof(float)));
-
-    CHECK(hipMemcpy(d_A.values, A.values, ROWS_A * COLS_A * sizeof(float), hipMemcpyHostToDevice));
-    CHECK(hipMemcpy(d_B.values, B.values, ROWS_B * COLS_B * sizeof(float), hipMemcpyHostToDevice));
-    CHECK(hipMemset(d_C, 0, ROWS_A * COLS_B * sizeof(float)));
-
-    d_A.rows = ROWS_A;
-    d_A.cols = COLS_A;
-    d_B.rows = ROWS_B;
-    d_B.cols = COLS_B;
-
-    int blocksPerGrid = (ROWS_A + NUM_THREADS - 1) / NUM_THREADS;
-    hipLaunchKernelGGL(denseMatMulKernel, dim3(blocksPerGrid), dim3(NUM_THREADS), 0, 0, d_A, d_B, d_C, COLS_B);
-
-    CHECK(hipMemcpy(C, d_C, ROWS_A * COLS_B * sizeof(float), hipMemcpyDeviceToHost));
-
-    // Print part of the resulting matrix for verification
-    printf("Resulting matrix C (partial view):\n");
-    for (int i = 0; i < 5 && i < ROWS_A; i++) {
-        for (int j = 0; j < 5 && j < COLS_B; j++) {
-            printf("%f ", C[i * COLS_B + j]);
+// Function to verify GPU results against CPU results
+bool verifyResults(const std::vector<float>& C1, const std::vector<float>& C2, int width) {
+    const float epsilon = 1e-5;
+    for (int i = 0; i < width * width; ++i) {
+        if (std::fabs(C1[i] - C2[i]) > epsilon) {
+            return false;
         }
-        printf("\n");
+    }
+    return true;
+}
+
+int main() {
+    const int width = 1024;
+    size_t size = width * width * sizeof(float);
+
+    // Unified memory allocation using hipMallocManaged
+    float* A;
+    float* B;
+    float* C;
+
+    hipError_t err;
+
+    err = hipMallocManaged(&A, size);
+    if (err != hipSuccess) {
+        std::cerr << "Failed to allocate unified memory for A: " << hipGetErrorString(err) << std::endl;
+        return -1;
     }
 
-    CHECK(hipFree(d_A.values));
-    CHECK(hipFree(d_B.values));
-    CHECK(hipFree(d_C));
-    freeDenseMatrix(&A);
-    freeDenseMatrix(&B);
-    free(C);
+    err = hipMallocManaged(&B, size);
+    if (err != hipSuccess) {
+        std::cerr << "Failed to allocate unified memory for B: " << hipGetErrorString(err) << std::endl;
+        hipFree(A); // Free previously allocated memory
+        return -1;
+    }
 
-    return 0;
+    err = hipMallocManaged(&C, size);
+    if (err != hipSuccess) {
+        std::cerr << "Failed to allocate unified memory for C: " << hipGetErrorString(err) << std::endl;
+        hipFree(A); // Free previously allocated memory
+        hipFree(B);
+        return -1;
+    }
+
+    // Initialize matrices A and B
+    for (int i = 0; i < width * width; ++i) {
+        A[i] = 1;
+        B[i] = 1;
+    }
+
+    dim3 dimBlock(TILE_SIZE, TILE_SIZE);
+    dim3 dimGrid(width / TILE_SIZE, width / TILE_SIZE);
+
+    // Launch kernel
+    hipLaunchKernelGGL(tiledMatrixMultiply, dimGrid, dimBlock, 0, 0, A, B, C, width);
+
+    // Synchronize and check for errors
+    err = hipDeviceSynchronize();
+    if (err != hipSuccess) {
+        std::cerr << "Kernel execution failed: " << hipGetErrorString(err) << std::endl;
+        return -1;
+    }
+
+    // Perform matrix multiplication on CPU for verification
+    std::vector<float> C_cpu(width * width);
+    matrixMultiplyCPU(std::vector<float>(A, A + width * width), std::vector<float>(B, B + width * width), C_cpu, width);
+
+    // Verify GPU results against CPU results
+    if (verifyResults(std::vector<float>(C, C + width * width), C_cpu, width)) {
+        std::cout << "Matrix multiplication is correct." << std::endl;
+    } else {
+        std::cout << "Matrix multiplication is incorrect." << std::endl;
+    }
+
+   // Free unified memory
+   err = hipFree(A);
+   if (err != hipSuccess) {
+       std::cerr << "Failed to free unified memory for A: " << hipGetErrorString(err) << std::endl;
+       return -1;
+   }
+
+   err = hipFree(B);
+   if (err != hipSuccess) {
+       std::cerr << "Failed to free unified memory for B: " << hipGetErrorString(err) << std::endl;
+       return -1;
+   }
+
+   err = hipFree(C);
+   if (err != hipSuccess) {
+       std::cerr << "Failed to free unified memory for C: " << hipGetErrorString(err) << std::endl;
+       return -1;
+   }
+
+   return 0;
 }
