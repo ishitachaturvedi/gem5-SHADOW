@@ -221,7 +221,7 @@ int main(int argc, char *argv[]) {
     SparseMatrix C = createSparseMatrix(ROWS_A, COLS_B, ROWS_A * COLS_B); // Result matrix size is ROWS_A x COLS_B
 
     // Measure execution time for thread creation and joining
-    // clock_t thread_start = clock();
+    clock_t thread_start = clock();
 
     // // Create and start threads for multi-threaded multiplication
     pthread_t threads[num_threads];
@@ -245,8 +245,8 @@ int main(int argc, char *argv[]) {
         pthread_join(threads[i], NULL);
     }
 
-    // clock_t thread_end = clock();
-    // double thread_time_spent = (double)(thread_end - thread_start) / CLOCKS_PER_SEC;
+    clock_t thread_end = clock();
+    double thread_time_spent = (double)(thread_end - thread_start) / CLOCKS_PER_SEC;
 
     // Measure execution time for single-threaded multiplication
     // clock_t single_start = clock();
@@ -264,7 +264,7 @@ int main(int argc, char *argv[]) {
     
     // // Print execution times
     // printf("Single-threaded execution time: %f seconds\n", single_time_spent);
-    // printf("Multi-threaded execution time: %f seconds\n", thread_time_spent);
+    printf("Multi-threaded execution time: %f seconds\n", thread_time_spent);
 
     // Clean up memory
     freeSparseMatrix(&A);

@@ -3,6 +3,7 @@
 #include <vector>
 #include <random>
 #include <cstdlib>  // For atoi and atof
+#include <time.h>
 
 __global__ void sparse_matmul_hip_kernel(int* row_ptr_A, int* col_ind_A, double* val_A, 
                                          int* row_ptr_B, int* col_ind_B, double* val_B, 
@@ -136,12 +137,16 @@ int main(int argc, char* argv[]) {
     // Initialize result to zero on device
     hipMemset(d_result, 0, A_rows * B_cols * sizeof(double));
 
+    clock_t thread_start = clock();
     // Perform sparse matrix multiplication with HIP
     sparse_matmul_hip(d_row_ptr_A, d_col_ind_A, d_val_A, A_rows, 
                       col_ind_A.size() * sizeof(int), val_A.size() * sizeof(double), 
                       d_row_ptr_B, d_col_ind_B, d_val_B, B_cols, 
                       col_ind_B.size() * sizeof(int), val_B.size() * sizeof(double), 
                       d_result);
+    clock_t thread_end = clock();
+    double thread_time_spent = (double)(thread_end - thread_start) / CLOCKS_PER_SEC;
+    printf("Multi-threaded execution time: %f seconds\n", thread_time_spent);
 
     // Perform sparse matrix multiplication in single-threaded mode for error checking
     // std::vector<double> result_single_thread(A_rows * B_cols);
