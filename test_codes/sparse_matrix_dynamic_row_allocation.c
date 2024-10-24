@@ -5,6 +5,13 @@
 
 #define CHUNK_SIZE 10  // Define the chunk size for work stealing
 
+// #define GEM5
+
+#ifdef GEM5
+#include "gem5/m5ops.h"
+#endif
+
+
 // Structure to represent a sparse matrix in CSR format
 typedef struct {
     int rows;
@@ -27,18 +34,30 @@ typedef struct {
 int currentRow = 0;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-// Function to multiply two sparse matrices using CSR format (multi-threaded)
+// Function to multiply two sparse matrices using CSR format
 void *multiplySparseMatrices(void *args) {
     ThreadArgs *threadArgs = (ThreadArgs *)args;
     SparseMatrix *A = threadArgs->A;
     SparseMatrix *B = threadArgs->B;
     SparseMatrix *C = threadArgs->C;
 
+#ifdef GEM5
+    if(threadArgs->thread_id == 0) {
+        m5_dump_reset_stats(0,0);
+    }
+#endif
+
     while (1) {
         int startRow;
 
         // Critical section: get the next chunk of rows to process
+        #ifdef GEM5
+        m5_start_mutex(threadArgs->thread_id);
+        #endif
         pthread_mutex_lock(&mutex);
+        #ifdef GEM5
+        m5_end_mutex(threadArgs->thread_id);
+        #endif
         startRow = currentRow;
         currentRow += CHUNK_SIZE;
         pthread_mutex_unlock(&mutex);
@@ -54,14 +73,18 @@ void *multiplySparseMatrices(void *args) {
             endRow = A->rows;
         }
 
+        #ifdef GEM5
+        m5_numiter(threadArgs->thread_id);
+        #endif
+
         for (int row = startRow; row < endRow; row++) {
             for (int j = A->rowPtr[row]; j < A->rowPtr[row + 1]; j++) {
                 int colA = A->colIdx[j];
-                double valueA = A->values[j];  // Use double for values
+                int valueA = A->values[j];
 
                 for (int k = B->rowPtr[colA]; k < B->rowPtr[colA + 1]; k++) {
                     int colB = B->colIdx[k];
-                    double valueB = B->values[k];
+                    int valueB = B->values[k];
 
                     // Accumulate the result for C[row][colB]
                     C->values[row * C->cols + colB] += valueA * valueB;
@@ -69,6 +92,12 @@ void *multiplySparseMatrices(void *args) {
             }
         }
     }
+
+    #ifdef GEM5
+    if(threadArgs->thread_id == 0) {
+        m5_dump_reset_stats(0,0);
+    }
+    #endif
 
     return NULL;
 }
@@ -137,8 +166,8 @@ int compareMatrices(SparseMatrix *A, SparseMatrix *B) {
 
 int main(int argc, char *argv[]) {
     // Validate the number of command-line arguments
-    if (argc != 6) {
-        printf("Usage: %s <ROWS_A> <COLS_A> <ROWS_B> <COLS_B> <val_non_zero>\n", argv[0]);
+    if (argc != 7) {
+        printf("Usage: %s <ROWS_A> <COLS_A> <ROWS_B> <COLS_B> <val_non_zero> <num_threads>\n", argv[0]);
         return -1;
     }
 
@@ -148,6 +177,7 @@ int main(int argc, char *argv[]) {
     int ROWS_B = atoi(argv[3]);
     int COLS_B = atoi(argv[4]);
     int val_non_zero = atoi(argv[5]);
+    int num_threads = atoi(argv[6]);  // Number of threads
 
     // Validate matrix dimensions
     if (COLS_A != ROWS_B) {
@@ -190,18 +220,10 @@ int main(int argc, char *argv[]) {
     // Create the result matrix C (dense format for simplicity)
     SparseMatrix C = createSparseMatrix(ROWS_A, COLS_B, ROWS_A * COLS_B); // Result matrix size is ROWS_A x COLS_B
 
-    // Measure execution time for single-threaded multiplication
-    // clock_t single_start = clock();
-    // SparseMatrix C_single = createSparseMatrix(ROWS_A, COLS_B, ROWS_A * COLS_B); // Result matrix for single-threaded
-    // multiplySparseMatricesSingle(&A, &B, &C_single);
-    // clock_t single_end = clock();
-    // double single_time_spent = (double)(single_end - single_start) / CLOCKS_PER_SEC;
-
     // Measure execution time for thread creation and joining
-    clock_t thread_start = clock();
+    // clock_t thread_start = clock();
 
-    // Create and start threads for multi-threaded multiplication
-    int num_threads = 1;  // Change this to the desired number of threads
+    // // Create and start threads for multi-threaded multiplication
     pthread_t threads[num_threads];
     ThreadArgs threadArgs[num_threads];
 
@@ -223,8 +245,15 @@ int main(int argc, char *argv[]) {
         pthread_join(threads[i], NULL);
     }
 
-    clock_t thread_end = clock();
-    double thread_time_spent = (double)(thread_end - thread_start) / CLOCKS_PER_SEC;
+    // clock_t thread_end = clock();
+    // double thread_time_spent = (double)(thread_end - thread_start) / CLOCKS_PER_SEC;
+
+    // Measure execution time for single-threaded multiplication
+    // clock_t single_start = clock();
+    // SparseMatrix C_single = createSparseMatrix(ROWS_A, COLS_B, ROWS_A * COLS_B); // Result matrix for single-threaded
+    // multiplySparseMatricesSingle(&A, &B, &C_single);
+    // clock_t single_end = clock();
+    // double single_time_spent = (double)(single_end - single_start) / CLOCKS_PER_SEC;
 
     // // Compare results
     // if (compareMatrices(&C_single, &C)) {
@@ -232,10 +261,10 @@ int main(int argc, char *argv[]) {
     // } else {
     //     printf("Result is incorrect!\n");
     // }
-
+    
     // // Print execution times
     // printf("Single-threaded execution time: %f seconds\n", single_time_spent);
-    printf("Multi-threaded execution time: %f seconds\n", thread_time_spent);
+    // printf("Multi-threaded execution time: %f seconds\n", thread_time_spent);
 
     // Clean up memory
     freeSparseMatrix(&A);
