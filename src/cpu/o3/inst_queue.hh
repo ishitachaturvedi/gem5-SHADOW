@@ -313,6 +313,40 @@ class InstructionQueue
     std::vector<float> AverageInstinIQVec;
     std::vector<int> tidCounter;
 
+    std::vector<int> IQCounter;
+    std::vector<float> AverageIssuedInstPerThreadCounter;
+    std::vector<float> AverageInstsThreadCounter;
+    std::vector<float> AverageNonIssuedInstPerThreadCounter;
+    std::vector<float> AverageNonIssuedInstPerThreadDependsOnMemoryCounter;
+    std::vector<float> AverageNonIssuedInstPerThreadDependsOnComputeCounter;
+    std::vector<float> AverageNonIssuedInstPerThreadDependsOnTotalCounter;
+    std::vector<float> AverageNonIssuedInstPerOpTypeCounter;
+    std::vector<float> AverageNonIssuedInstPerOpTypeDependsOnMemoryCounter;
+    std::vector<float> AverageNonIssuedInstPerOpTypeDependsOnComputeCounter;
+    std::vector<float> AverageNonIssuedInstPerOpTypeDependsOnTotalCounter;
+
+    int cycleCounter;
+    float AvgInstInFlightCounter;
+    float AvgMemInFlightCounter;
+    float AvgCompInFlightCounter;
+    float AvgInstStalledCounter;
+    float AvgMemStalledCounter;
+    float  AvgCompStalledCounter;
+    float AvgOnlyMemInFLightCounter;
+    float AvgOnlyCompInFLightCounter;
+    float AvgMemAndCompInFLightCounter;
+    float AvgNothingInFLightCounter;
+
+    float cannot_issue_overall;
+    float ready_for_issue_overall;
+    float issued_overall;
+    float executed_overall;
+    float ready_for_commit_overall;
+    float checked_for_issue_overall;
+    float in_ready_queue_overall;
+    float committed_overall;
+
+
     void AverageIQInsts(int tid);
 
   private:
@@ -496,6 +530,9 @@ class InstructionQueue
     /** The sequence number of the squashed instruction. */
     InstSeqNum squashedSeqNum[MaxThreads];
 
+    std::vector<float> statFuNoFreeAggregator;
+    int numCounter;
+
     /** A cache of the recently woken registers.  It is 1 if the register
      *  has been woken up recently, and 0 if the register has been added
      *  to the dependency graph and has not yet received its value.  It
@@ -592,6 +629,7 @@ class InstructionQueue
          */
         statistics::Vector statFuBusy;
         statistics::Vector statFuNoFree;
+        statistics::Vector statAvgFUUtilization;
         statistics::Vector statFuBusyPerThreadCollective;
         // statistics::Vector dist_unissued;
         /** Stat for total number issued for each instruction type. */
@@ -627,6 +665,39 @@ class InstructionQueue
         statistics::Vector TimeSpentWaitingOnMem;
 
         statistics::Vector AverageInstinIQ;
+
+        statistics::Vector AverageNonIssuedInstPerThread;
+        statistics::Vector AverageIssuedInstPerThread;
+        statistics::Vector AverageInstsThread;
+        statistics::Vector AverageNonIssuedInstPerThreadDependsOnMemory;
+        statistics::Vector AverageNonIssuedInstPerThreadDependsOnCompute;
+        statistics::Vector AverageNonIssuedInstPerThreadDependsOnTotal;
+        statistics::Vector AverageNonIssuedInstPerOpType;
+        statistics::Vector AverageNonIssuedInstPerOpTypeDependsOnMemory;
+        statistics::Vector AverageNonIssuedInstPerOpTypeDependsOnCompute;
+        statistics::Vector AverageNonIssuedInstPerOpTypeDependsOnTotal;
+
+        statistics::Scalar AvgInstInFlight;
+        statistics::Scalar AvgMemInFlight;
+        statistics::Scalar AvgCompInFlight;
+        statistics::Scalar AvgInstStalled;
+        statistics::Scalar AvgMemStalled;
+        statistics::Scalar AvgCompStalled;
+        statistics::Scalar AvgOnlyMemInFLight;
+        statistics::Scalar AvgOnlyCompInFLight;
+        statistics::Scalar AvgMemAndCompInFLight;
+        statistics::Scalar AvgNothingInFLight;
+
+        statistics::Scalar cannot_issue_Flight;
+        statistics::Scalar ready_for_issue_Flight;
+        statistics::Scalar issued_Flight;
+        statistics::Scalar executed_Flight;
+        statistics::Scalar ready_for_commit_Flight;
+        statistics::Scalar in_ready_queue_Flight;
+        statistics::Scalar checked_for_issue_Flight;
+        statistics::Scalar committed_Flight;
+
+
     } iqStats;
 
    public:

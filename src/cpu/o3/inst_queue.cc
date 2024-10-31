@@ -120,7 +120,44 @@ InstructionQueue::InstructionQueue(CPU *cpu_ptr, IEW *iew_ptr,
     AverageInstinIQVec.resize(numThreads,0);
     tidCounter.resize(numThreads,0);
 
-    //Create an entry for each physical register within the
+    IQCounter.resize(numThreads,0);
+    AverageIssuedInstPerThreadCounter.resize(numThreads,0);
+    AverageInstsThreadCounter.resize(numThreads,0);
+    AverageNonIssuedInstPerThreadCounter.resize(numThreads,0);
+    AverageNonIssuedInstPerThreadDependsOnMemoryCounter.resize(numThreads,0);
+    AverageNonIssuedInstPerThreadDependsOnComputeCounter.resize(numThreads,0);
+    AverageNonIssuedInstPerThreadDependsOnTotalCounter.resize(numThreads,0);
+
+    statFuNoFreeAggregator.resize(Num_OpClasses, 0);
+
+    AverageNonIssuedInstPerOpTypeCounter.resize(Num_OpClasses, 0);
+    AverageNonIssuedInstPerOpTypeDependsOnMemoryCounter.resize(Num_OpClasses, 0);
+    AverageNonIssuedInstPerOpTypeDependsOnComputeCounter.resize(Num_OpClasses, 0);
+    AverageNonIssuedInstPerOpTypeDependsOnTotalCounter.resize(Num_OpClasses, 0);
+
+    cycleCounter = 0;
+    AvgInstInFlightCounter = 0;
+    AvgMemInFlightCounter = 0;
+    AvgCompInFlightCounter = 0;
+    AvgInstStalledCounter = 0;
+    AvgMemStalledCounter = 0;
+    AvgCompStalledCounter = 0;
+    AvgOnlyMemInFLightCounter = 0;
+    AvgOnlyCompInFLightCounter = 0;
+    AvgMemAndCompInFLightCounter = 0;
+    AvgNothingInFLightCounter = 0;
+
+    cannot_issue_overall = 0;
+    ready_for_issue_overall = 0;
+    issued_overall = 0;
+    executed_overall = 0;
+    ready_for_commit_overall = 0;
+    ready_for_issue_overall = 0;
+    in_ready_queue_overall = 0;
+    checked_for_issue_overall = 0;
+
+    committed_overall = 0;
+
     //dependency graph.
     dependGraph.resize(numPhysRegs);
 
@@ -261,6 +298,8 @@ InstructionQueue::IQStats::IQStats(CPU *cpu, const unsigned &total_width)
              "attempts to use FU when none available"),
     ADD_STAT(statFuNoFree, statistics::units::Count::get(),
              "attempts to use FU when none available"),
+    ADD_STAT(statAvgFUUtilization, statistics::units::Count::get(),
+             "Avg utilization of FU"),
     ADD_STAT(statIssuedInstType, statistics::units::Count::get(),
              "Number of instructions issued per FU type, per thread"),
     ADD_STAT(statFuBusyPerThread, statistics::units::Count::get(),
@@ -305,10 +344,132 @@ InstructionQueue::IQStats::IQStats(CPU *cpu, const unsigned &total_width)
     ADD_STAT(TimeSpentWaitingOnMem, statistics::units::Count::get(),
              "Time spent by instructions waiting on memory"),
     ADD_STAT(AverageInstinIQ, statistics::units::Count::get(),
-             "Average insts in IQ for each tid")
+             "Average insts in IQ for each tid"),
+
+    ADD_STAT(AverageNonIssuedInstPerThread, statistics::units::Count::get(),
+             "Avg number of instructions which cannot be issued"),
+    ADD_STAT(AverageIssuedInstPerThread, statistics::units::Count::get(),
+             "Avg number of instructions which are in flight and issued"),
+    ADD_STAT(AverageInstsThread, statistics::units::Count::get(),
+             "Avg number of instructions which are in flight+non issued"),
+    ADD_STAT(AverageNonIssuedInstPerThreadDependsOnMemory, statistics::units::Count::get(),
+             "Avg number of instructions which cannot be issued which depenend on Memory"),
+    ADD_STAT(AverageNonIssuedInstPerThreadDependsOnCompute, statistics::units::Count::get(),
+             "Avg number of instructions which cannot be issued which depenend on Compute"),
+    ADD_STAT(AverageNonIssuedInstPerThreadDependsOnTotal, statistics::units::Count::get(),
+             "Avg number of instructions which cannot be issued with total # dependencies"),
+    ADD_STAT(AverageNonIssuedInstPerOpType, statistics::units::Count::get(),
+              "Avg number of instructions which cannot be issued"),
+    ADD_STAT(AverageNonIssuedInstPerOpTypeDependsOnMemory, statistics::units::Count::get(),
+             "Avg number of instructions which cannot be issued which depenend on Memory"),
+    ADD_STAT(AverageNonIssuedInstPerOpTypeDependsOnCompute, statistics::units::Count::get(),
+             "Avg number of instructions which cannot be issued which depenend on Compute"),
+    ADD_STAT(AverageNonIssuedInstPerOpTypeDependsOnTotal, statistics::units::Count::get(),
+             "Avg number of instructions which cannot be issued with total # dependencies"),
+
+    ADD_STAT(AvgInstInFlight, statistics::units::Count::get(),
+             "Avg number of insts in flight"),
+    ADD_STAT(AvgMemInFlight, statistics::units::Count::get(),
+             "Avg number of Mem insts in flight"),
+    ADD_STAT(AvgCompInFlight, statistics::units::Count::get(),
+             "Avg number of Comp insts in flight"),
+    ADD_STAT(AvgInstStalled, statistics::units::Count::get(),
+             "Avg number of insts stalled"),
+    ADD_STAT(AvgMemStalled, statistics::units::Count::get(),
+             "Avg number of mem insts stalled"),
+    ADD_STAT(AvgCompStalled, statistics::units::Count::get(),
+             "Avg number of comp insts stalled"),
+    ADD_STAT(AvgOnlyMemInFLight, statistics::units::Count::get(),
+             "number of insts with only mem inst in flight"),
+    ADD_STAT(AvgOnlyCompInFLight, statistics::units::Count::get(),
+             "number of insts with only comp inst in flight"),
+    ADD_STAT(AvgMemAndCompInFLight, statistics::units::Count::get(),
+             "number of cycles with mem and comp inst in flight"),
+    ADD_STAT(AvgNothingInFLight, statistics::units::Count::get(),
+             "number of cycles with no inst in flight"),
+
+    ADD_STAT(cannot_issue_Flight, statistics::units::Count::get(),
+             "ROB: No instructions ready for issue"),
+    ADD_STAT(ready_for_issue_Flight, statistics::units::Count::get(),
+             "ROB: Instructions ready for issue but not yet issued"),
+    ADD_STAT(issued_Flight, statistics::units::Count::get(),
+             "ROB: Instructions in flight"),
+    ADD_STAT(executed_Flight, statistics::units::Count::get(),
+             "ROB: Instructions finished execution"),
+    ADD_STAT(ready_for_commit_Flight, statistics::units::Count::get(),
+             "ROB: Instructions ready for commit"),
+    ADD_STAT(committed_Flight, statistics::units::Count::get(),
+             "ROB: Instructions committed"),
+    ADD_STAT(in_ready_queue_Flight, statistics::units::Count::get(),
+             "ROB: Instruction in ready queue, was checked for isseu but not issued"),
+    ADD_STAT(checked_for_issue_Flight, statistics::units::Count::get(),
+             "ROB: Instruction checked")
+
 {
     instsAdded
         .prereq(instsAdded);
+
+    AverageNonIssuedInstPerOpType
+        .init(Num_OpClasses)
+        .flags(statistics::pdf | statistics::dist)
+        ;
+    for (int i=0; i < Num_OpClasses; ++i) {
+        AverageNonIssuedInstPerOpType.subname(i, enums::OpClassStrings[i]);
+    }
+
+    AverageNonIssuedInstPerOpTypeDependsOnMemory
+        .init(Num_OpClasses)
+        .flags(statistics::pdf | statistics::dist)
+        ;
+    for (int i=0; i < Num_OpClasses; ++i) {
+        AverageNonIssuedInstPerOpTypeDependsOnMemory.subname(i, enums::OpClassStrings[i]);
+    }
+
+    AverageNonIssuedInstPerOpTypeDependsOnCompute
+        .init(Num_OpClasses)
+        .flags(statistics::pdf | statistics::dist)
+        ;
+    for (int i=0; i < Num_OpClasses; ++i) {
+        AverageNonIssuedInstPerOpTypeDependsOnCompute.subname(i, enums::OpClassStrings[i]);
+    }
+
+    AverageNonIssuedInstPerOpTypeDependsOnTotal
+        .init(Num_OpClasses)
+        .flags(statistics::pdf | statistics::dist)
+        ;
+    for (int i=0; i < Num_OpClasses; ++i) {
+        AverageNonIssuedInstPerOpTypeDependsOnTotal.subname(i, enums::OpClassStrings[i]);
+    }
+
+    AverageNonIssuedInstPerThread
+        .init(cpu->numThreads)
+        .flags(statistics::total)
+        ;
+
+    AverageIssuedInstPerThread
+        .init(cpu->numThreads)
+        .flags(statistics::total)
+        ;
+
+    AverageInstsThread
+        .init(cpu->numThreads)
+        .flags(statistics::total)
+        ;
+
+    AverageNonIssuedInstPerThreadDependsOnMemory
+        .init(cpu->numThreads)
+        .flags(statistics::total)
+        ;
+
+    AverageNonIssuedInstPerThreadDependsOnCompute
+        .init(cpu->numThreads)
+        .flags(statistics::total)
+        ;
+
+    AverageNonIssuedInstPerThreadDependsOnTotal
+        .init(cpu->numThreads)
+        .flags(statistics::total)
+        ;
 
     nonSpecInstsAdded
         .prereq(nonSpecInstsAdded);
@@ -416,6 +577,14 @@ InstructionQueue::IQStats::IQStats(CPU *cpu, const unsigned &total_width)
     for (int i=0; i < Num_OpClasses; ++i) {
         statFuNoFree.subname(i, enums::OpClassStrings[i]);
     }
+
+    statAvgFUUtilization.init(Num_OpClasses)
+        .flags(statistics::pdf | statistics::dist)
+        ;
+    for (int i=0; i < Num_OpClasses; ++i) {
+        statAvgFUUtilization.subname(i, enums::OpClassStrings[i]);
+    }
+    
 
     statFuBusyPerThreadCollective
         .init(cpu->numThreads)
@@ -924,12 +1093,6 @@ InstructionQueue::insertNonSpec(const DynInstPtr &new_inst)
         assert(freeEntriesS == (numSEntries - countInstsS()));
         assert(freeEntriesW == (numWEntries - countInstsW()));
     }
-
-    // Ishita TEST
-    // if(freeEntriesW+count[2]+count[3]+count[4]!=3*maxEntries[2]) {
-    //     panic("We have wrong values freeEntriesW %d count[2] %d count[3] %d count[3] %d 3*maxEntries[2] %d\n",freeEntriesW,count[2],count[3],count[4],3*maxEntries[2]);
-    // }
-    
 }
 
 void
@@ -1079,27 +1242,33 @@ InstructionQueue::scheduleReadyInsts()
     // Need to really think about this for in-order.
     // Merge issue and execute?
 
-    // check if op is free -> Backend utilization check
-    for(int i = 0; i < OpClass::Num_OpClass; i++) {
-        int idx = FUPool::NoCapableFU;
-        OpClass op_class1 = OpClass(i);
-        idx = fuPool->getUnit(op_class1);
-        // check if we have insts and no structures to execute it
-        if(idx == FUPool::NoFreeFU && !readyInsts[op_class1].empty()) {
-            iqStats.statFuNoFree[op_class1]++;
-        }
-    }
+    numCounter++;
+
+    // temp vector to store all instructions that were not ready to be issued because of inorder issue constraints
+    std::vector<std::vector<DynInstPtr>> temp[OpClass::Num_OpClass];
 
     while (total_issued < totalWidth && order_it != order_end_it) {
+        
         OpClass op_class = (*order_it).queueType;
 
         DPRINTF(IQ, "Looking at class type %d\n",op_class);
 
         counter++;
 
-        assert(!readyInsts[op_class].empty());
+        assert(!readyInsts[op_class].empty() || (!temp[op_class].empty()));
+
+        // nothing was actually ready, go to the next FU type
+        if(readyInsts[op_class].empty()) {
+            order_it++;
+        }
 
         DynInstPtr issuing_inst = readyInsts[op_class].top();
+
+        ThreadID tid = issuing_inst->threadNumber;
+
+        issuing_inst->setCheckedForIssueInCycle();
+
+        printf("CHecking inst sn:%d\n",issuing_inst->seqNum);
 
         if (issuing_inst->isFloating()) {
             iqIOStats.fpInstQueueReads++;
@@ -1143,7 +1312,6 @@ InstructionQueue::scheduleReadyInsts()
 
         int idx = FUPool::NoCapableFU;
         Cycles op_latency = Cycles(1);
-        ThreadID tid = issuing_inst->threadNumber;
         
         if (op_class != No_OpClass) {
             idx = fuPool->getUnit(op_class);
@@ -1162,6 +1330,11 @@ InstructionQueue::scheduleReadyInsts()
         iqStats.statNumCheckIssuePerThread[tid]++;
         // If we have an instruction that doesn't require a FU, or a
         // valid FU, then schedule for execution.
+
+        // if(idx == FUPool::NoFreeFU) {
+        //     printf("We need more Op %d\n",op_class);
+        // }
+
         if (idx != FUPool::NoFreeFU
         // condition for in-order execution and dont issue instructions if you are waiting on a control instruction to finish
         // W threads: for memory instructions we need to stop the issue of instructions for a thread for which a memory instruction has not been marked as not faulting. If a memory instruction is marked as "needs to be reissued" in execute, we cannot move the pipeline forward. We use a flag like we do in control instructions for this. At a given time only 1 memory instruction can be serviced. We dont want any 
@@ -1228,7 +1401,6 @@ InstructionQueue::scheduleReadyInsts()
             }
 
             fuPool->markUnitBusy(idx,op_class);
-
 
             if (op_latency == Cycles(1)) {
                 i2e_info->size++;
@@ -1319,7 +1491,7 @@ InstructionQueue::scheduleReadyInsts()
             iqStats.fuBusy[tid]++;
             iqStats.statNumIssueNotPossiblePerThread[tid]++;
 
-            if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() != Strong) {
+            if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
                 iqStats.fuBusyS++;
             } else {
                 iqStats.fuBusyW++;
@@ -1332,7 +1504,7 @@ InstructionQueue::scheduleReadyInsts()
                     iqStats.statStalledOnMemoryReorderPerThread[tid]++;
                 else if(olderIssuePending(issuing_inst->seqNum, issuing_inst->threadNumber))
                     iqStats.statStalledNotOldestInIQPerThread[tid]++;
-                else if(idx != FUPool::NoFreeFU) {
+                else if(idx == FUPool::NoFreeFU) {
                     iqStats.statFuBusyPerThread[tid][op_class]++;
                     iqStats.statFuBusyPerThreadCollective[tid]++;
                 }
@@ -1343,6 +1515,8 @@ InstructionQueue::scheduleReadyInsts()
             }
             ++order_it;
 
+            // go to next list only if you were out of HW structures
+
             DPRINTF(IQ, "[tid:%d] : could not instruction PC %s "
                     "[sn:%llu] isControl() %d isDirectCtrl() %d isIndirectCtrl() %d isCondCtrl() %d isUncondCtrl() %d AreOlderInstIssued %d ControlInstIssued %d MemInstIssued %d olderIssuePending %d pendingSn %d\n",
                     tid, issuing_inst->pcState(),
@@ -1350,9 +1524,234 @@ InstructionQueue::scheduleReadyInsts()
         }
     }
 
+
+    for(int idx = 0; idx < OpClass::Num_OpClass; idx++) {
+        OpClass op_class1 = OpClass(idx);
+        int val = fuPool->numBusyUnits(op_class1);
+        if(val != -2) {
+            statFuNoFreeAggregator[idx] += (val - statFuNoFreeAggregator[idx]) / numCounter;
+            iqStats.statAvgFUUtilization[idx] = statFuNoFreeAggregator[idx];
+            // if(val!=0)
+            //     printf("Class %d val %d avg %f\n",idx,val,statFuNoFreeAggregator[idx]);
+        }
+    }
+
     iqStats.numIssuedDist.sample(total_issued);
     iqStats.instsIssued+= total_issued;
 
+    if(total_issued == 0) {
+        int active_threads = activeThreads->size();
+
+        list<ThreadID>::iterator threads = activeThreads->begin();
+        list<ThreadID>::iterator end = activeThreads->end();
+
+        while (threads != end) {
+            ThreadID tid = *threads++;
+            int not_issued_inst = 0;
+            int issued_inst = 0;
+            int total_inst = 0;
+            int depends_on_memory = 0;
+            int depends_on_compute = 0;
+            int has_dependencies = 0;
+
+            for (auto inst = instList[tid].begin(); inst != instList[tid].end(); ++inst) {
+                if(!(*inst)->isIssued() && !(*inst)->isExecuted()) {
+                    //printf("INST_NOT_ISSUED numComputeDeps %d numMemDeps %d totalDeps %d \n",(*inst)->numComputeDeps,(*inst)->numMemDeps,(*inst)->totalDeps);
+                    not_issued_inst++;
+                    if((*inst)->numComputeDeps) {
+                        depends_on_compute++;
+                    }
+                    if((*inst)->numMemDeps) {
+                        depends_on_memory++;
+                    } 
+                    if((*inst)->totalDeps) {
+                        has_dependencies++;
+                    }
+                } else if((*inst)->isIssued() && !(*inst)->isExecuted()){
+                    issued_inst++;
+                }
+                total_inst++;
+            }
+
+            IQCounter[tid]++;
+
+            AverageNonIssuedInstPerThreadCounter[tid] += (not_issued_inst - AverageNonIssuedInstPerThreadCounter[tid]) / IQCounter[tid];
+            AverageIssuedInstPerThreadCounter[tid] += (issued_inst - AverageIssuedInstPerThreadCounter[tid]) / IQCounter[tid];
+            AverageInstsThreadCounter[tid] += (total_inst - AverageInstsThreadCounter[tid]) / IQCounter[tid];
+            AverageNonIssuedInstPerThreadDependsOnMemoryCounter[tid] += (depends_on_memory - AverageNonIssuedInstPerThreadDependsOnMemoryCounter[tid]) / IQCounter[tid];
+            AverageNonIssuedInstPerThreadDependsOnComputeCounter[tid] += (depends_on_compute - AverageNonIssuedInstPerThreadDependsOnComputeCounter[tid]) / IQCounter[tid];
+            AverageNonIssuedInstPerThreadDependsOnTotalCounter[tid] += (has_dependencies - AverageNonIssuedInstPerThreadDependsOnTotalCounter[tid]) / IQCounter[tid];
+
+            iqStats.AverageNonIssuedInstPerThread[tid] = AverageNonIssuedInstPerThreadCounter[tid];
+            iqStats.AverageNonIssuedInstPerThreadDependsOnMemory[tid] = AverageNonIssuedInstPerThreadDependsOnMemoryCounter[tid];
+            iqStats.AverageNonIssuedInstPerThreadDependsOnCompute[tid] = AverageNonIssuedInstPerThreadDependsOnComputeCounter[tid];
+            iqStats.AverageNonIssuedInstPerThreadDependsOnTotal[tid] = AverageNonIssuedInstPerThreadDependsOnTotalCounter[tid];
+            iqStats.AverageIssuedInstPerThread[tid] = AverageIssuedInstPerThreadCounter[tid];
+            iqStats.AverageInstsThread[tid] = AverageInstsThreadCounter[tid];
+
+        }
+    }
+
+
+    // collect stats Ishita
+    int active_threads = activeThreads->size();
+
+    list<ThreadID>::iterator threads = activeThreads->begin();
+    list<ThreadID>::iterator end = activeThreads->end();
+
+    bool exists = std::any_of(activeThreads->begin(), activeThreads->end(), 
+                          [](ThreadID tid) { return tid >= 1; });
+
+    // only collect
+    if (exists) {
+
+        float AvgInstInFlightCounterTemp = 0;
+        float AvgMemInFlightCounterTemp = 0;
+        float AvgCompInFlightCounterTemp = 0;
+        float AvgInstStalledCounterTemp = 0;
+        float AvgMemStalledCounterTemp = 0;
+        float AvgCompStalledCounterTemp = 0;
+        float AvgOnlyMemInFLightCounterTemp = 0;
+        float AvgOnlyCompInFLightCounterTemp = 0;
+        float AvgMemAndCompInFLightCounterTemp = 0;
+        float AvgNothingInFLightCounterTemp = 0;
+
+        int cannot_issue = 0;
+        int ready_for_issue = 0;
+        int in_ready_queue = 0;
+        int checked_for_issue = 0;
+        int issued = 0;
+        int executed = 0;
+        int ready_for_commit = 0;
+        int committed = 0;
+
+        int total_inst = 0;
+
+        cycleCounter++;
+        while (threads != end) {
+            ThreadID tid = *threads++;
+            // we only consider insts which are not completed.
+            for (auto inst = instList[tid].begin(); inst != instList[tid].end(); ++inst) {
+                total_inst++;
+                if((*inst)->isIssued() && !(*inst)->isExecuted()) {
+                    AvgInstInFlightCounterTemp++;
+                    if((*inst)->isMemRef()) {
+                        AvgMemInFlightCounterTemp++;
+                    } else {
+                        AvgCompInFlightCounterTemp++;
+                    }
+                } else if(!(*inst)->isExecuted()) {
+                    AvgInstStalledCounterTemp++;
+                    if((*inst)->isMemRef()) {
+                        AvgMemStalledCounterTemp++;
+                    } else {
+                        AvgCompStalledCounterTemp++;
+                    }
+                }
+
+                if(((!cpu->thread[tid]->ControlInstIssued && !(cpu->thread[tid]->MemInstIssued && cpu->thread[tid]->MemInstIssued!= (*inst)->seqNum) &&  !olderIssuePending((*inst)->seqNum, (*inst)->threadNumber)) || cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)) { 
+                    if(!(*inst)->readyToIssue() && !(*inst)->isIssued() && !(*inst)->isExecuted() && !(*inst)->readyToCommit() && !(*inst)->isCommitted()) {
+                        cannot_issue++;
+                    } 
+                    if((*inst)->readyToIssue() && !(*inst)->isIssued() && !(*inst)->isExecuted() && !(*inst)->readyToCommit() && !(*inst)->isCommitted()){
+                        ready_for_issue++;
+                    } else if((*inst)->readyToIssue() && (*inst)->isIssued() && !(*inst)->isExecuted() && !(*inst)->readyToCommit() && !(*inst)->isCommitted()){
+                        issued++;
+                    } else if((*inst)->readyToIssue() && (*inst)->isIssued() && (*inst)->isExecuted() && !(*inst)->readyToCommit() && !(*inst)->isCommitted()){
+                        executed++;
+                    } else if((*inst)->readyToIssue() && (*inst)->isIssued() && (*inst)->isExecuted() && (*inst)->readyToCommit() && !(*inst)->isCommitted()){
+                        ready_for_commit++;
+                    } else if((*inst)->readyToIssue() && (*inst)->isIssued() && (*inst)->isExecuted() && (*inst)->readyToCommit() && (*inst)->isCommitted()){
+                        committed++;
+                    }
+
+                    if((*inst)->presentInReadyQueue() && (*inst)->IsCheckedForIssueInCycle()  && !(*inst)->isIssued() && !(*inst)->isExecuted() && !(*inst)->readyToCommit() && !(*inst)->isCommitted()){
+                         printf("OTHER_PROBLEM sn:%d memory %d in_ready_queue %d total_issued %d totalWidth %d listSize %d\n",(*inst)->seqNum, (*inst)->isMemRef(),(*inst)->presentInReadyQueue(), total_issued,totalWidth,listSize);
+                        in_ready_queue++;
+                    }
+                    if((*inst)->presentInReadyQueue() && !(*inst)->IsCheckedForIssueInCycle()  && !(*inst)->isIssued() && !(*inst)->isExecuted() && !(*inst)->readyToCommit() && !(*inst)->isCommitted()){
+                        printf("HELLO_ISSUE sn:%d memory %d in_ready_queue %d total_issued %d totalWidth %d listSize %d\n",(*inst)->seqNum, (*inst)->isMemRef(),(*inst)->presentInReadyQueue(), total_issued,totalWidth,listSize);
+                        checked_for_issue++;
+                    }
+                }
+                (*inst)->clearCheckedForIssueInCycle();
+            }
+        }
+
+        printf("*********CYCLE %d\n",curTick());
+
+        // look for cycles with some collection of results
+        if(AvgInstInFlightCounterTemp == 0) {
+            AvgNothingInFLightCounterTemp++;
+        } 
+        if(AvgInstInFlightCounterTemp != 0 && AvgMemInFlightCounterTemp!= 0 && AvgCompInFlightCounterTemp == 0) {
+            AvgOnlyMemInFLightCounterTemp++;
+        }
+        if(AvgInstInFlightCounterTemp != 0 && AvgCompInFlightCounterTemp!= 0 && AvgMemInFlightCounterTemp == 0) {
+            AvgOnlyCompInFLightCounterTemp++;
+        }
+        if (AvgInstInFlightCounterTemp != 0 && AvgCompInFlightCounterTemp!= 0 && AvgMemInFlightCounterTemp != 0) {
+            AvgMemAndCompInFLightCounterTemp++;
+        }
+
+        // get the averages
+        AvgInstInFlightCounter = (AvgInstInFlightCounterTemp + AvgInstInFlightCounter * (cycleCounter -1)) / cycleCounter;
+        AvgMemInFlightCounter = (AvgMemInFlightCounterTemp + AvgMemInFlightCounter * (cycleCounter -1)) / cycleCounter;
+        AvgCompInFlightCounter = (AvgCompInFlightCounterTemp + AvgCompInFlightCounter * (cycleCounter -1)) / cycleCounter;
+        AvgInstStalledCounter = (AvgInstStalledCounterTemp + AvgInstStalledCounter * (cycleCounter -1)) / cycleCounter;
+        AvgMemStalledCounter = (AvgMemStalledCounterTemp + AvgMemStalledCounter * (cycleCounter -1)) / cycleCounter;
+        AvgCompStalledCounter = (AvgCompStalledCounterTemp + AvgCompStalledCounter * (cycleCounter -1)) / cycleCounter;
+        AvgOnlyMemInFLightCounter += AvgOnlyMemInFLightCounterTemp;
+        AvgOnlyCompInFLightCounter += AvgOnlyCompInFLightCounterTemp;
+        AvgMemAndCompInFLightCounter += AvgMemAndCompInFLightCounterTemp;
+        AvgNothingInFLightCounter += AvgNothingInFLightCounterTemp;
+
+
+        cannot_issue_overall += (cannot_issue - cannot_issue_overall) / cycleCounter;
+        ready_for_issue_overall += (ready_for_issue - ready_for_issue_overall) / cycleCounter;
+        issued_overall += (issued - issued_overall) / cycleCounter;
+        executed_overall += (executed - executed_overall) / cycleCounter;
+        in_ready_queue_overall += (in_ready_queue - in_ready_queue_overall) / cycleCounter;
+        checked_for_issue_overall += (checked_for_issue - checked_for_issue_overall) / cycleCounter;
+        ready_for_commit_overall += (ready_for_commit - ready_for_commit_overall) / cycleCounter;
+        committed_overall += (committed - committed_overall) / cycleCounter;
+
+        iqStats.AvgInstInFlight = AvgInstInFlightCounter;
+        iqStats.AvgMemInFlight = AvgMemInFlightCounter;
+        iqStats.AvgCompInFlight = AvgCompInFlightCounter;
+        iqStats.AvgInstStalled = AvgInstStalledCounter;
+        iqStats.AvgMemStalled = AvgMemStalledCounter;
+        iqStats.AvgCompStalled = AvgCompStalledCounter;
+        iqStats.AvgOnlyMemInFLight = AvgOnlyMemInFLightCounter;
+        iqStats.AvgOnlyCompInFLight = AvgOnlyCompInFLightCounter;
+        iqStats.AvgMemAndCompInFLight = AvgMemAndCompInFLightCounter;
+        iqStats.AvgNothingInFLight = AvgNothingInFLightCounter;
+
+        iqStats.cannot_issue_Flight = cannot_issue_overall;
+        iqStats.ready_for_issue_Flight = ready_for_issue_overall;
+        iqStats.issued_Flight = issued_overall;
+        iqStats.executed_Flight = executed_overall;
+        iqStats.ready_for_commit_Flight = ready_for_commit_overall;
+        iqStats.committed_Flight = committed_overall;
+        iqStats.in_ready_queue_Flight = in_ready_queue_overall;
+        iqStats.checked_for_issue_Flight = checked_for_issue_overall;
+
+
+        //printf("AvgInstInFlightCounterTemp %f AvgMemInFlightCounterTemp %f AvgCompInFlightCounterTemp %f InstInIQ %d InstInROB %d\n",AvgInstInFlightCounterTemp,AvgMemInFlightCounterTemp,///AvgCompInFlightCounterTemp,total_inst,cpu->rob.numInstsInROB);
+
+
+    }
+
+    // check if op is free -> Backend utilization check
+    for(int i = 0; i < OpClass::Num_OpClass; i++) {
+        int idx = FUPool::NoCapableFU;
+        OpClass op_class1 = OpClass(i);
+        idx = fuPool->getUnit(op_class1);
+        // check if we have insts and no structures to execute it
+        if(idx == FUPool::NoFreeFU && !readyInsts[op_class1].empty()) {
+            iqStats.statFuNoFree[op_class1]++;
+        }
+    }
 
     // If we issued any instructions, tell the CPU we had activity.
     // @todo If the way deferred memory instructions are handeled due to
@@ -1630,6 +2029,13 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
 
                     dep_inst->markSrcRegReady();
 
+                    if(completed_inst->isMemRef()) {
+                        dep_inst->numMemDeps--;
+                    } else {
+                        dep_inst->numComputeDeps--;
+                    }
+                    dep_inst->totalDeps--;
+
                     DPRINTF(IQ, "[tid:%d] addIfReady3 Adding instruction [sn:%llu] PC %s to the IQ.\n",tid, dep_inst->seqNum, dep_inst->pcState());
                     addIfReady(dep_inst);
 
@@ -1647,6 +2053,12 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
                 // been woken up.
                 assert(dependGraph.empty(dest_reg->flatIndex())); 
                 dependGraph.clearInst(dest_reg->flatIndex()); 
+
+                // auto it = std::find(dependGraph.ProducerRegs.begin(), dependGraph.ProducerRegs.end(), dest_reg->flatIndex());
+                // dependGraph.ProducerRegs.erase(it);
+
+                dependGraph.ProducerRegs.erase(std::remove(dependGraph.ProducerRegs.begin(), dependGraph.ProducerRegs.end(), dest_reg->flatIndex()), dependGraph.ProducerRegs.end());
+
             } else {
                 // first check that this inst is the head inst for the dependence chain
                 // if it is not, we have done something wrong
@@ -2207,6 +2619,11 @@ InstructionQueue::doSquash(ThreadID tid)
                 assert(dependGraph.empty(dest_reg->flatIndex())); 
                 dependGraph.clearInst(dest_reg->flatIndex());
 
+                // auto it = std::find(dependGraph.ProducerRegs.begin(), dependGraph.ProducerRegs.end(), dest_reg->flatIndex());
+                // dependGraph.ProducerRegs.erase(it);
+
+                dependGraph.ProducerRegs.erase(std::remove(dependGraph.ProducerRegs.begin(), dependGraph.ProducerRegs.end(), dest_reg->flatIndex()), dependGraph.ProducerRegs.end());
+
                 DPRINTF(IQ, "[tid:%d] PLACE1 STARTING TO SQUASH, [sn:%llu] "
                             "PC %s reg %d readyToCommit %d isExecuted %d isCompleted %d HasWokenDependents %d.\n", tid, squashed_inst->seqNum, squashed_inst->pcState(),dest_reg->flatIndex(),squashed_inst->readyToCommit(),squashed_inst->isCompleted(),squashed_inst->isExecuted(),squashed_inst->HasWokenDependents());
 
@@ -2347,6 +2764,14 @@ InstructionQueue::addToDependents(const DynInstPtr &new_inst)
                     dependGraph.insert(src_reg->flatIndex(), new_inst);
 
                     new_inst->added_to_dep_chain = cpu->curCycle();
+
+                    DynInstPtr inst_ = dependGraph.getInst(src_reg->flatIndex());
+                    if(inst_->isMemRef()) {
+                        new_inst->numMemDeps++;
+                    } else {
+                        new_inst->numComputeDeps++;
+                    }
+                    new_inst->totalDeps++;
 
                     // Change the return value to indicate that something
                     // was added to the dependency graph.
@@ -2523,6 +2948,8 @@ InstructionQueue::addToProducers(const DynInstPtr &new_inst)
                     dest_reg->flatIndex(),dest_reg->index(),dest_reg->getNumPinnedWritesToComplete());
 
             dependGraph.setInst(dest_reg->flatIndex(), new_inst); // create new entry for the destination register 
+
+            dependGraph.ProducerRegs.push_back(dest_reg->flatIndex());
         } else {
 
             DPRINTF(IQ, "[tid:%d] PLACE14 ADDING_TO_RAW_PRODUCERS, [sn:%llu] "
@@ -2634,6 +3061,7 @@ InstructionQueue::addIfReady(const DynInstPtr &inst)
 {
     // If the instruction now has all of its source registers
     // available, then add it to the list of ready instructions.
+
     if (inst->readyToIssue()) {
 
         int tid = inst->threadNumber;
@@ -2681,6 +3109,8 @@ InstructionQueue::addIfReady(const DynInstPtr &inst)
                 tid,inst->pcState(), op_class, inst->seqNum,cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType(),queueOnList[op_class]);
 
         readyInsts[op_class].push(inst);
+
+        inst->setInReadyQueue();
 
         // Will need to reorder the list if either a queue is not on the list,
         // or it has an older instruction than last time.
