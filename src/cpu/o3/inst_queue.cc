@@ -1221,6 +1221,8 @@ InstructionQueue::scheduleReadyInsts()
         addReadyMemInst(mem_inst);
     }
 
+    rearrangeReadyQueue();
+
     // Have iterator to head of the list
     // While I haven't exceeded bandwidth or reached the end of the list,
     // Try to get a FU that can do what this op needs.
@@ -1244,9 +1246,6 @@ InstructionQueue::scheduleReadyInsts()
 
     numCounter++;
 
-    // temp vector to store all instructions that were not ready to be issued because of inorder issue constraints
-    std::vector<std::vector<DynInstPtr>> temp[OpClass::Num_OpClass];
-
     while (total_issued < totalWidth && order_it != order_end_it) {
         
         OpClass op_class = (*order_it).queueType;
@@ -1255,20 +1254,17 @@ InstructionQueue::scheduleReadyInsts()
 
         counter++;
 
-        assert(!readyInsts[op_class].empty() || (!temp[op_class].empty()));
-
-        // nothing was actually ready, go to the next FU type
-        if(readyInsts[op_class].empty()) {
-            order_it++;
-        }
+        assert(!readyInsts[op_class].empty());
 
         DynInstPtr issuing_inst = readyInsts[op_class].top();
+
+        DPRINTF(IQ,"issuing inst considered %d\n",issuing_inst->seqNum);
 
         ThreadID tid = issuing_inst->threadNumber;
 
         issuing_inst->setCheckedForIssueInCycle();
 
-        printf("CHecking inst sn:%d\n",issuing_inst->seqNum);
+        // printf("CHecking inst sn:%d\n",issuing_inst->seqNum);
 
         if (issuing_inst->isFloating()) {
             iqIOStats.fpInstQueueReads++;
@@ -1331,10 +1327,6 @@ InstructionQueue::scheduleReadyInsts()
         // If we have an instruction that doesn't require a FU, or a
         // valid FU, then schedule for execution.
 
-        // if(idx == FUPool::NoFreeFU) {
-        //     printf("We need more Op %d\n",op_class);
-        // }
-
         if (idx != FUPool::NoFreeFU
         // condition for in-order execution and dont issue instructions if you are waiting on a control instruction to finish
         // W threads: for memory instructions we need to stop the issue of instructions for a thread for which a memory instruction has not been marked as not faulting. If a memory instruction is marked as "needs to be reissued" in execute, we cannot move the pipeline forward. We use a flag like we do in control instructions for this. At a given time only 1 memory instruction can be serviced. We dont want any 
@@ -1342,6 +1334,7 @@ InstructionQueue::scheduleReadyInsts()
         && ((!cpu->thread[tid]->ControlInstIssued && !(cpu->thread[tid]->MemInstIssued && cpu->thread[tid]->MemInstIssued!= issuing_inst->seqNum) &&  !olderIssuePending(issuing_inst->seqNum, issuing_inst->threadNumber)) || cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
         )
         {
+
             // ensure that there is no OoO issue going on. No older seq number should have been marked as issued for this tid.
             if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak && youngerInstIssued(issuing_inst->seqNum, issuing_inst->threadNumber)) {
                 panic("[tid:%d] Instruction [sn:%llu] is being issued OoO for W thread!\n",tid,issuing_inst->seqNum);
@@ -1513,9 +1506,8 @@ InstructionQueue::scheduleReadyInsts()
                 iqStats.statFuBusyPerThread[tid][op_class]++;
                 iqStats.statFuBusyPerThreadCollective[tid]++;
             }
-            ++order_it;
 
-            // go to next list only if you were out of HW structures
+            ++order_it;
 
             DPRINTF(IQ, "[tid:%d] : could not instruction PC %s "
                     "[sn:%llu] isControl() %d isDirectCtrl() %d isIndirectCtrl() %d isCondCtrl() %d isUncondCtrl() %d AreOlderInstIssued %d ControlInstIssued %d MemInstIssued %d olderIssuePending %d pendingSn %d\n",
@@ -1524,15 +1516,12 @@ InstructionQueue::scheduleReadyInsts()
         }
     }
 
-
     for(int idx = 0; idx < OpClass::Num_OpClass; idx++) {
         OpClass op_class1 = OpClass(idx);
         int val = fuPool->numBusyUnits(op_class1);
         if(val != -2) {
             statFuNoFreeAggregator[idx] += (val - statFuNoFreeAggregator[idx]) / numCounter;
             iqStats.statAvgFUUtilization[idx] = statFuNoFreeAggregator[idx];
-            // if(val!=0)
-            //     printf("Class %d val %d avg %f\n",idx,val,statFuNoFreeAggregator[idx]);
         }
     }
 
@@ -1591,7 +1580,6 @@ InstructionQueue::scheduleReadyInsts()
 
         }
     }
-
 
     // collect stats Ishita
     int active_threads = activeThreads->size();
@@ -1666,11 +1654,11 @@ InstructionQueue::scheduleReadyInsts()
                     }
 
                     if((*inst)->presentInReadyQueue() && (*inst)->IsCheckedForIssueInCycle()  && !(*inst)->isIssued() && !(*inst)->isExecuted() && !(*inst)->readyToCommit() && !(*inst)->isCommitted()){
-                         printf("OTHER_PROBLEM sn:%d memory %d in_ready_queue %d total_issued %d totalWidth %d listSize %d\n",(*inst)->seqNum, (*inst)->isMemRef(),(*inst)->presentInReadyQueue(), total_issued,totalWidth,listSize);
+                     //   printf("OTHER_PROBLEM sn:%d memory %d in_ready_queue %d total_issued %d totalWidth %d listSize %d\n",(*inst)->seqNum, (*inst)->isMemRef(),(*inst)->presentInReadyQueue(), total_issued,totalWidth,listSize);
                         in_ready_queue++;
                     }
                     if((*inst)->presentInReadyQueue() && !(*inst)->IsCheckedForIssueInCycle()  && !(*inst)->isIssued() && !(*inst)->isExecuted() && !(*inst)->readyToCommit() && !(*inst)->isCommitted()){
-                        printf("HELLO_ISSUE sn:%d memory %d in_ready_queue %d total_issued %d totalWidth %d listSize %d\n",(*inst)->seqNum, (*inst)->isMemRef(),(*inst)->presentInReadyQueue(), total_issued,totalWidth,listSize);
+                    //    printf("HELLO_ISSUE sn:%d memory %d in_ready_queue %d total_issued %d totalWidth %d listSize %d\n",(*inst)->seqNum, (*inst)->isMemRef(),(*inst)->presentInReadyQueue(), total_issued,totalWidth,listSize);
                         checked_for_issue++;
                     }
                 }
@@ -1678,7 +1666,7 @@ InstructionQueue::scheduleReadyInsts()
             }
         }
 
-        printf("*********CYCLE %d\n",curTick());
+        //printf("*********CYCLE %d\n",curTick());
 
         // look for cycles with some collection of results
         if(AvgInstInFlightCounterTemp == 0) {
@@ -2710,7 +2698,92 @@ bool
 InstructionQueue::PqCompare::operator()(
         const DynInstPtr &lhs, const DynInstPtr &rhs) const
 {
-    return lhs->seqNum > rhs->seqNum;
+
+    return false;
+    //return lhs->seqNum > rhs->seqNum;
+    // CPU* cpu;
+
+    // // in order instructions can have instructions which are ready but waiting on an older inst to issue first
+    // // this can lead to additional dependencies because all threads share the same queue. Now we sort based on a few additonal criteria.
+    // bool lhsCondition = ((!cpu->thread[lhs->threadNumber]->ControlInstIssued &&
+    //                          !(cpu->thread[lhs->threadNumber]->MemInstIssued &&
+    //                            cpu->thread[lhs->threadNumber]->MemInstIssued != lhs->seqNum) &&
+    //                          !InstructionQueue::olderIssuePending(lhs->seqNum, lhs->threadNumber)) ||
+    //                         cpu->thread[lhs->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Strong);
+
+    // bool rhsCondition = ((!cpu->thread[rhs->threadNumber]->ControlInstIssued &&
+    //                         !(cpu->thread[rhs->threadNumber]->MemInstIssued &&
+    //                         cpu->thread[rhs->threadNumber]->MemInstIssued != rhs->seqNum) &&
+    //                         !InstructionQueue::olderIssuePending(rhs->seqNum, rhs->threadNumber)) ||
+    //                     cpu->thread[rhs->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Strong);
+
+    // // Prefer instructions that satisfy the condition
+    // if (lhsCondition != rhsCondition) {
+    //     return !lhsCondition; // lhsCondition should come first if true
+    // }
+
+    // // Otherwise, fall back to sequence number comparison
+    // return lhs->seqNum > rhs->seqNum; // Lower seqNum means higher priority
+}
+
+
+bool 
+InstructionQueue::compareInstructions(const DynInstPtr &lhs, const DynInstPtr &rhs) {
+    CPU* cpu = this->cpu;
+
+    bool lhsCondition = ((!cpu->thread[lhs->threadNumber]->ControlInstIssued &&
+                            !(cpu->thread[lhs->threadNumber]->MemInstIssued &&
+                            cpu->thread[lhs->threadNumber]->MemInstIssued != lhs->seqNum) &&
+                            !olderIssuePending(lhs->seqNum, lhs->threadNumber)) ||
+                            cpu->thread[lhs->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Strong);
+
+    bool rhsCondition = ((!cpu->thread[rhs->threadNumber]->ControlInstIssued &&
+                            !(cpu->thread[rhs->threadNumber]->MemInstIssued &&
+                            cpu->thread[rhs->threadNumber]->MemInstIssued != rhs->seqNum) &&
+                            !olderIssuePending(rhs->seqNum, rhs->threadNumber)) ||
+                            cpu->thread[rhs->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Strong);
+
+    // Prefer instructions that satisfy the condition
+    if (lhsCondition != rhsCondition) {
+        return lhsCondition; // true if lhs should come before rhs
+    }
+
+    // Otherwise, fall back to sequence number comparison
+    return lhs->seqNum < rhs->seqNum; // Lower seqNum means higher priority
+}
+
+void
+InstructionQueue::rearrangeReadyQueue() {
+    // reorder all order lists
+
+    for(int idx = 0; idx < OpClass::Num_OpClass; idx++) {
+        OpClass op_class = OpClass(idx);
+
+        // Step 1: Extract all instructions to a vector
+        std::vector<DynInstPtr> inst_temp;
+
+        while (!readyInsts[op_class].empty()) {
+            inst_temp.push_back(readyInsts[op_class].top());
+            readyInsts[op_class].pop();
+        }
+
+        // Step 2: Sort the vector using your custom comparison
+        std::sort(inst_temp.begin(), inst_temp.end(), [this](const DynInstPtr& lhs, const DynInstPtr& rhs) {
+            return compareInstructions(lhs, rhs);
+        });
+
+        // Step 3: Push the sorted instructions back into the priority queue
+        for (const auto& inst : inst_temp) {
+            readyInsts[op_class].push(inst); // This will invoke PqCompare
+        }
+
+        if(!readyInsts[op_class].empty()) {
+            //if (readyInsts[op_class].top()->seqNum  < (*readyIt[op_class]).oldestInst) {
+            listOrder.erase(readyIt[op_class]);
+            addToOrderList(op_class);
+            //}
+        }
+    }
 }
 
 bool

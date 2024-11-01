@@ -1590,6 +1590,13 @@ Fetch::buildInst(ThreadID tid, StaticInstPtr staticInst,
     DPRINTF(Fetch, "[tid:%i] Instruction is: %s\n", tid,
             instruction->staticInst->disassemble(this_pc.instAddr()));
 
+    // DPRINTFN("[tid:%i] Instruction PC %s created [sn:%lli] Instruction is: %s pc addr %#x\n ", tid, this_pc, seq,
+    //         instruction->staticInst->disassemble(this_pc.instAddr()),this_pc.instAddr());
+
+    // if(this_pc.instAddr() == 0x400cc4) {
+    //     DPRINTFN("FOUND THE NEEDED PC\n");
+    // }
+
 #if TRACING_ON
     if (trace) {
         instruction->traceData =

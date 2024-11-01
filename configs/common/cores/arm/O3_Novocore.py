@@ -209,36 +209,39 @@ class NovoO3CPU(ArmO3CPU):
     iewToRenameDelay = 1
     commitToIEWDelay = 1
     commitToRenameDelay = 1
-    fetchWidth = 4  # taken from source 1.
-    fetchBufferSize = 64
     fetchToDecodeDelay = 1
-    decodeWidth = 4  # taken from source 1.
     decodeToRenameDelay = 1
-    renameWidth = 8  # taken from (1)
     renameToIEWDelay = 1
     issueToExecuteDelay = 1
+    iewToCommitDelay = 1
+    renameToROBDelay = 1
+    
+    fetchWidth = 12  # taken from source 1.
+    fetchBufferSize = 64
+    decodeWidth = 8  # taken from source 1.
+    renameWidth = 8  # taken from (1)
     dispatchWidth = 8
     issueWidth = 8  # taken from (1)
     wbWidth = 8
-    iewToCommitDelay = 1
-    renameToROBDelay = 1
     commitWidth = 8
     squashWidth = 8
-    trapLatency = 13
+    trapLatency = 1
     backComSize = 5
     forwardComSize = 5
 
     # taken from (1)
-    numROBEntries = 600 #128
+    numROBEntries = 128 #128
     # taken from (4)
-    numPhysFloatRegs = 600 #128
+    numPhysFloatRegs = 264 #128
     # taken from (4)
-    numPhysVecRegs = 600 #128
+    numPhysVecRegs = 264 #128
     # taken from (4)
-    numPhysIntRegs = 600 #120
+    numPhysIntRegs = 264 #120
 
     # taken from (1)
-    numIQEntries = 600 #120
+    numIQEntries = 120
+    numWIQEntries = 10
+    numSIQEntries = 120
 
     switched_out = False
     branchPred = O3_ARM_Neoverse_N1_BP()
@@ -250,12 +253,17 @@ class NovoO3CPU(ArmO3CPU):
     LFSTSize = 1024
     SSITSize = 1024
 
+    smtLSQPolicy = "Partitioned"
+    smtROBPolicy = "Partitioned"
+    smtIQPolicy = "SDynamicWStatic"
+    smtFetchPolicy = "IQCount"
+
 # Instruction Cache
 class O3_ARM_Novocore_ICache(Cache):
     tag_latency = 1
     data_latency = 1
     response_latency = 1
-    mshrs = 2
+    mshrs = 12
     tgts_per_mshr = 8
     size = "32kB"
     assoc = 2
@@ -295,7 +303,8 @@ class O3_ARM_Novocore_DCache(Cache):
     response_latency = 2
     mshrs = 6
     tgts_per_mshr = 8
-    size = "32kB"
+    #size = "32kB"
+    size = "64kB"
     assoc = 2
     write_buffers = 16
     # Consider the L2 a victim cache also for clean lines

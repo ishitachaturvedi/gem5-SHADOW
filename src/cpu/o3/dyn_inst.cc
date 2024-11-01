@@ -90,6 +90,10 @@ DynInst::DynInst(const Arrays &arrays, const StaticInstPtr &static_inst,
     numWrites.resize(arrays.numDests,0);
     numWARPending.resize(arrays.numDests,0);
 
+    numComputeDeps = 0;
+    numMemDeps = 0;
+    totalDeps = 0;
+
     LSQpushRequest = -1;
     LSQStartTranslation = -1;
     LSQCompleteTranslation = -1;

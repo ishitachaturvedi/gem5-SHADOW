@@ -189,6 +189,45 @@ FUPool::getUnit(OpClass capability)
     return fu_idx;
 }
 
+int 
+FUPool::numBusyUnits(OpClass capability)
+{
+    //  If this pool doesn't have the specified capability,
+    //  return this information to the caller
+    if (!capabilityList[capability])
+        return -2;
+
+    int fu_idx = fuPerCapList[capability].getFU();
+    int start_idx = fu_idx;
+
+    // Iterate through the circular queue if needed, stopping if we've reached
+    // the first element again.
+
+    int complete = 0;
+
+    int busyUnits = 0;
+
+    //printf("OpClass capability ");
+
+    while(!complete) {
+        if(unitBusy[fu_idx]) 
+        {
+            busyUnits++;
+            // printf("FOUND BUSY\n");
+        // } else {
+        //     printf("FOUND FREE\n");
+        }
+        fu_idx = fuPerCapList[capability].getFU();
+        if (fu_idx == start_idx) {
+            // No FU available
+            complete = 1;
+        }
+    }
+    //printf("\n");
+
+    return busyUnits;
+}
+
 void 
 FUPool::markUnitBusy(int fu_idx, OpClass capability)
 {
@@ -211,7 +250,7 @@ FUPool::freeUnitNextCycle(int fu_idx)
     unitsToBeFreed.push_back(fu_idx);
 }
 
-void
+void 
 FUPool::processFreeUnits()
 {
     while (!unitsToBeFreed.empty()) {

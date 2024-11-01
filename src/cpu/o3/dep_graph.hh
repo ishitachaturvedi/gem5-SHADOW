@@ -161,6 +161,8 @@ class DependencyGraph
         //printf("RESINZING_WAW3 %d idx %d\n",dependenceWARGraph[idx].size(),idx);
     }
 
+    std::vector<int> ProducerRegs;
+
     /** Check if there are no entries for the dependence graph -> The src reg is ready */
     bool isRAWSrcReady(RegIndex idx) { return (dependenceRAWGraph[idx].size() == 0); }
 
@@ -177,6 +179,29 @@ class DependencyGraph
     /** Clears the producing instruction. */
     void clearInst(RegIndex idx)
     { dependGraph[idx].inst = NULL; }
+
+    DynInstPtr getInst(RegIndex idx) {
+        return dependGraph[idx].inst;
+    }
+
+
+    int getSize(int idx) {
+        int size = 0;
+
+        // Check if dependGraph[idx] exists and is properly initialized
+        if (dependGraph[idx].next == NULL) {
+            return size;  // Return 0 if the list is empty
+        }
+
+        // Traverse the list starting from dependGraph[idx].next
+        DepEntry *current = dependGraph[idx].next;
+        while (current != NULL) {
+            size++;
+            current = current->next;
+        }
+
+        return size;
+    }
 
     /** Clears the producing instruction -> Removes the first entry from the vector for this register idx. */
     void clearInstRAW(RegIndex idx)

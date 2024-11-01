@@ -526,6 +526,9 @@ class Commit
     int htmStarts[MaxThreads];
     int htmStops[MaxThreads];
 
+    std::vector<float> AvgInstInROBTid;
+    std::vector<int> NumTicksTid;
+
     // Holds the running total of transit times:
     //float committedInstTime[MaxThreads][enums::Num_OpClass];
 
@@ -576,6 +579,8 @@ class Commit
 
         /** Number of cycles where the commit bandwidth limit is reached. */
         statistics::Scalar commitEligibleSamples;
+
+        statistics::Vector AvgInstInROB;
 
         /** Instruciton Transit Time by instruction type (OpClass) */
         statistics::Vector totalTransitTime;

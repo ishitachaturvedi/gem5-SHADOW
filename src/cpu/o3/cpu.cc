@@ -235,6 +235,8 @@ CPU::CPU(const BaseO3CPUParams &params)
     DPRINTF(O3CPU,"Total thread Reg size IntRegClass: %ld, FloatRegClass: %ld, VecRegClass: %ld, VecPredRegClass: %ld, CCRegClass: %ld\n",params.numPhysIntRegs,params.numPhysFloatRegs,params.numPhysVecRegs,params.numPhysVecPredRegs,params.numPhysCCRegs);
 
 
+    printf("Registers per thread: numPhysIntRegs %d numPhysFloatRegs %d numPhysVecRegs %d numPhysVecPredRegs %d numPhysCCRegs %d\n",regClasses.at(IntRegClass)->numRegs(), regClasses.at(FloatRegClass)->numRegs(), regClasses.at(VecRegClass)->numRegs(),regClasses.at(VecPredRegClass)->numRegs(), regClasses.at(CCRegClass)->numRegs());
+
     if(!(params.numPhysIntRegs >= numThreads * regClasses.at(IntRegClass)->numRegs())) {
             panic("Not enough numPhysIntRegs. NumRegs %d Regs Req %d Num Threads %d\n",params.numPhysIntRegs,numThreads * regClasses.at(IntRegClass)->numRegs(),numThreads);
     }

@@ -116,8 +116,8 @@ cpu_type = {
     ),
     "o3_novo": (
         O3_Novocore.NovoO3CPU,
-        O3_Novocore.O3_ARM_Novocore_ICache_Strong,
-        O3_Novocore.O3_ARM_Novocore_ICache_Weak,
+        O3_Novocore.O3_ARM_Novocore_ICache,
+        O3_Novocore.O3_ARM_Novocore_ICache,
         O3_Novocore.O3_ARM_Novocore_DCache,
         O3_Novocore.O3_ARM_Novocore_L2,
     ),
@@ -127,71 +127,16 @@ cpu_type = {
         O3_ARM_grace.O3_ARM_grace_ICache,
         O3_ARM_grace.O3_ARM_grace_DCache,
         O3_ARM_grace.O3_ARM_grace_L2,
-    ),
-    "o3_grace_1thread": (
-        O3_ARM_grace.Grace12Wide_1thread,
-        O3_ARM_grace.O3_ARM_grace_ICache,
-        O3_ARM_grace.O3_ARM_grace_ICache,
-        O3_ARM_grace.O3_ARM_grace_DCache,
-        O3_ARM_grace.O3_ARM_grace_L2,
-    ),
-    "o3_grace_2thread": (
-        O3_ARM_grace.Grace12Wide_2thread,
-        O3_ARM_grace.O3_ARM_grace_ICache,
-        O3_ARM_grace.O3_ARM_grace_ICache,
-        O3_ARM_grace.O3_ARM_grace_DCache,
-        O3_ARM_grace.O3_ARM_grace_L2,
-    ),
-    "o3_grace_4thread": (
-        O3_ARM_grace.Grace12Wide_4thread,
-        O3_ARM_grace.O3_ARM_grace_ICache,
-        O3_ARM_grace.O3_ARM_grace_ICache,
-        O3_ARM_grace.O3_ARM_grace_DCache,
-        O3_ARM_grace.O3_ARM_grace_L2,
-    ),
-    "o3_grace_8thread": (
-        O3_ARM_grace.Grace12Wide_8thread,
-        O3_ARM_grace.O3_ARM_grace_ICache,
-        O3_ARM_grace.O3_ARM_grace_ICache,
-        O3_ARM_grace.O3_ARM_grace_DCache,
-        O3_ARM_grace.O3_ARM_grace_L2,
-    ), 
-    "o3_grace_1thread_split": (
-        O3_ARM_grace.Grace12Wide_1thread,
-        O3_ARM_grace.O3_ARM_grace_ICache_Strong,
-        O3_ARM_grace.O3_ARM_grace_ICache_Weak,
-        O3_ARM_grace.O3_ARM_grace_DCache,
-        O3_ARM_grace.O3_ARM_grace_L2,
-    ),
-    "o3_grace_2thread_split": (
-        O3_ARM_grace.Grace12Wide_2thread,
-        O3_ARM_grace.O3_ARM_grace_ICache_Strong,
-        O3_ARM_grace.O3_ARM_grace_ICache_Weak,
-        O3_ARM_grace.O3_ARM_grace_DCache,
-        O3_ARM_grace.O3_ARM_grace_L2,
-    ),
-    "o3_grace_4thread_split": (
-        O3_ARM_grace.Grace12Wide_4thread,
-        O3_ARM_grace.O3_ARM_grace_ICache_Strong,
-        O3_ARM_grace.O3_ARM_grace_ICache_Weak,
-        O3_ARM_grace.O3_ARM_grace_DCache,
-        O3_ARM_grace.O3_ARM_grace_L2,
-    ),
-    "o3_grace_8thread_split": (
-        O3_ARM_grace.Grace12Wide_8thread,
-        O3_ARM_grace.O3_ARM_grace_ICache_Strong,
-        O3_ARM_grace.O3_ARM_grace_ICache_Weak,
-        O3_ARM_grace.O3_ARM_grace_DCache,
-        O3_ARM_grace.O3_ARM_grace_L2,
     ),"o3_grace_test": (
         O3_ARM_grace.Grace12Wide_testConfig,
         O3_ARM_grace.O3_ARM_grace_ICache,
         O3_ARM_grace.O3_ARM_grace_ICache,
-        # O3_ARM_grace.O3_ARM_grace_ICache_Perfect,
-        # O3_ARM_grace.O3_ARM_grace_ICache_Perfect,
         O3_ARM_grace.O3_ARM_grace_DCache,
-        O3_ARM_grace.O3_ARM_grace_L2,
-        #O3_ARM_grace.O3_ARM_grace_L2_Perfect,
+        O3_ARM_grace.O3_ARM_grace_L2
+        # O3_ARM_grace.O3_ARM_grace_ICache_Perfect,
+        # O3_ARM_grace.O3_ARM_grace_ICache_Perfect,
+        # O3_ARM_grace.O3_ARM_grace_DCache_Perfect,
+        # O3_ARM_grace.O3_ARM_grace_L2_Perfect,
     ),
 }
 
@@ -239,6 +184,10 @@ class SimpleSeSystem(System):
             cpu.numThreads = args.t
             cpu.SThreads = args.SThreads
             cpu.WThreads = args.WThreads
+            cpu.numROBEntries = args.ROBSize
+            cpu.LQEntries = args.LQEntries
+            cpu.numWIQEntries = args.numWIQEntries
+            cpu.numSIQEntries =  args.numSIQEntries
             cpu.runTillSThreads = args.runTillSThreads
             cpu.SingleThreadFetchIEW = args.SingleThreadFetchIEW
             cpu.UseSplitCache = args.UseSplitCache
@@ -246,6 +195,9 @@ class SimpleSeSystem(System):
             cpu.smtIQPolicy = args.smtIQPolicy
             cpu.MainSAllPW = args.MainSAllPW
             cpu.predictOnWThreads = args.predictOnWThreads
+            cpu.numPhysFloatRegs = args.numPhysFloatRegs
+            cpu.numPhysVecRegs = args.numPhysVecRegs
+            cpu.numPhysIntRegs = args.numPhysIntRegs
 
         # for cpu in self.cpu_cluster.cpus:
         #     cpu.numThreads = numThreads
@@ -398,7 +350,23 @@ def main():
 
     parser.add_argument('-WThreads', type=int, default = 0)
 
+    parser.add_argument('-ROBSize', type=int, default = 128)
+
+    parser.add_argument('-numSIQEntries', type=int, default = 120)
+
+    parser.add_argument('-numWIQEntries', type=int, default = 10)
+    
+    parser.add_argument('-LQEntries', type=int, default = 68)
+    
+    parser.add_argument('-SQEntries', type=int, default = 72)
+
     parser.add_argument('-runTillSThreads', type=bool, default=False)
+
+    parser.add_argument('-numPhysFloatRegs', type=int, default = 264)
+
+    parser.add_argument('-numPhysVecRegs', type=int, default = 264)
+
+    parser.add_argument('-numPhysIntRegs', type=int, default = 264)
 
     parser.add_argument('-env', type=str)
 
@@ -414,6 +382,8 @@ def main():
     parser.add_argument('-smtIQPolicy', type=str, default="Dynamic")
 
     parser.add_argument('-MainSAllPW', type=bool, default=False)
+
+    parser.add_argument('-smtLSQPolicy', type=str, default="SDynamicWStatic")
 
     args = parser.parse_args()
 

@@ -1555,29 +1555,29 @@ IEW::executeInsts()
 
         int tid = inst->threadNumber;
 
-        int8_t total_src_regs1 = inst->numSrcRegs();
-        for (int src_reg_idx = 0;
-                        src_reg_idx < total_src_regs1;
-                        src_reg_idx++) {
-            const PhysRegIdPtr reg = inst->renamedSrcIdx(src_reg_idx);
-            RegVal regval = 0;
-            DPRINTF(IQ,"[tid:%d] REG_ISSUE2_OUTVALS for SRC PC %s [sn:%llu] total_src_regs %d reg %d : ",tid, inst->pcState(), inst->seqNum,total_src_regs1,reg->flatIndex());
-            if (!reg->is(InvalidRegClass) && !reg->is(MiscRegClass) && !reg->is(VecRegClass) && !reg->is(VecPredRegClass))
-                regval = cpu->getReg(reg);
-            DPRINTF(IQ,"\n");
-        }
-        int8_t total_dest_regs1 = inst->numDestRegs();
-        for (int dest_reg_idx = 0;
-            dest_reg_idx < total_dest_regs1;
-            dest_reg_idx++)
-        {
-            const PhysRegIdPtr reg = inst->renamedDestIdx(dest_reg_idx);
-            RegVal regval = 0;
-            DPRINTF(IQ,"[tid:%d] REG_ISSUE2_OUTVALS for DEST PC %s [sn:%llu] total_dest_regs %d reg %d : ",tid, inst->pcState(),inst->seqNum,total_dest_regs1,reg->flatIndex());
-            if (!reg->is(InvalidRegClass) && !reg->is(MiscRegClass) && !reg->is(VecRegClass) && !reg->is(VecPredRegClass))
-                regval = cpu->getReg(reg);
-            DPRINTF(IQ,"\n");
-        }
+        // int8_t total_src_regs1 = inst->numSrcRegs();
+        // for (int src_reg_idx = 0;
+        //                 src_reg_idx < total_src_regs1;
+        //                 src_reg_idx++) {
+        //     const PhysRegIdPtr reg = inst->renamedSrcIdx(src_reg_idx);
+        //     RegVal regval = 0;
+        //     DPRINTF(IQ,"[tid:%d] REG_ISSUE2_OUTVALS for SRC PC %s [sn:%llu] total_src_regs %d reg %d : ",tid, inst->pcState(), inst->seqNum,total_src_regs1,reg->flatIndex());
+        //     if (!reg->is(InvalidRegClass) && !reg->is(MiscRegClass) && !reg->is(VecRegClass) && !reg->is(VecPredRegClass))
+        //         regval = cpu->getReg(reg);
+        //     DPRINTF(IQ,"\n");
+        // }
+        // int8_t total_dest_regs1 = inst->numDestRegs();
+        // for (int dest_reg_idx = 0;
+        //     dest_reg_idx < total_dest_regs1;
+        //     dest_reg_idx++)
+        // {
+        //     const PhysRegIdPtr reg = inst->renamedDestIdx(dest_reg_idx);
+        //     RegVal regval = 0;
+        //     DPRINTF(IQ,"[tid:%d] REG_ISSUE2_OUTVALS for DEST PC %s [sn:%llu] total_dest_regs %d reg %d : ",tid, inst->pcState(),inst->seqNum,total_dest_regs1,reg->flatIndex());
+        //     if (!reg->is(InvalidRegClass) && !reg->is(MiscRegClass) && !reg->is(VecRegClass) && !reg->is(VecPredRegClass))
+        //         regval = cpu->getReg(reg);
+        //     DPRINTF(IQ,"\n");
+        // }
 
         // Notify potential listeners that this instruction has started
         // executing
@@ -1794,11 +1794,6 @@ IEW::executeInsts()
             // DPRINTFN("[sn:%llu] 11PRED PC %d RedPC %s toCommit %#x toFetch %s isReturn() %d\n",inst->seqNum, inst->readPredTarg(), inst->pcState(), *toCommit->pc[tid], *toFetch->iewInfo[tid].//nextPC, inst->isReturn());
         }
 
-        // set next pc correctly after conditional instruction completes
-        // if(inst->isControl() && inst->isExecuted() && !inst->mispredicted() && cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
-            
-        // }
-
         // Check if branch prediction was correct, if not then we need
         // to tell commit to squash in flight instructions.  Only
         // handle this if there hasn't already been something that
@@ -2008,6 +2003,8 @@ IEW::tick()
     writeback_vals_1_sent = 0;
 
     sortInsts();
+
+    // instQueue.rearrangeReadyQueue();
 
     int dispatchedThreads = 0;
 

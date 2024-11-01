@@ -133,7 +133,7 @@ LSQ::LSQ(CPU *cpu_ptr, IEW *iew_ptr, const BaseO3CPUParams &params)
                 thread[tid].init(cpu, iew_ptr, params, this, tid);
                 thread[tid].setDcachePort(&dcachePort);
             } else {
-                thread.emplace_back(5, 5);
+                thread.emplace_back(20, 20);
                 thread[tid].init(cpu, iew_ptr, params, this, tid);
                 thread[tid].setDcachePort(&dcachePort);
             } 

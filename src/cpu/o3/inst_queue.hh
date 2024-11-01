@@ -310,6 +310,10 @@ class InstructionQueue
     /** Debug function to print all instructions. */
     void printInsts();
 
+    void rearrangeReadyQueue();
+
+    bool compareInstructions(const DynInstPtr &lhs, const DynInstPtr &rhs);
+
     std::vector<float> AverageInstinIQVec;
     std::vector<int> tidCounter;
 

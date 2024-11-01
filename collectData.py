@@ -483,58 +483,55 @@ def main():
 
     parent_folder = [
         #"HIP_pthreads_bmrk/convolution/results"
-        "dense_matrix"
-        #'sparse_matrix'
+        #"sparse_matrix/novocore_changing_matrix_size"
+        #'sparse_matrix/Scale_everything'
         #"results/CRONO"
+        "dense_matrix/Scale_everything"
+        #"CRONO_results/bc/test"
     ]  
+
+    m5_ops_stats = True
 
     files_check = [
         [
-            #"Dynamic_1pThread_200_50_5_no_pred_runahead",
-            #"Dynamic_1pThread_200_50_5_no_pred_runahead_perfectICache_L2",
-            # "Dynamic_1pThread_200_50_5_no_pred_runahead_big_core2",
-            # "pthreadDynamic_2S1W_200_50_5_no_pred_ratio_runahead_big_core2",
-            # "pthreadDynamic_2S2W_200_50_5_no_pred_ratio_runahead_big_core2",
-            #"pthreadDynamic_2S3W_200_50_5_no_pred_ratio_runahead_big_core2",
-            # "Dynamic_1pThread_200_50_5_no_pred_runahead_big_core1",
-            # "pthreadDynamic_2S1W_200_50_5_no_pred_ratio_runahead_big_core1",
-            # "pthreadDynamic_2S2W_200_50_5_no_pred_ratio_runahead_big_core1",
-            # "pthreadDynamic_2S3W_200_50_5_no_pred_ratio_runahead_big_core1",
-            #"pthreadDynamic_2S4W_200_50_5_no_pred_ratio_runahead_big_core1",
-            # "Dynamic_1pThread_200_50_5_no_pred_runahead_novo_128",
-            # "pthreadDynamic_2S1W_200_50_5_no_pred_ratio_runahead_novo_128_lq288_sq272",
-            # "pthreadDynamic_2S2W_200_50_5_no_pred_ratio_runahead_novo_128_lq288_sq272",
-            # "pthreadDynamic_2S3W_200_50_5_no_pred_ratio_runahead_novo_128_lq288_sq272",
-            # "pthreadDynamic_2S2W_600_50_5_pred_ratio_runahead",
-            # "pthreadDynamic_2S3W_600_50_5_pred_ratio_runahead",
-            # "pthreadDynamic_2S4W_600_50_5_pred_ratio_runahead"
+            # DENSE MATRIX
+            "Dynamic_1pThread_200_50_5_baseline",
+            "Dynamic_1pThread_200_50_5_scaled",
+            "pthreadDynamic_2S2W_200_50_5_baseline",
+            "pthreadDynamic_2S2W_200_50_5_scaled",
+            "pthreadDynamic_2S3W_200_50_5_baseline",
+            "pthreadDynamic_2S3W_200_50_5_scaled",
+            "pthreadDynamic_2S4W_200_50_5_baseline",
+            "pthreadDynamic_2S4W_200_50_5_scaled",
+            "pthreadDynamic_2S5W_200_50_5_baseline",
+            "pthreadDynamic_2S5W_200_50_5_scaled",
 
-            # "Dynamic_1pThread_200_50_5_no_pred_runahead_novo_ROB512_LQ500_SQ500_IQS500_IQW50_reg800",
-            # "pthreadDynamic_2S1W_200_50_5_no_pred_ratio_runahead_novo_ROB512_LQ500_SQ500_IQS500_IQW50_reg800",
-            # "pthreadDynamic_2S2W_200_50_5_no_pred_ratio_runahead_novo_ROB512_LQ500_SQ500_IQS500_IQW50_reg800",
-            # "pthreadDynamic_2S3W_200_50_5_no_pred_ratio_runahead_novo_ROB512_LQ500_SQ500_IQS500_IQW50_reg800"
+            # "Dynamic_1pThread_64_2",
+            # "pthreadDynamic_2S2W_64_2",
+            # "pthreadDynamic_2S3W_64_2",
+            # "pthreadDynamic_2S4W_64_2",
+            # "pthreadDynamic_2S5W_64_2",
+            # "pthreadDynamic_2S6W_64_2",
+            # "pthreadDynamic_2S7W_64_2",
 
-            # "Dynamic_1pThread_200_50_5_no_pred_runahead_novo_ROB128_LQ500_SQ500_IQS128_IQW20_reg264",
-            # "pthreadDynamic_2S1W_200_50_5_no_pred_ratio_runahead_novo_ROB128_LQ500_SQ500_IQS128_IQW20_reg264",
-            # "pthreadDynamic_2S2W_200_50_5_no_pred_ratio_runahead_novo_ROB128_LQ500_SQ500_IQS128_IQW20_reg264",
-            # "pthreadDynamic_2S3W_200_50_5_no_pred_ratio_runahead_novo_ROB128_ROB128_LQ500_SQ500_IQS128_IQW20_reg264"
 
-            "Dynamic_1pThread_200_50_5_no_pred_runahead_novo_ROB128_LQ72_SQ68_IQS128_IQW20_reg264",
-            "pthreadDynamic_2S1W_200_50_5_no_pred_ratio_runahead_novo_ROB128_LQ72_SQ68_IQS128_IQW20_reg264",
-            "pthreadDynamic_2S2W_200_50_5_no_pred_ratio_runahead_novo_ROB128_LQ72_SQ68_IQS128_IQW20_reg264",
-            "pthreadDynamic_2S3W_200_50_5_no_pred_ratio_runahead_novo_ROB128_LQ72_SQ68_IQS128_IQW20_reg264"
+            # SPARSE
+            # "Dynamic_1pThread_1000_90Per_sparse_baseline",
+            # "Dynamic_1pThread_1000_90Per_sparse_scaled",
+            # "pthreadDynamic_2S1W_1000_90Per_sparse_baseline",
+            # "pthreadDynamic_2S1W_1000_90Per_sparse_scaled",
+            # # "pthreadDynamic_2S2W_1000_90Per_sparse_baseline",
+            # # "pthreadDynamic_2S2W_1000_90Per_sparse_scaled",
+            # "pthreadDynamic_2S3W_1000_90Per_sparse_baseline",
+            # "pthreadDynamic_2S3W_1000_90Per_sparse_scaled",
+            # "pthreadDynamic_2S4W_1000_90Per_sparse_baseline",
+            # "pthreadDynamic_2S4W_1000_90Per_sparse_scaled",
+            # "pthreadDynamic_2S5W_1000_90Per_sparse_baseline",
+            # "pthreadDynamic_2S5W_1000_90Per_sparse_scaled",
+            # "pthreadDynamic_2S6W_1000_90Per_sparse_baseline",
+            # "pthreadDynamic_2S6W_1000_90Per_sparse_scaled",
+
         ]
-        # [
-        #     "ThreadS_1024",
-        #     "ThreadSW1_1024",
-        #     "ThreadSW2_1024",
-        #     "ThreadSW3_1024",
-        #     "ThreadSW4_1024",
-        #     "ThreadSW1_1024_pred",
-        #     "ThreadSW2_1024_pred",
-        #     "ThreadSW3_1024_pred",
-        #     "ThreadSW4_1024_pred"
-        # ]
     ]
 
     top_line = "input,benchmark,stat"
@@ -551,9 +548,7 @@ def main():
 
     stat_names = ["numCycles","issueRate","totalIpc","ipc::1","ipc::0","TotalInstIssued","TotalOoOInstIssued","TotalInstIssued::0","TotalOoOInstIssued::0","TotalInstIssued::1","TotalOoOInstIssued::1"]
 
-    stat_names = ["numCycles","issueRate","numIssuedDist::mean","statFuBusyPerThreadCollective","statStalledOnControlInstructionPerThread","statNumIssueNotPossiblePerThread","fuBusyS","fuBusyW","totalIpc", "cycleCountS", "cycleCountW","statFuNoFree::IntAlu","statFuNoFree::IntMult","statFuNoFree::IntDiv","statFuNoFree::MemRead","statFuNoFree::MemWrite","ipc::0","ipc::1","ipc::2","ipc::3","ipc::4","ipc::5","cpi::0","cpi::1","cpi::2","cpi::3","cpi::4","cpi::5","totalCpi","committedInsts::0","committedInsts::1","committedInsts::2","committedInsts::3","committedInsts::4","committedInsts::5","fuBusyRate::0","fuBusyRate::1","fuBusyRate::2","fuBusyRate::3","fuBusyRate::4","fuBusyRate::5","NoReadyInst","ReadyInstMoreThanBW","TotalOoOInstIssued::1","thread_1.numIters","thread_2.numIters","thread_3.numIters","thread_4.numIters","thread_1.MutexOverhead","thread_2.MutexOverhead","thread_3.MutexOverhead","thread_4.MutexOverhead","thread_1.BarrierOverhead","thread_2.BarrierOverhead","thread_3.BarrierOverhead","thread_4.BarrierOverhead","TimeSpentWaitingOnMem::0","TimeSpentWaitingOnMem::1","TimeSpentWaitingOnMem::2","TimeSpentWaitingOnMem::3","TimeSpentWaitingOnMem::4","AverageInstinIQ::0","AverageInstinIQ::1","AverageInstinIQ::2","AverageInstinIQ::total"]
-
-    #rename_stats = ["FreeIntRegClass"]
+    stat_names = ["numCycles","issueRate","numIssuedDist::mean","statFuBusyPerThreadCollective","statStalledOnControlInstructionPerThread","statNumIssueNotPossiblePerThread","fuBusyS","fuBusyW","totalIpc", "cycleCountS", "cycleCountW","statFuNoFree::IntAlu","statFuNoFree::IntMult","statFuNoFree::IntDiv","statFuNoFree::MemRead","statFuNoFree::MemWrite","ipc::0","ipc::1","ipc::2","ipc::3","ipc::4","ipc::5","cpi::0","cpi::1","cpi::2","cpi::3","cpi::4","cpi::5","totalCpi","committedInsts::0","committedInsts::1","committedInsts::2","committedInsts::3","committedInsts::4","committedInsts::5","fuBusyRate::0","fuBusyRate::1","fuBusyRate::2","fuBusyRate::3","fuBusyRate::4","fuBusyRate::5","NoReadyInst","ReadyInstMoreThanBW","TotalOoOInstIssued::1","thread_1.numIters","thread_2.numIters","thread_3.numIters","thread_4.numIters","thread_5.numIters","thread_6.numIters","thread_7.numIters","thread_8.numIters","thread_1.MutexOverhead","thread_2.MutexOverhead","thread_3.MutexOverhead","thread_4.MutexOverhead","thread_1.BarrierOverhead","thread_2.BarrierOverhead","thread_3.BarrierOverhead","thread_4.BarrierOverhead","TimeSpentWaitingOnMem::0","TimeSpentWaitingOnMem::1","TimeSpentWaitingOnMem::2","TimeSpentWaitingOnMem::3","TimeSpentWaitingOnMem::4","AverageInstinIQ::0","AverageInstinIQ::1","AverageInstinIQ::2","AverageInstinIQ::total","statFuBusy::IntMult","statFuBusy::MemRead","statFuBusy::MemWrite","statAvgFUUtilization::IntMult","statAvgFUUtilization::MemRead","statAvgFUUtilization::MemWrite","AverageNonIssuedInstPerThread::0","AverageNonIssuedInstPerThread::1","AverageNonIssuedInstPerThread::2","AverageNonIssuedInstPerThread::3","AverageNonIssuedInstPerThread::4","AverageNonIssuedInstPerThread::total","AverageIssuedInstPerThread::0","AverageIssuedInstPerThread::1","AverageIssuedInstPerThread::2","AverageIssuedInstPerThread::3","AverageIssuedInstPerThread::total","AverageInstsThread::0","AverageInstsThread::1","AverageInstsThread::2","AverageInstsThread::3","AverageInstsThread::4","AverageInstsThread::total","AverageNonIssuedInstPerThreadDependsOnMemory::0","AverageNonIssuedInstPerThreadDependsOnMemory::1","AverageNonIssuedInstPerThreadDependsOnMemory::2","AverageNonIssuedInstPerThreadDependsOnMemory::3","AverageNonIssuedInstPerThreadDependsOnMemory::4","AverageNonIssuedInstPerThreadDependsOnMemory::total","AverageNonIssuedInstPerThreadDependsOnCompute::0","AverageNonIssuedInstPerThreadDependsOnCompute::1","AverageNonIssuedInstPerThreadDependsOnCompute::2","AverageNonIssuedInstPerThreadDependsOnCompute::3","AverageNonIssuedInstPerThreadDependsOnCompute::4","AverageNonIssuedInstPerThreadDependsOnCompute::total","AverageNonIssuedInstPerThreadDependsOnTotal::0","AverageNonIssuedInstPerThreadDependsOnTotal::1","AverageNonIssuedInstPerThreadDependsOnTotal::2","AverageNonIssuedInstPerThreadDependsOnTotal::3","AverageNonIssuedInstPerThreadDependsOnTotal::4","AverageNonIssuedInstPerThreadDependsOnTotal::total","AvgInstInFlight","AvgMemInFlight","AvgCompInFlight","AvgInstStalled","AvgMemStalled","AvgCompStalled","AvgOnlyMemInFLight","AvgOnlyCompInFLight","AvgMemAndCompInFLight","AvgNothingInFLight","cannot_issue_Flight","ready_for_issue_Flight","issued_Flight","checked_for_issue_Flight","in_ready_queue_Flight","executed_Flight","ready_for_commit_Flight","committed_Flight"]
 
     l2_stats = ["overallMissRate::total","overallMissLatency::total","demandHits::total","demandMisses::total","demandMissLatency::total","demandAccesses::total"]
 
@@ -566,7 +561,7 @@ def main():
 
     iew_stats = ["idleCyclesDispatch","ExecuteInstsIdle","squashCycles","squashCyclesS","squashCyclesW","blockCycles","blockCyclesS","blockCyclesW","unblockCycles","dispatchedInsts","dispSquashedInsts","dispSquashedInstsS","dispSquashedInstsW","iqFullEvents","iqFullEventsS","iqFullEventsW","lsqFullEvents","lsqFullEventsS","lsqFullEventsW","memOrderViolationEvents","branchMispredicts","instsToCommit","wbRateTotal","wbRateSTotal","wbRateWTotal","stalledS","stalledW","notStalled","blockingS","blockingW","blockingIQFull","blockingIQFullS","blockingLSQFull","blockingLSQFullS","blockingBandwidthFull","blockingBandwidthFullS","NoIntructionsAvailable::0","NoIntructionsAvailable::1","NoIntructionsAvailable::2","NoIntructionsAvailable::3","NoIntructionsAvailable::4","NoIntructionsAvailable::5","instsToCommit::0","NoSInstFromRename","NoWInstFromRename"]
 
-    commit_stats = ["commitSquashedInsts","branchMispredicts","branchMispredictsS","branchMispredictsW","branches::0","branches::1","IQTimeTotal","ROBTimeTotal","IEWTimeTotal","totalReadyTimeTotal","renameTimeTotal","decodeTimeTotal","fetchTimeTotal"]
+    commit_stats = ["commitSquashedInsts","branchMispredicts","branchMispredictsS","branchMispredictsW","branches::0","branches::1","IQTimeTotal","ROBTimeTotal","IEWTimeTotal","totalReadyTimeTotal","renameTimeTotal","decodeTimeTotal","fetchTimeTotal","AvgInstInROB::1"]
 
     icache_stats = ["demandHits::cpu_cluster.cpus.inst","overallMissRate::total","overallMissLatency::total","demandHits::total","overallHits::total","demandMisses::total","overallMisses::total","overallAvgMissLatency::total","blockedCycles::no_mshrs","blockedCycles::no_targets","avgBlocked::no_mshrs","avgBlocked::no_targets","replacements","overallAvgMshrMissLatency::total","tags.warmupTick","tags.avgRefs","tags.totalRefs","tags.avgOccs::total","demandMissLatency::total","demandAccesses::total","demandAvgMissLatency::total","demandMshrMissLatency::total","demandAvgMshrMissLatency::total","tags.avgOccs::total","ReadReq.mshrMissLatency::cpu_cluster.cpus.inst","ReadReq.avgMissLatency::cpu_cluster.cpus.inst","overallAvgMissLatency::cpu_cluster.cpus.inst","overallMshrMisses::total","overallAccesses::total","demandMissRate::total","blockedCauses::no_mshrs","blockedCauses::no_targets","writebacks::writebacks","demandMshrHits::total","overallAvgMshrMissLatency::total","ReadReq.hits::total","ReadReq.misses::total","ReadReq.missLatency::total","ReadReq.accesses::total","ReadReq.missRate::total","tags.tagsInUse","tags.tagAccesses"]
 
@@ -593,7 +588,6 @@ def main():
     # loop_type: "main_loop": Main calculation loop
     # loop_type: "tile_setup": Next tile setup
 
-    m5_ops_stats = True
     loop_type = "main_loop"
 
     get_stats(parent_folder, files_check, stat_names, output_file, directory, stage_specfic_stats, cpu_stage_specfic_stats, top_line, cpulist, SimStats, m5_ops_stats, loop_type)

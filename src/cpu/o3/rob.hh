@@ -156,6 +156,11 @@ class ROB
 /* Are the older instructions issued? If yes we can issue this instruction as well. This check is to ensure in-order issue of instructions for wimpy threads.*/
     bool AreOlderInstIssued(ThreadID tid, int seq_number);
 
+    /** 
+     * Get the average number of iterations in the ROB
+     **/
+    void GetAvgIters(); 
+
     /** Is the oldest instruction across all threads ready. */
 //    bool isHeadReady();
 
@@ -325,6 +330,11 @@ class ROB
     /** Dummy instruction returned if there are no insts left. */
     DynInstPtr dummyInst;
 
+    int ItersInROB;
+    int NumCycles;
+    int AddrForIter;
+    int AvgIters;
+
   private:
     /** The sequence number of the squashed instruction. */
     InstSeqNum squashedSeqNum[MaxThreads];
@@ -347,6 +357,8 @@ class ROB
         statistics::Scalar reads;
         // The number of rob_writes
         statistics::Scalar writes;
+
+        statistics::Scalar NumberOfItersInROB;
     } stats;
 };
 

@@ -111,15 +111,15 @@ class FUPool : public SimObject
          */
         inline int getFU();
 
+        /** Queue of FU indices. */
+        std::vector<int> funcUnitsIdx;
+
       private:
         /** Circular queue index. */
         int idx;
 
         /** Size of the queue. */
         int size;
-
-        /** Queue of FU indices. */
-        std::vector<int> funcUnitsIdx;
     };
 
     /** Per op class queues of FUs that provide that capability. */
@@ -172,6 +172,9 @@ class FUPool : public SimObject
 
     /* number of free units */
     int numFreeUnits(OpClass capability);
+
+    /* number of busy units */
+    int numBusyUnits(OpClass capability);
 
     /** Returns the operation execution latency of the given capability. */
     Cycles getOpLatency(OpClass capability) {

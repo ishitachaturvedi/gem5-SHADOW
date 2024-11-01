@@ -100,6 +100,7 @@ class O3_ARM_Grace_FP_Vec_0(FUDesc):
     ]
 
     count = 1
+    #count = 20
 
 
 class O3_ARM_Grace_FP_Vec_1(FUDesc):
@@ -165,6 +166,7 @@ class O3_ARM_Grace_FP_Vec_1(FUDesc):
         OpDesc(opClass="SimdShiftAcc", opLat=4),
     ]
     count = 1
+    #count = 20
 
 
 class O3_ARM_Grace_FP_Vec_2(FUDesc):
@@ -229,6 +231,7 @@ class O3_ARM_Grace_FP_Vec_2(FUDesc):
         OpDesc(opClass="SimdFloatSqrt", opLat=12, pipelined=True),
     ]
     count = 1
+    #count = 20
 
 
 class O3_ARM_Grace_FP_Vec_3(FUDesc):
@@ -289,6 +292,7 @@ class O3_ARM_Grace_FP_Vec_3(FUDesc):
         OpDesc(opClass="SimdShiftAcc", opLat=4),
     ]
     count = 1
+    #count = 20
 
 
 class O3_ARM_Grace_Simple_Int(FUDesc):
@@ -300,6 +304,7 @@ class O3_ARM_Grace_Simple_Int(FUDesc):
     # Aarch64 ALU (Unfortunately branches are put together with IntALU)
     opList = [OpDesc(opClass="IntAlu", opLat=1)]
     count = 6
+    #count = 20
 
 
 class O3_ARM_Grace_Complex_Int(FUDesc):
@@ -319,7 +324,7 @@ class O3_ARM_Grace_Complex_Int(FUDesc):
         OpDesc(opClass="SimdPredAlu"),
     ]
     count = 2
-
+    #count = 20
 
 class O3_ARM_Grace_LoadStore(FUDesc):
     """
@@ -334,16 +339,19 @@ class O3_ARM_Grace_LoadStore(FUDesc):
         OpDesc(opClass="FloatMemWrite"),
     ]
     count = 2
+    #count = 20
 
 
 class O3_ARM_Grace_Load(FUDesc):
     opList = [OpDesc(opClass="MemRead"), OpDesc(opClass="FloatMemRead")]
     count = 1
+    #count = 20
 
 
 class O3_ARM_Grace_Store(FUDesc):
     opList = [OpDesc(opClass="MemWrite"), OpDesc(opClass="FloatMemWrite")]
     count = 2
+    #count = 20
 
 
 class O3_ARM_Grace_FUP(FUPool):
@@ -836,7 +844,7 @@ class O3_ARM_grace_ICache(Cache):
     response_latency = 1
     mshrs = 12
     tgts_per_mshr = 8
-    size = "32kB"
+    size = "64kB"
     assoc = 2
     is_read_only = True
     # Writeback clean lines as well
@@ -849,7 +857,7 @@ class O3_ARM_grace_ICache_Perfect(Cache):
     response_latency = 10
     mshrs = 12
     tgts_per_mshr = 8
-    size = "32kB"
+    size = "64kB"
     assoc = 2
     is_read_only = True
     # Writeback clean lines as well
@@ -861,7 +869,7 @@ class O3_ARM_grace_ICache_Strong(Cache):
     response_latency = 1
     mshrs = 12
     tgts_per_mshr = 8
-    size = "32kB"
+    size = "64kB"
     assoc = 2
     # write_buffers = 16
     # Consider the L2 a victim cache also for clean lines
@@ -873,7 +881,7 @@ class O3_ARM_grace_ICache_Weak(Cache):
     response_latency = 2
     mshrs = 6
     tgts_per_mshr = 8
-    size = "32kB"
+    size = "64kB"
     assoc = 2
     write_buffers = 16
     # Consider the L2 a victim cache also for clean lines

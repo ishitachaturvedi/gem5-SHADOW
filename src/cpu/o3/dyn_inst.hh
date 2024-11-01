@@ -169,6 +169,8 @@ class DynInst : public ExecContext, public RefCounted
         Completed,               /// Instruction has completed
         ResultReady,             /// Instruction has its result
         CanIssue,                /// Instruction can issue and execute
+        InReadyQueue,            /// Check if instruction is in ready Queue
+        CheckedForIssueInCycle,  /// Was instruction checked if ready for issue in the cycle
         Issued,                  /// Instruction has issued
         Executed,                /// Instruction has executed
         WokeDependents,          /// Instruction has woken dependents
@@ -432,6 +434,10 @@ class DynInst : public ExecContext, public RefCounted
     /////////////////////// Checker //////////////////////
     // Need a copy of main request pointer to verify on writes.
     RequestPtr reqToVerify;
+
+    int numComputeDeps;
+    int numMemDeps;
+    int totalDeps;
 
   public:
 
@@ -838,6 +844,24 @@ class DynInst : public ExecContext, public RefCounted
 
     /** Clears this instruction being able to issue. */
     void clearCanIssue() { status.reset(CanIssue); }
+
+    /** Sets this instruction as present in ready queue. */
+    void setInReadyQueue() { status.set(InReadyQueue); }
+
+    /** Returns whether or not this instruction is in Ready Queue. */
+    bool presentInReadyQueue() const { return status[InReadyQueue]; }
+
+    /** Clears this instruction is in Ready Queue. */
+    void clearInReadyQueue() { status.reset(InReadyQueue); }
+
+    /** Sets this instruction as checked fpr issue in this cycle. */
+    void setCheckedForIssueInCycle() { status.set(CheckedForIssueInCycle); }
+
+    /** Returns whether or not this instruction was checked to be scheduled for issue. */
+    bool IsCheckedForIssueInCycle() const { return status[CheckedForIssueInCycle]; }
+
+    /** Clears this instruction as being checked for issue. */
+    void clearCheckedForIssueInCycle() { status.reset(CheckedForIssueInCycle); }
 
      /** Sets this instruction as completed waking up dependents. */
     void setWokeDependents() { status.set(WokeDependents); }

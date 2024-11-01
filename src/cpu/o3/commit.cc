@@ -116,6 +116,9 @@ Commit::Commit(CPU *_cpu, const BaseO3CPUParams &params)
         }
     }
 
+    AvgInstInROBTid.resize(MaxThreads,0);
+    NumTicksTid.resize(MaxThreads,0);
+
     for (ThreadID tid = 0; tid < MaxThreads; tid++) {
         commitStatus[tid] = Idle;
         changedROBNumEntries[tid] = false;
@@ -187,6 +190,8 @@ Commit::CommitStats::CommitStats(CPU *cpu, Commit *commit)
                "Number of function calls committed."),
       ADD_STAT(committedInstType, statistics::units::Count::get(),
                "Class of committed instruction"),
+      ADD_STAT(AvgInstInROB, statistics::units::Count::get(),
+               "Avg number of insts in ROB"),
       ADD_STAT(commitEligibleSamples, statistics::units::Cycle::get(),
                "number cycles where commit BW limit reached"),
       ADD_STAT(totalTransitTime, statistics::units::Count::get(),
@@ -304,6 +309,10 @@ Commit::CommitStats::CommitStats(CPU *cpu, Commit *commit)
         .flags(total | pdf | dist);
 
     committedInstType.ysubnames(enums::OpClassStrings);
+
+    AvgInstInROB
+        .init(commit->numThreads)
+        .flags(total);
 
     totalTransitTime
         .init(enums::Num_OpClass)
@@ -822,9 +831,15 @@ Commit::tick()
     int maxNonCommitTid = -1;
 
     while (threads != end) {
+        // get avg number of ROB entries
 
         ThreadID tid = *threads++;
         DPRINTF(Commit,"[tid:%d] Commit status: %d lastCommitedCycle %d trapSquash[tid] %d\n",tid,commitStatus[tid],lastCommitedCycle[tid],trapSquash[tid]);
+
+        NumTicksTid[tid]++;
+
+        AvgInstInROBTid[tid] += (rob->getThreadEntries(tid) - AvgInstInROBTid[tid]) /  NumTicksTid[tid];
+        stats.AvgInstInROB[tid] = AvgInstInROBTid[tid];
 
 
         if(maxNonCommitCycle < lastCommitedCycle[tid]) {
@@ -903,6 +918,8 @@ Commit::tick()
     DPRINTF(pipelineView,"commit_vals_sent %d\n",commit_vals_sent);
     DPRINTF(pipelineView,"commit_vals_0_sent %d\n",commit_vals_0_sent);
     DPRINTF(pipelineView,"commit_vals_1_sent %d\n",commit_vals_1_sent);
+
+    rob->GetAvgIters();
 }
 
 void

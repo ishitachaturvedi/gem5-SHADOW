@@ -66,6 +66,10 @@ ROB::ROB(CPU *_cpu, const BaseO3CPUParams &params)
       stats(_cpu)
 
 {
+
+    AddrForIter = 0x400d44;
+    ItersInROB = 0;
+
     //Figure out rob policy
     if (robPolicy == SMTQueuePolicy::Dynamic) {
         //Set Max Entries to Total ROB Capacity
@@ -132,6 +136,7 @@ ROB::resetState()
         doneSquashing[tid] = true;
     }
     numInstsInROB = 0;
+    ItersInROB = 0;
 
     // Initialize the "universal" ROB head & tail point to invalid
     // pointers
@@ -256,6 +261,28 @@ ROB::insertInst(const DynInstPtr &inst)
 
     DPRINTF(ROB, "[tid:%i] Now has %d instructions.\n", tid,
             threadEntries[tid]);
+
+    // add new iteration 
+    if(inst->pcState().instAddr() == AddrForIter) {
+        ItersInROB++;
+    }
+
+    // DPRINTFN("[tid:%i] Instruction PC %s created [sn:%lli] Instruction is: %s pc addr %#x\n ", tid, inst->pcState(), inst->seqNum,
+    //         inst->staticInst->disassemble(inst->pcState().instAddr()),inst->pcState().instAddr());
+
+    // if(inst->pcState().instAddr() == AddrForIter) {
+    //     DPRINTFN("FOUND THE NEEDED PC ItersInROB %d\n",ItersInROB);
+    // }
+
+}
+
+void
+ROB::GetAvgIters() {
+    NumCycles++;
+
+    AvgIters += (ItersInROB - AvgIters) / NumCycles;
+
+    stats.NumberOfItersInROB =  AvgIters;
 }
 
 bool 
@@ -290,6 +317,10 @@ ROB::retireHead(ThreadID tid)
 
     --numInstsInROB;
     --threadEntries[tid];
+
+    if(head_inst->pcState().instAddr() == AddrForIter) {
+        ItersInROB--;
+    }
 
     head_inst->clearInROB();
     head_inst->setCommitted();
@@ -565,7 +596,9 @@ ROB::ROBStats::ROBStats(statistics::Group *parent)
     ADD_STAT(reads, statistics::units::Count::get(),
         "The number of ROB reads"),
     ADD_STAT(writes, statistics::units::Count::get(),
-        "The number of ROB writes")
+        "The number of ROB writes"),
+    ADD_STAT(NumberOfItersInROB, statistics::units::Count::get(),
+        "Number of iterations of the inner loop in the ROB")
 {
 }
 

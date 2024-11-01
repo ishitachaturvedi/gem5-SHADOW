@@ -357,6 +357,7 @@ MemDepUnit::regsReady(const DynInstPtr &inst)
                 "dependencies resolved, adding it to the ready list.\n");
 
         moveToReady(inst_entry);
+
     } else {
         DPRINTF(MemDepUnit, "Instruction still waiting on "
                 "memory dependency.\n");
@@ -610,6 +611,9 @@ MemDepUnit::moveToReady(MemDepEntryPtr &woken_inst_entry)
     assert(!woken_inst_entry->squashed);
 
     iqPtr->addReadyMemInst(woken_inst_entry->inst);
+
+    woken_inst_entry->inst->setInReadyQueue();
+
 }
 
 
