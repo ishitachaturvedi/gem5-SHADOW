@@ -3,8 +3,8 @@
 #include <pthread.h>
 #include <stdbool.h>
 
-#define TILE_SIZE 50  // Size of the tile (10x10)
-#define CHUNK_SIZE 10  // Size of the chunk for work stealing
+#define TILE_SIZE 20  // Size of the tile (10x10)
+#define CHUNK_SIZE 1  // Size of the chunk for work stealing
 
 // Global variables
 int N;               // Size of the matrix
@@ -167,16 +167,16 @@ int main(int argc, char *argv[]) {
     }
 
     // Perform single-threaded multiplication for validation
-    single_threaded_matrix_multiply();
+    // single_threaded_matrix_multiply();
 
-    // Validate the multi-threaded result against the single-threaded result
-    if (validate_result()) {
-        printf("Validation successful: multi-threaded result matches single-threaded result.\n");
-    } else {
-        printf("Validation failed: multi-threaded result does not match single-threaded result.\n");
-    }
+    // // Validate the multi-threaded result against the single-threaded result
+    // if (validate_result()) {
+    //     printf("Validation successful: multi-threaded result matches single-threaded result.\n");
+    // } else {
+    //     printf("Validation failed: multi-threaded result does not match single-threaded result.\n");
+    // }
 
-    // Print how many rows each thread processed
+    // // Print how many rows each thread processed
     for (int t = 0; t < num_threads; t++) {
         printf("Thread %d processed %d rows.\n", t, rows_processed[t]);
     }

@@ -280,7 +280,8 @@ void
 ROB::GetAvgIters() {
     NumCycles++;
 
-    AvgIters += (ItersInROB - AvgIters) / NumCycles;
+    // AvgIters += (ItersInROB - AvgIters) / NumCycles;
+    AvgIters += (numInstsInROB - AvgIters) / NumCycles;
 
     stats.NumberOfItersInROB =  AvgIters;
 }
