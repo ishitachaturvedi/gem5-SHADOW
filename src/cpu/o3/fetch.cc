@@ -2441,8 +2441,9 @@ Fetch::SWiqCountPriority() { //Ishita
 
 void 
 Fetch::IQCountPriority() { //Ishita
-    std::priority_queue<unsigned, std::vector<unsigned>,
-                        std::greater<unsigned> > Queue;
+    //std::priority_queue<unsigned, std::vector<unsigned>,
+    //                    std::greater<unsigned> > Queue;
+    std::priority_queue<unsigned> Queue;
     std::map<unsigned, ThreadID> threadMap;
 
     std::list<ThreadID>::iterator threads = activeThreads->begin();
