@@ -4,13 +4,13 @@
 #include <time.h>
 
 #define CHUNK_SIZE 10  // Define the chunk size for work stealing
+//#define CHUNK_SIZE_MAIN 25
 
-// #define GEM5
+#define GEM5
 
 #ifdef GEM5
 #include "gem5/m5ops.h"
 #endif
-
 
 // Structure to represent a sparse matrix in CSR format
 typedef struct {
@@ -28,6 +28,7 @@ typedef struct {
     SparseMatrix *C;
     int thread_id;
     int num_threads;
+    int first_thread_percentage;
 } ThreadArgs;
 
 // Global shared index to keep track of rows being processed
@@ -41,12 +42,6 @@ void *multiplySparseMatrices(void *args) {
     SparseMatrix *B = threadArgs->B;
     SparseMatrix *C = threadArgs->C;
 
-#ifdef GEM5
-    if(threadArgs->thread_id == 0) {
-        m5_dump_reset_stats(0,0);
-    }
-#endif
-
     while (1) {
         int startRow;
 
@@ -59,6 +54,7 @@ void *multiplySparseMatrices(void *args) {
         m5_end_mutex(threadArgs->thread_id);
         #endif
         startRow = currentRow;
+        // currentRow += threadArgs->chunk_size;
         currentRow += CHUNK_SIZE;
         pthread_mutex_unlock(&mutex);
 
@@ -77,6 +73,7 @@ void *multiplySparseMatrices(void *args) {
         m5_numiter(threadArgs->thread_id);
         #endif
 
+        // START: Main function
         for (int row = startRow; row < endRow; row++) {
             for (int j = A->rowPtr[row]; j < A->rowPtr[row + 1]; j++) {
                 int colA = A->colIdx[j];
@@ -91,16 +88,74 @@ void *multiplySparseMatrices(void *args) {
                 }
             }
         }
+        // END: Main function
     }
-
-    #ifdef GEM5
-    if(threadArgs->thread_id == 0) {
-        m5_dump_reset_stats(0,0);
-    }
-    #endif
 
     return NULL;
 }
+
+
+
+void *multiplySparseMatricesStaticAllocation(void *args) {
+    ThreadArgs *threadArgs = (ThreadArgs *)args;
+    SparseMatrix *A = threadArgs->A;
+    SparseMatrix *B = threadArgs->B;
+    SparseMatrix *C = threadArgs->C;
+    int thread_id = threadArgs->thread_id;
+    int num_threads = threadArgs->num_threads;
+    double first_thread_percentage = threadArgs->first_thread_percentage;  // x% as a decimal (e.g., 0.25 for 25%)
+
+    int total_rows = A->rows;
+    int startRow, endRow;
+
+    if (thread_id == 0) {
+        // First thread gets x% of the rows
+        startRow = 0;
+        endRow = (int)(total_rows * first_thread_percentage);
+    } else {
+        // Remaining threads share the rest of the rows equally
+        int remaining_rows = total_rows - (int)(total_rows * first_thread_percentage);
+        int rows_per_thread = remaining_rows / (num_threads - 1);
+        int extra_rows = remaining_rows % (num_threads - 1);
+
+        // Adjust start and end row based on thread ID
+        startRow = (int)(total_rows * first_thread_percentage) + (thread_id - 1) * rows_per_thread;
+        endRow = startRow + rows_per_thread;
+
+        // Distribute extra rows among the first few threads
+        if (thread_id - 1 < extra_rows) {
+            startRow += (thread_id - 1);
+            endRow += 1;
+        } else {
+            startRow += extra_rows;
+        }
+    }
+
+    #ifdef GEM5
+    m5_numiter(threadArgs->thread_id);
+    #endif
+
+    // START: Main function to multiply rows in the assigned range
+    for (int row = startRow; row < endRow; row++) {
+        for (int j = A->rowPtr[row]; j < A->rowPtr[row + 1]; j++) {
+            int colA = A->colIdx[j];
+            int valueA = A->values[j];
+
+            for (int k = B->rowPtr[colA]; k < B->rowPtr[colA + 1]; k++) {
+                int colB = B->colIdx[k];
+                int valueB = B->values[k];
+
+                // Accumulate the result for C[row][colB]
+                C->values[row * C->cols + colB] += valueA * valueB;
+            }
+        }
+    }
+    // END: Main function
+
+    return NULL;
+}
+
+
 
 // Function to multiply two sparse matrices using CSR format (single-threaded)
 void multiplySparseMatricesSingle(SparseMatrix *A, SparseMatrix *B, SparseMatrix *C) {
@@ -167,7 +222,7 @@ int compareMatrices(SparseMatrix *A, SparseMatrix *B) {
 int main(int argc, char *argv[]) {
     // Validate the number of command-line arguments
     if (argc != 7) {
-        printf("Usage: %s <ROWS_A> <COLS_A> <ROWS_B> <COLS_B> <val_non_zero> <num_threads>\n", argv[0]);
+        printf("Usage: %s <ROWS_A> <COLS_A> <ROWS_B> <COLS_B> <val_non_zero> <num_threads> <optional: percent rows for tid 0>\n", argv[0]);
         return -1;
     }
 
@@ -178,6 +233,7 @@ int main(int argc, char *argv[]) {
     int COLS_B = atoi(argv[4]);
     int val_non_zero = atoi(argv[5]);
     int num_threads = atoi(argv[6]);  // Number of threads
+    int first_thread_percentage = atoi(argv[7]);  // Number of threads
 
     // Validate matrix dimensions
     if (COLS_A != ROWS_B) {
@@ -227,12 +283,17 @@ int main(int argc, char *argv[]) {
     pthread_t threads[num_threads];
     ThreadArgs threadArgs[num_threads];
 
+    #ifdef GEM5
+        m5_dump_reset_stats(0,0);
+    #endif
+
     for (int i = 0; i < num_threads; i++) {
         threadArgs[i].A = &A;
         threadArgs[i].B = &B;
         threadArgs[i].C = &C;
         threadArgs[i].thread_id = i;
         threadArgs[i].num_threads = num_threads;
+        threadArgs[i].first_thread_percentage = first_thread_percentage;
 
         if (pthread_create(&threads[i], NULL, multiplySparseMatrices, (void *)&threadArgs[i]) != 0) {
             perror("Failed to create thread");
@@ -243,6 +304,10 @@ int main(int argc, char *argv[]) {
     // Wait for all threads to finish
     for (int i = 0; i < num_threads; i++) {
         pthread_join(threads[i], NULL);
+    }
+
+    if(threadArgs->thread_id == 0) {
+        m5_dump_reset_stats(0,0);
     }
 
     clock_t thread_end = clock();
