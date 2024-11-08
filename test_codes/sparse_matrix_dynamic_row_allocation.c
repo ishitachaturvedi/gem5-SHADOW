@@ -28,7 +28,7 @@ typedef struct {
     SparseMatrix *C;
     int thread_id;
     int num_threads;
-    int first_thread_percentage;
+    // int first_thread_percentage;
 } ThreadArgs;
 
 // Global shared index to keep track of rows being processed
@@ -96,64 +96,64 @@ void *multiplySparseMatrices(void *args) {
 
 
 
-void *multiplySparseMatricesStaticAllocation(void *args) {
-    ThreadArgs *threadArgs = (ThreadArgs *)args;
-    SparseMatrix *A = threadArgs->A;
-    SparseMatrix *B = threadArgs->B;
-    SparseMatrix *C = threadArgs->C;
-    int thread_id = threadArgs->thread_id;
-    int num_threads = threadArgs->num_threads;
-    double first_thread_percentage = threadArgs->first_thread_percentage;  // x% as a decimal (e.g., 0.25 for 25%)
+// void *multiplySparseMatricesStaticAllocation(void *args) {
+//     ThreadArgs *threadArgs = (ThreadArgs *)args;
+//     SparseMatrix *A = threadArgs->A;
+//     SparseMatrix *B = threadArgs->B;
+//     SparseMatrix *C = threadArgs->C;
+//     int thread_id = threadArgs->thread_id;
+//     int num_threads = threadArgs->num_threads;
+//     //double first_thread_percentage = threadArgs->first_thread_percentage;  // x% as a decimal (e.g., 0.25 for 25%)
 
-    int total_rows = A->rows;
-    int startRow, endRow;
+//     int total_rows = A->rows;
+//     int startRow, endRow;
 
-    if (thread_id == 0) {
-        // First thread gets x% of the rows
-        startRow = 0;
-        endRow = (int)(total_rows * first_thread_percentage);
-    } else {
-        // Remaining threads share the rest of the rows equally
-        int remaining_rows = total_rows - (int)(total_rows * first_thread_percentage);
-        int rows_per_thread = remaining_rows / (num_threads - 1);
-        int extra_rows = remaining_rows % (num_threads - 1);
+//     if (thread_id == 0) {
+//         // First thread gets x% of the rows
+//         startRow = 0;
+//         //endRow = (int)(total_rows * first_thread_percentage);
+//     } else {
+//         // Remaining threads share the rest of the rows equally
+//         // int remaining_rows = total_rows - (int)(total_rows * first_thread_percentage);
+//         int rows_per_thread = remaining_rows / (num_threads - 1);
+//         int extra_rows = remaining_rows % (num_threads - 1);
 
-        // Adjust start and end row based on thread ID
-        startRow = (int)(total_rows * first_thread_percentage) + (thread_id - 1) * rows_per_thread;
-        endRow = startRow + rows_per_thread;
+//         // Adjust start and end row based on thread ID
+//         //startRow = (int)(total_rows * first_thread_percentage) + (thread_id - 1) * rows_per_thread;
+//         endRow = startRow + rows_per_thread;
 
-        // Distribute extra rows among the first few threads
-        if (thread_id - 1 < extra_rows) {
-            startRow += (thread_id - 1);
-            endRow += 1;
-        } else {
-            startRow += extra_rows;
-        }
-    }
+//         // Distribute extra rows among the first few threads
+//         if (thread_id - 1 < extra_rows) {
+//             startRow += (thread_id - 1);
+//             endRow += 1;
+//         } else {
+//             startRow += extra_rows;
+//         }
+//     }
 
-    #ifdef GEM5
-    m5_numiter(threadArgs->thread_id);
-    #endif
+//     #ifdef GEM5
+//     m5_numiter(threadArgs->thread_id);
+//     #endif
 
-    // START: Main function to multiply rows in the assigned range
-    for (int row = startRow; row < endRow; row++) {
-        for (int j = A->rowPtr[row]; j < A->rowPtr[row + 1]; j++) {
-            int colA = A->colIdx[j];
-            int valueA = A->values[j];
+//     // START: Main function to multiply rows in the assigned range
+//     for (int row = startRow; row < endRow; row++) {
+//         for (int j = A->rowPtr[row]; j < A->rowPtr[row + 1]; j++) {
+//             int colA = A->colIdx[j];
+//             int valueA = A->values[j];
 
-            for (int k = B->rowPtr[colA]; k < B->rowPtr[colA + 1]; k++) {
-                int colB = B->colIdx[k];
-                int valueB = B->values[k];
+//             for (int k = B->rowPtr[colA]; k < B->rowPtr[colA + 1]; k++) {
+//                 int colB = B->colIdx[k];
+//                 int valueB = B->values[k];
 
-                // Accumulate the result for C[row][colB]
-                C->values[row * C->cols + colB] += valueA * valueB;
-            }
-        }
-    }
-    // END: Main function
+//                 // Accumulate the result for C[row][colB]
+//                 C->values[row * C->cols + colB] += valueA * valueB;
+//             }
+//         }
+//     }
+//     // END: Main function
 
-    return NULL;
-}
+//     return NULL;
+// }
 
 
 
@@ -233,7 +233,7 @@ int main(int argc, char *argv[]) {
     int COLS_B = atoi(argv[4]);
     int val_non_zero = atoi(argv[5]);
     int num_threads = atoi(argv[6]);  // Number of threads
-    int first_thread_percentage = atoi(argv[7]);  // Number of threads
+    // int first_thread_percentage = atoi(argv[7]);  // Number of threads
 
     // Validate matrix dimensions
     if (COLS_A != ROWS_B) {
@@ -293,7 +293,7 @@ int main(int argc, char *argv[]) {
         threadArgs[i].C = &C;
         threadArgs[i].thread_id = i;
         threadArgs[i].num_threads = num_threads;
-        threadArgs[i].first_thread_percentage = first_thread_percentage;
+        // threadArgs[i].first_thread_percentage = first_thread_percentage;
 
         if (pthread_create(&threads[i], NULL, multiplySparseMatrices, (void *)&threadArgs[i]) != 0) {
             perror("Failed to create thread");
