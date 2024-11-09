@@ -3,7 +3,7 @@
 #include <pthread.h>
 #include <time.h>
 
-#define CHUNK_SIZE 10  // Define the chunk size for work stealing
+#define CHUNK_SIZE 1  // Define the chunk size for work stealing
 //#define CHUNK_SIZE_MAIN 25
 
 #define GEM5
@@ -93,69 +93,6 @@ void *multiplySparseMatrices(void *args) {
 
     return NULL;
 }
-
-
-
-// void *multiplySparseMatricesStaticAllocation(void *args) {
-//     ThreadArgs *threadArgs = (ThreadArgs *)args;
-//     SparseMatrix *A = threadArgs->A;
-//     SparseMatrix *B = threadArgs->B;
-//     SparseMatrix *C = threadArgs->C;
-//     int thread_id = threadArgs->thread_id;
-//     int num_threads = threadArgs->num_threads;
-//     //double first_thread_percentage = threadArgs->first_thread_percentage;  // x% as a decimal (e.g., 0.25 for 25%)
-
-//     int total_rows = A->rows;
-//     int startRow, endRow;
-
-//     if (thread_id == 0) {
-//         // First thread gets x% of the rows
-//         startRow = 0;
-//         //endRow = (int)(total_rows * first_thread_percentage);
-//     } else {
-//         // Remaining threads share the rest of the rows equally
-//         // int remaining_rows = total_rows - (int)(total_rows * first_thread_percentage);
-//         int rows_per_thread = remaining_rows / (num_threads - 1);
-//         int extra_rows = remaining_rows % (num_threads - 1);
-
-//         // Adjust start and end row based on thread ID
-//         //startRow = (int)(total_rows * first_thread_percentage) + (thread_id - 1) * rows_per_thread;
-//         endRow = startRow + rows_per_thread;
-
-//         // Distribute extra rows among the first few threads
-//         if (thread_id - 1 < extra_rows) {
-//             startRow += (thread_id - 1);
-//             endRow += 1;
-//         } else {
-//             startRow += extra_rows;
-//         }
-//     }
-
-//     #ifdef GEM5
-//     m5_numiter(threadArgs->thread_id);
-//     #endif
-
-//     // START: Main function to multiply rows in the assigned range
-//     for (int row = startRow; row < endRow; row++) {
-//         for (int j = A->rowPtr[row]; j < A->rowPtr[row + 1]; j++) {
-//             int colA = A->colIdx[j];
-//             int valueA = A->values[j];
-
-//             for (int k = B->rowPtr[colA]; k < B->rowPtr[colA + 1]; k++) {
-//                 int colB = B->colIdx[k];
-//                 int valueB = B->values[k];
-
-//                 // Accumulate the result for C[row][colB]
-//                 C->values[row * C->cols + colB] += valueA * valueB;
-//             }
-//         }
-//     }
-//     // END: Main function
-
-//     return NULL;
-// }
-
-
 
 // Function to multiply two sparse matrices using CSR format (single-threaded)
 void multiplySparseMatricesSingle(SparseMatrix *A, SparseMatrix *B, SparseMatrix *C) {
@@ -276,6 +213,13 @@ int main(int argc, char *argv[]) {
     // Create the result matrix C (dense format for simplicity)
     SparseMatrix C = createSparseMatrix(ROWS_A, COLS_B, ROWS_A * COLS_B); // Result matrix size is ROWS_A x COLS_B
 
+    // warm up this matrix by setting values to zero
+    for(int i=0; i < ROWS_A; i++) {
+        for(int j =0; j< COLS_B; j++) {
+            C.values[i * C.cols + j] = 0;
+        }
+    }
+
     // Measure execution time for thread creation and joining
     clock_t thread_start = clock();
 
@@ -283,6 +227,7 @@ int main(int argc, char *argv[]) {
     pthread_t threads[num_threads];
     ThreadArgs threadArgs[num_threads];
 
+    currentRow = 0;
     #ifdef GEM5
         m5_dump_reset_stats(0,0);
     #endif
