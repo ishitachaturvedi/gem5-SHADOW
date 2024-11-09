@@ -700,6 +700,9 @@ Decode::tick()
 
     toRenameIndex = 0;
 
+    // only one thread decodes in a cycle
+    SingleThreadFetchiew = true;
+
     list<ThreadID>::iterator threads = activeThreads->begin();
     list<ThreadID>::iterator end = activeThreads->end();
 
@@ -1100,48 +1103,29 @@ Decode::getDecodingThread()
 
 void 
 Decode::SWiqCountPriority() { 
-    std::priority_queue<unsigned, std::vector<unsigned>,
-                        std::less<unsigned> > SQ;
-    std::priority_queue<unsigned, std::vector<unsigned>,
-                        std::less<unsigned> > WQ;
-    std::map<unsigned, ThreadID> SthreadMap;
-    std::map<unsigned, ThreadID> WthreadMap;
+    std::map<unsigned, ThreadID> threadMap;
+    std::vector<std::pair<unsigned, ThreadID>> iqCountTidPairs;
 
     std::list<ThreadID>::iterator threads = activeThreads->begin();
     std::list<ThreadID>::iterator end = activeThreads->end();
 
-    std::vector<std::pair<int, int>> ThreadAvailICountS;
-    std::vector<std::pair<int, int>> ThreadAvailICountW;
-
-    // create 2 lists for S threads and W threads 
     while (threads != end) {
         ThreadID tid = *threads++;
-        unsigned iqCount = decodeStatus[tid] == Unblocking ?
-        skidBuffer[tid].size() : insts[tid].size();
+        unsigned iqCount = (decodeStatus[tid] == Unblocking) ? 
+                            skidBuffer[tid].size() : insts[tid].size();
 
-        //we can potentially get tid collisions if two threads
-        //have the same iqCount, but this should be rare.
-        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
-        {
-            SQ.push(iqCount);
-            SthreadMap[iqCount] = tid;
-            ThreadAvailICountS.push_back(std::make_pair(iqCount,tid));
-        }
-        else
-        {
-            WQ.push(iqCount);
-            WthreadMap[iqCount] = tid;
-            ThreadAvailICountW.push_back(std::make_pair(iqCount,tid));
-        }
+        // Store iqCount and tid as a pair in the vector
+        iqCountTidPairs.emplace_back(iqCount, tid);
     }
 
-    std::sort(ThreadAvailICountS.begin(), ThreadAvailICountS.end(), comparePairs);
-    std::sort(ThreadAvailICountW.begin(), ThreadAvailICountW.end(), comparePairs);
-   
-    for (const auto& pair : ThreadAvailICountS) {
-        DecodePreference.push_back(pair.second);
-    }
-    for (const auto& pair : ThreadAvailICountW) {
+    // Sort pairs based on iqCount in descending order
+    std::sort(iqCountTidPairs.begin(), iqCountTidPairs.end(),
+            [](const std::pair<unsigned, ThreadID>& a, const std::pair<unsigned, ThreadID>& b) {
+                return a.first > b.first;  // Sort by iqCount (first element) in descending order
+            });
+
+    // Store the sorted tids in DecodePreference
+    for (const auto& pair : iqCountTidPairs) {
         DecodePreference.push_back(pair.second);
     }
 }
