@@ -284,6 +284,8 @@ ROB::GetAvgIters() {
     AvgIters += (numInstsInROB - AvgIters) / NumCycles;
 
     stats.NumberOfItersInROB =  AvgIters;
+
+    //printf("NumIters %f numInstsInROB %d\n",AvgIters,numInstsInROB);
 }
 
 bool 

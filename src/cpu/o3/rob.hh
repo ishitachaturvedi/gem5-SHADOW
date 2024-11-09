@@ -333,7 +333,7 @@ class ROB
     int ItersInROB;
     int NumCycles;
     int AddrForIter;
-    int AvgIters;
+    float AvgIters;
 
   private:
     /** The sequence number of the squashed instruction. */
