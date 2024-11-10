@@ -240,14 +240,19 @@ int main(int argc, char *argv[]) {
         threadArgs[i].num_threads = num_threads;
         // threadArgs[i].first_thread_percentage = first_thread_percentage;
 
+    }
+
+    for (int i = 01; i < num_threads; i++) {
         if (pthread_create(&threads[i], NULL, multiplySparseMatrices, (void *)&threadArgs[i]) != 0) {
             perror("Failed to create thread");
             return -1;
         }
     }
 
+    multiplySparseMatrices((void*) &threadArgs[0]);
+
     // Wait for all threads to finish
-    for (int i = 0; i < num_threads; i++) {
+    for (int i = 1; i < num_threads ; i++) {
         pthread_join(threads[i], NULL);
     }
 

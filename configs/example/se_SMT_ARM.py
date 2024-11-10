@@ -380,9 +380,9 @@ def main():
     #run first thread as S for ILP and others as W as TLP
     parser.add_argument('-FirstThreadSOtherW', type=bool, default=False)
 
-    parser.add_argument('-smtIQPolicy', type=str, default="Dynamic")
+    parser.add_argument('-smtIQPolicy', type=str, default="SDynamicWStatic")
 
-    parser.add_argument('-smtROBPolicy', type=str, default="Dynamic")
+    parser.add_argument('-smtROBPolicy', type=str, default="Partitioned")
 
     parser.add_argument('-MainSAllPW', type=bool, default=False)
 
