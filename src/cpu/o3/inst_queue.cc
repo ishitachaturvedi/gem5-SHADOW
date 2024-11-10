@@ -888,8 +888,13 @@ InstructionQueue::numFreeEntries(ThreadID tid)
     DPRINTF(IQ, "Check numFreeEntries tid %d maxEntries[0] %d maxEntries[1] %d count[0] %d count[1] %d freeEntriesS %d\n",tid,maxEntries[0],maxEntries[1],count[0],count[1],freeEntriesS);
     // if the first 2 threads have dynamic partitioning then we need to ensure that we dont overrun the paritioning
     if(iqPolicy == SMTQueuePolicy::SDynamicWStatic && (tid == 0 || tid == 1)) {
-        assert(maxEntries[0] == (freeEntriesS + count[0] + count[1]));
-        return std::min(numFreeEntriesS(), maxEntries[tid] - count[tid]);
+        if(numThreadsS > 1) {
+            assert(maxEntries[0] == (freeEntriesS + count[0] + count[1]));
+            return std::min(numFreeEntriesS(), maxEntries[tid] - count[tid]);
+        } else if(numThreadsS == 1) {
+            assert(maxEntries[0] == (freeEntriesS + count[0]));
+            return std::min(numFreeEntriesS(), maxEntries[tid] - count[tid]);
+        } 
     }
     // if the assignment is dynamic we need to check for # free entries avaialble
     return maxEntries[tid] - count[tid];
