@@ -32,3 +32,9 @@ configs/example/memcheck.cfg
 configs/dram/lowp_sweep.cfg
 .pyenv
 .vscode
+dense_matrix
+results/
+sparse_matrix
+unittest_res/
+test_codes/dense_matrix_dynamic_*
+test_codes/sparce_matrix_dynamic_*
