@@ -848,7 +848,7 @@ Commit::tick()
         }
 
         if(lastCommitedCycle[tid]!=-1 && (curTick() - lastCommitedCycle[tid]) == 1000000000) {
-            warn("This program has deadlocked!!!! Not making forward progress. Last commit at lastCommitedCycle %d for thread %d\n",lastCommitedCycle[tid],tid);
+            panic("This program has deadlocked!!!! Not making forward progress. Last commit at lastCommitedCycle %d for thread %d\n",lastCommitedCycle[tid],tid);
         }
 
         // Clear the bit saying if the thread has committed stores
@@ -870,7 +870,7 @@ Commit::tick()
     }
 
     if(maxNonCommitTid!=-1 && ((curTick() - maxNonCommitCycle) == 10000000)) {
-        warn("This program has deadlocked! Not making forward progress. Last commit at lastCommitedCycle %llu for thread %d curentTick %d\n",lastCommitedCycle[maxNonCommitTid],maxNonCommitTid,curTick());
+        panic("This program has deadlocked! Not making forward progress. Last commit at lastCommitedCycle %llu for thread %d curentTick %d\n",lastCommitedCycle[maxNonCommitTid],maxNonCommitTid,curTick());
     }
 
     commit();
@@ -905,6 +905,9 @@ Commit::tick()
 
         DPRINTF(Commit, "[tid:%i] ROB has %d insts & %d free entries trapSquash[tid] %d.\n",
                 tid, rob->countInsts(tid), rob->numFreeEntries(tid), trapSquash[tid]);
+
+        // always update this number because ROB is dynamically partitioned
+        // toIEW->commitInfo[tid].freeROBEntries = rob->numFreeEntries(tid);
     }
 
 
@@ -1177,13 +1180,13 @@ Commit::commit()
 
         if (changedROBNumEntries[tid]) {
             toIEW->commitInfo[tid].usedROB = true;
-            toIEW->commitInfo[tid].freeROBEntries = rob->numFreeEntries(tid);
-
             wroteToTimeBuffer = true;
             changedROBNumEntries[tid] = false;
             if (rob->isEmpty(tid))
                 checkEmptyROB[tid] = true;
         }
+
+        toIEW->commitInfo[tid].freeROBEntries = rob->numFreeEntries(tid);
 
         // ROB is only considered "empty" for previous stages if: a)
         // ROB is empty, b) there are no outstanding stores, c) IEW
