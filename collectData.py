@@ -414,79 +414,13 @@ def plot_per_cycle_status(file):
 
 def main():
 
-    # parent_folder = [
-    #     "HIP_pthreads_bmrk/prefix_sum/results"
-    # ]  
-
-    # files_check = [
-    #     [
-    #         "ThreadS_32",
-    #         "ThreadSW1_32",
-    #         "ThreadSW2_32",
-    #         "ThreadSW3_32",
-    #         "ThreadSW4_32",
-    #         "Thread6S_32",
-    #         "ThreadS1W4_32",
-    #         "APU_32"
-    #     ],
-    #     [
-    #         "ThreadS_512",
-    #         "ThreadSW1_512",
-    #         "ThreadSW2_512",
-    #         "ThreadSW3_512",
-    #         "ThreadSW4_512",
-    #         "Thread6S_512",
-    #         "ThreadS1W4_512",
-    #         "APU_512"
-    #     ],
-    #     [
-    #         "ThreadS_1024",
-    #         "ThreadSW1_1024",
-    #         "ThreadSW2_1024",
-    #         "ThreadSW3_1024",
-    #         "ThreadSW4_1024",
-    #         "Thread6S_1024",
-    #         "ThreadS1W4_1024",
-    #         "APU_1024"
-    #     ],
-    #     [
-    #         "ThreadS_8192",
-    #         "ThreadSW1_8192",
-    #         "ThreadSW2_8192",
-    #         "ThreadSW3_8192",
-    #         "ThreadSW4_8192",
-    #         "Thread6S_8192",
-    #         "ThreadS1W4_8192",
-    #         "APU_8192"
-    #     ],
-    #     [
-    #         "ThreadS_16384",
-    #         "ThreadSW1_16384",
-    #         "ThreadSW2_16384",
-    #         "ThreadSW3_16384",
-    #         "ThreadSW4_16384",
-    #         "Thread6S_16384",
-    #         "ThreadS1W4_16384",
-    #         "APU_16384"
-    #     ],
-    #     [
-    #         "ThreadS_65536",
-    #         "ThreadSW1_65536",
-    #         "ThreadSW2_65536",
-    #         "ThreadSW3_65536",
-    #         "ThreadSW4_65536",
-    #         "Thread6S_65536",
-    #         "ThreadS1W4_65536",
-    #         "APU_65536"
-    #     ]
-    #]
 
     parent_folder = [
         #"HIP_pthreads_bmrk/convolution/results"
         #"sparse_matrix/novocore_changing_matrix_size"
-        #'sparse_matrix/Scale_everything'
+        #'CRONO_results/apsp_work_stealing/test'
         #"results/CRONO"
-        "dense_matrix/Scale_everything"
+        "sparse_matrix/changing_sparsity"
         #"CRONO_results/bc/test"
     ]  
 
@@ -494,43 +428,30 @@ def main():
 
     files_check = [
         [
-            # DENSE MATRIX
-            "Dynamic_1pThread_200_50_5_baseline",
-            "Dynamic_1pThread_200_50_5_scaled",
-            "pthreadDynamic_2S2W_200_50_5_baseline",
-            "pthreadDynamic_2S2W_200_50_5_scaled",
-            "pthreadDynamic_2S3W_200_50_5_baseline",
-            "pthreadDynamic_2S3W_200_50_5_scaled",
-            "pthreadDynamic_2S4W_200_50_5_baseline",
-            "pthreadDynamic_2S4W_200_50_5_scaled",
-            "pthreadDynamic_2S5W_200_50_5_baseline",
-            "pthreadDynamic_2S5W_200_50_5_scaled",
-
-            # "Dynamic_1pThread_64_2",
-            # "pthreadDynamic_2S2W_64_2",
-            # "pthreadDynamic_2S3W_64_2",
-            # "pthreadDynamic_2S4W_64_2",
-            # "pthreadDynamic_2S5W_64_2",
-            # "pthreadDynamic_2S6W_64_2",
-            # "pthreadDynamic_2S7W_64_2",
-
-
             # SPARSE
-            # "Dynamic_1pThread_1000_90Per_sparse_baseline",
-            # "Dynamic_1pThread_1000_90Per_sparse_scaled",
-            # "pthreadDynamic_2S1W_1000_90Per_sparse_baseline",
-            # "pthreadDynamic_2S1W_1000_90Per_sparse_scaled",
-            # # "pthreadDynamic_2S2W_1000_90Per_sparse_baseline",
-            # # "pthreadDynamic_2S2W_1000_90Per_sparse_scaled",
-            # "pthreadDynamic_2S3W_1000_90Per_sparse_baseline",
-            # "pthreadDynamic_2S3W_1000_90Per_sparse_scaled",
-            # "pthreadDynamic_2S4W_1000_90Per_sparse_baseline",
-            # "pthreadDynamic_2S4W_1000_90Per_sparse_scaled",
-            # "pthreadDynamic_2S5W_1000_90Per_sparse_baseline",
-            # "pthreadDynamic_2S5W_1000_90Per_sparse_scaled",
-            # "pthreadDynamic_2S6W_1000_90Per_sparse_baseline",
-            # "pthreadDynamic_2S6W_1000_90Per_sparse_scaled",
 
+            # "Dynamic_1pThread_400_10Per_sparse",
+            # "Dynamic_1pThread_400_20Per_sparse",
+            # "Dynamic_1pThread_400_30Per_sparse",
+            # "Dynamic_1pThread_400_40Per_sparse",
+            # "Dynamic_1pThread_400_50Per_sparse",
+            # "Dynamic_1pThread_400_60Per_sparse",
+            # "Dynamic_1pThread_400_70Per_sparse",
+            # "Dynamic_1pThread_400_80Per_sparse",
+            # "Dynamic_1pThread_400_90Per_sparse",
+
+
+            # "Dynamic_1pThread_400_90Per_sparse_ROB128",
+            # "Dynamic_1pThread_400_90Per_sparse_ROB256",
+            # "Dynamic_1pThread_400_90Per_sparse_ROB512",
+            # "Dynamic_1pThread_400_90Per_sparse_ROB1024",
+
+
+            "Dynamic_1pThread_400_70Per_sparse_ROB256",
+            "pthreadDynamic_2S1W_400_70Per_sparse_ROB256",
+            "pthreadDynamic_2S2W_400_70Per_sparse_ROB256",
+            "pthreadDynamic_2S3W_400_70Per_sparse_ROB256",
+            "pthreadDynamic_AllW4_400_70Per_sparse_ROB256",
         ]
     ]
 
@@ -550,7 +471,7 @@ def main():
 
     stat_names = ["numCycles","issueRate","numIssuedDist::mean","statFuBusyPerThreadCollective","statStalledOnControlInstructionPerThread","statNumIssueNotPossiblePerThread","fuBusyS","fuBusyW","totalIpc", "cycleCountS", "cycleCountW","statFuNoFree::IntAlu","statFuNoFree::IntMult","statFuNoFree::IntDiv","statFuNoFree::MemRead","statFuNoFree::MemWrite","ipc::0","ipc::1","ipc::2","ipc::3","ipc::4","ipc::5","cpi::0","cpi::1","cpi::2","cpi::3","cpi::4","cpi::5","totalCpi","committedInsts::0","committedInsts::1","committedInsts::2","committedInsts::3","committedInsts::4","committedInsts::5","fuBusyRate::0","fuBusyRate::1","fuBusyRate::2","fuBusyRate::3","fuBusyRate::4","fuBusyRate::5","NoReadyInst","ReadyInstMoreThanBW","TotalOoOInstIssued::1","thread_1.numIters","thread_2.numIters","thread_3.numIters","thread_4.numIters","thread_5.numIters","thread_6.numIters","thread_7.numIters","thread_8.numIters","thread_1.MutexOverhead","thread_2.MutexOverhead","thread_3.MutexOverhead","thread_4.MutexOverhead","thread_1.BarrierOverhead","thread_2.BarrierOverhead","thread_3.BarrierOverhead","thread_4.BarrierOverhead","TimeSpentWaitingOnMem::0","TimeSpentWaitingOnMem::1","TimeSpentWaitingOnMem::2","TimeSpentWaitingOnMem::3","TimeSpentWaitingOnMem::4","AverageInstinIQ::0","AverageInstinIQ::1","AverageInstinIQ::2","AverageInstinIQ::total","statFuBusy::IntMult","statFuBusy::MemRead","statFuBusy::MemWrite","statAvgFUUtilization::IntMult","statAvgFUUtilization::MemRead","statAvgFUUtilization::MemWrite","AverageNonIssuedInstPerThread::0","AverageNonIssuedInstPerThread::1","AverageNonIssuedInstPerThread::2","AverageNonIssuedInstPerThread::3","AverageNonIssuedInstPerThread::4","AverageNonIssuedInstPerThread::total","AverageIssuedInstPerThread::0","AverageIssuedInstPerThread::1","AverageIssuedInstPerThread::2","AverageIssuedInstPerThread::3","AverageIssuedInstPerThread::total","AverageInstsThread::0","AverageInstsThread::1","AverageInstsThread::2","AverageInstsThread::3","AverageInstsThread::4","AverageInstsThread::total","AverageNonIssuedInstPerThreadDependsOnMemory::0","AverageNonIssuedInstPerThreadDependsOnMemory::1","AverageNonIssuedInstPerThreadDependsOnMemory::2","AverageNonIssuedInstPerThreadDependsOnMemory::3","AverageNonIssuedInstPerThreadDependsOnMemory::4","AverageNonIssuedInstPerThreadDependsOnMemory::total","AverageNonIssuedInstPerThreadDependsOnCompute::0","AverageNonIssuedInstPerThreadDependsOnCompute::1","AverageNonIssuedInstPerThreadDependsOnCompute::2","AverageNonIssuedInstPerThreadDependsOnCompute::3","AverageNonIssuedInstPerThreadDependsOnCompute::4","AverageNonIssuedInstPerThreadDependsOnCompute::total","AverageNonIssuedInstPerThreadDependsOnTotal::0","AverageNonIssuedInstPerThreadDependsOnTotal::1","AverageNonIssuedInstPerThreadDependsOnTotal::2","AverageNonIssuedInstPerThreadDependsOnTotal::3","AverageNonIssuedInstPerThreadDependsOnTotal::4","AverageNonIssuedInstPerThreadDependsOnTotal::total","AvgInstInFlight","AvgMemInFlight","AvgCompInFlight","AvgInstStalled","AvgMemStalled","AvgCompStalled","AvgOnlyMemInFLight","AvgOnlyCompInFLight","AvgMemAndCompInFLight","AvgNothingInFLight","cannot_issue_Flight","ready_for_issue_Flight","issued_Flight","checked_for_issue_Flight","in_ready_queue_Flight","executed_Flight","ready_for_commit_Flight","committed_Flight"]
 
-    l2_stats = ["overallMissRate::total","overallMissLatency::total","demandHits::total","demandMisses::total","demandMissLatency::total","demandAccesses::total"]
+    l2_stats = ["overallMissRate::total","overallMissLatency::total","demandHits::total","demandMisses::total","demandMissLatency::total","demandAccesses::total","overallAccesses::total","l2.overallHits::cpu_cluster.cpus.data","l2.overallHits::total","l2.overallMissRate::total"]
 
     fetch_stats = ["cacheStallCycles","icacheStallCycles","icacheStallCyclesSThread","icacheStallCyclesWThread","noActiveThreadStallCycles","blockedCycles","insts","instsSThread","instsWThread","branches","cycles","blockedCycles","noActiveThreadStallCycles","icacheWaitRetryStallCycles","cacheLines","icacheSquashes","tlbSquashes","idleRate","stalledS","stalledW","stalledSNotW","stalledSAndW","notStalled","multipleRunning","nisnDist::0","nisnDist::1","nisnDist::2","nisnDist::3","nisnDist::4","nisnDist::5","nisnDist::6","nisnDist::7","nisnDist::8","nisnDist::9","nisnDist::10","nisnDist::11","nisnDist::12","nisnDist::mean","squashCycles","rate","branchRate","noInstFetched","NoThreadToFetch","RunningCount::0","RunningCount::1","RunningCount::2","RunningCount::total","IdleCount::0","IdleCount::1","IdleCount::2","IdleCount::total","SquashingCount::0","SquashingCount::1","SquashingCount::2","SquashingCount::total","BlockedCount::0","BlockedCount::1","BlockedCount::2","BlockedCount::total","FetchingCount::0","FetchingCount::1","FetchingCount::2","FetchingCount::total","TrapPendingCount::0","TrapPendingCount::1","TrapPendingCount::2","TrapPendingCount::total","QuiescePendingCount::0","QuiescePendingCount::1","QuiescePendingCount::2","QuiescePendingCount::total","ItlbWaitCount::0","ItlbWaitCount::1","ItlbWaitCount::2","ItlbWaitCount::total","IcacheWaitResponseCount::0","IcacheWaitResponseCount::1","IcacheWaitResponseCount::2","IcacheWaitResponseCount::total","IcacheWaitRetryCount::0","IcacheWaitRetryCount::1","IcacheWaitRetryCount::2","IcacheWaitRetryCount::total","IcacheAccessCompleteCount::0","IcacheAccessCompleteCount::1","IcacheAccessCompleteCount::2","IcacheAccessCompleteCount::total","NoGoodAddrCount::0","NoGoodAddrCount::1","NoGoodAddrCount::2","NoGoodAddrCount::total","BlockedOnBranchCount::0","BlockedOnBranchCount::1","BlockedOnBranchCount::2","BlockedOnBranchCount::total","FetchNotValid::0","FetchNotValid::1","FetchNotValid::2","FetchNotValid::total","FetchBufferExceeded::0","FetchBufferExceeded::1","FetchBufferExceeded::2","FetchBufferExceeded::total","FetchQueueFull::0","FetchQueueFull::1","FetchQueueFull::2","FetchQueueFull::total","NeedToFetchMoreMemory::0","NeedToFetchMoreMemory::1","NeedToFetchMoreMemory::2","NeedToFetchMoreMemory::total","QuiescePendingForThread::0","QuiescePendingForThread::1","QuiescePendingForThread::2","QuiescePendingForThread::total","BlockedOnBranchCountNoSThread::0","BlockedOnBranchCountNoSThread::1","BlockedOnBranchCountNoSThread::2","BlockedOnBranchCountNoSThread::total","FetchQueueEmpty::0","FetchQueueEmpty::1","FetchQueueEmpty::2","FetchQueueEmpty::total","DecodeWidthFull::0","DecodeWidthFull::1","DecodeWidthFull::2","DecodeWidthFull::total","FetchQueueTryingToDecode::0","FetchQueueTryingToDecode::1","FetchQueueTryingToDecode::2","FetchQueueTryingToDecode::total","FetchQueueSendingToDecode::0","FetchQueueSendingToDecode::1","FetchQueueSendingToDecode::2","FetchQueueSendingToDecode::total"]
 
@@ -563,12 +484,14 @@ def main():
 
     commit_stats = ["commitSquashedInsts","branchMispredicts","branchMispredictsS","branchMispredictsW","branches::0","branches::1","IQTimeTotal","ROBTimeTotal","IEWTimeTotal","totalReadyTimeTotal","renameTimeTotal","decodeTimeTotal","fetchTimeTotal","AvgInstInROB::1"]
 
-    icache_stats = ["demandHits::cpu_cluster.cpus.inst","overallMissRate::total","overallMissLatency::total","demandHits::total","overallHits::total","demandMisses::total","overallMisses::total","overallAvgMissLatency::total","blockedCycles::no_mshrs","blockedCycles::no_targets","avgBlocked::no_mshrs","avgBlocked::no_targets","replacements","overallAvgMshrMissLatency::total","tags.warmupTick","tags.avgRefs","tags.totalRefs","tags.avgOccs::total","demandMissLatency::total","demandAccesses::total","demandAvgMissLatency::total","demandMshrMissLatency::total","demandAvgMshrMissLatency::total","tags.avgOccs::total","ReadReq.mshrMissLatency::cpu_cluster.cpus.inst","ReadReq.avgMissLatency::cpu_cluster.cpus.inst","overallAvgMissLatency::cpu_cluster.cpus.inst","overallMshrMisses::total","overallAccesses::total","demandMissRate::total","blockedCauses::no_mshrs","blockedCauses::no_targets","writebacks::writebacks","demandMshrHits::total","overallAvgMshrMissLatency::total","ReadReq.hits::total","ReadReq.misses::total","ReadReq.missLatency::total","ReadReq.accesses::total","ReadReq.missRate::total","tags.tagsInUse","tags.tagAccesses"]
+    icache_stats = ["demandHits::cpu_cluster.cpus.inst","overallMissLatency::total","demandHits::total","overallHits::total","demandMisses::total","overallAvgMissLatency::total","blockedCycles::no_mshrs","blockedCycles::no_targets","avgBlocked::no_mshrs","avgBlocked::no_targets","replacements","overallAvgMshrMissLatency::total","tags.warmupTick","tags.avgRefs","tags.totalRefs","tags.avgOccs::total","demandMissLatency::total","demandAccesses::total","demandAvgMissLatency::total","demandMshrMissLatency::total","demandAvgMshrMissLatency::total","tags.avgOccs::total","ReadReq.mshrMissLatency::cpu_cluster.cpus.inst","ReadReq.avgMissLatency::cpu_cluster.cpus.inst","overallAvgMissLatency::cpu_cluster.cpus.inst","overallMshrMisses::total","overallAccesses::total","demandMissRate::total","blockedCauses::no_mshrs","blockedCauses::no_targets","writebacks::writebacks","demandMshrHits::total","overallAvgMshrMissLatency::total","ReadReq.hits::total","ReadReq.misses::total","ReadReq.missLatency::total","ReadReq.accesses::total","ReadReq.missRate::total","tags.tagsInUse","tags.tagAccesses","overallAccesses::cpu_cluster.cpus.data","overallMisses::total","overallMissRate::total"]
 
     dcache_stats = ["overallMissRate::total","overallMissLatency::total"]
 
+    rob_stats = ["NumberOfItersInROB"]
+
     cpu_stage_specfic_stats = [["rename",rename_stats]]
-    cpu_stage_specfic_stats = [["commit",commit_stats],["iew",iew_stats],["rename",rename_stats],["decode",decode_stats],["fetch",fetch_stats],["dcache_strong",icache_stats],["icache_strong",icache_stats],["l2",l2_stats]]
+    cpu_stage_specfic_stats = [["commit",commit_stats],["iew",iew_stats],["rename",rename_stats],["decode",decode_stats],["fetch",fetch_stats],["dcache_strong",icache_stats],["icache_strong",icache_stats],["rob",rob_stats]]
 
     #cpu_stage_specfic_stats = [["fetch",fetch_stats],["dcache_strong",icache_stats],["icache_strong",icache_stats]]
 

@@ -54,13 +54,13 @@ int all_rows_done = 0;
 void *thread_func(void *arg) {
     thread_data_t *data = (thread_data_t *)arg;
     data->tile_done = true;
-    data->next_row_idx = -1;
+    data->next_row_idx = -1; 
 
-    #ifdef GEM5
-    if(data->thread_id == 0) {
-        m5_dump_reset_stats(0,0);
-    }
-    #endif  
+    // if(data->thread_id == 0) {
+    //     #ifdef GEM5
+    //     m5_dump_reset_stats(0,0);
+    //     #endif 
+    // }   
 
     while(1) {
         // go to the next (row,tile) combination once you have covered all columns for this tile.
@@ -163,13 +163,13 @@ void *thread_func(void *arg) {
                 // rows_processed[data->thread_id]++;
             }
         } 
-    }
+    } 
 
-    #ifdef GEM5
-    if(data->thread_id == 0) {
-        m5_dump_reset_stats(0,0);
-    }
-    #endif  
+    // if(data->thread_id == 0) {
+    //     #ifdef GEM5
+    //     m5_dump_reset_stats(0,0);
+    //     #endif 
+    // }   
 
 }
 
@@ -265,6 +265,10 @@ int main(int argc, char *argv[]) {
         pthread_t threads[num_threads];
         thread_data_t thread_data[num_threads];
 
+        #ifdef GEM5
+        m5_dump_reset_stats(0,0);
+        #endif 
+
 
         for (int t = 0; t < num_threads; t++) {
             thread_data[t].thread_id = t;
@@ -278,6 +282,10 @@ int main(int argc, char *argv[]) {
         for (int t = 0; t < num_threads; t++) {
             pthread_join(threads[t], NULL);
         }
+
+        #ifdef GEM5
+        m5_dump_reset_stats(0,0);
+        #endif 
 
         // Perform single-threaded multiplication for validation
         // single_threaded_matrix_multiply();

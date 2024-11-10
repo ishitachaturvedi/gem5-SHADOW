@@ -198,6 +198,7 @@ class SimpleSeSystem(System):
             cpu.numPhysFloatRegs = args.numPhysFloatRegs
             cpu.numPhysVecRegs = args.numPhysVecRegs
             cpu.numPhysIntRegs = args.numPhysIntRegs
+            cpu.smtROBPolicy = args.smtROBPolicy
 
         # for cpu in self.cpu_cluster.cpus:
         #     cpu.numThreads = numThreads
@@ -380,6 +381,8 @@ def main():
     parser.add_argument('-FirstThreadSOtherW', type=bool, default=False)
 
     parser.add_argument('-smtIQPolicy', type=str, default="Dynamic")
+
+    parser.add_argument('-smtROBPolicy', type=str, default="Dynamic")
 
     parser.add_argument('-MainSAllPW', type=bool, default=False)
 

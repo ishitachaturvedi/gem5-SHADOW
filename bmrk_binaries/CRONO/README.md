@@ -4,7 +4,7 @@ Betweenness Centrality: To run with P number of threads, N vertices, and DEG edg
 
 Breadth First Search:
 	Input Graph from File: To run with P number of threads, and an input file ./bfs 1 P <input_file>. The input file can be used as: sample.txt OR any other file such as road networks from the SNAP datasets (e.g. A FaceBook Graph) https://snap.stanford.edu/data/
-	Generate and Input using the Synthetic Graph Generator: To run with P number of threads, N vertices, and DEG edges per vertex ./bfs 0 P N DEG
+	Generate and Input using the Synthetic Graph Generator: To run with P number of threads, N vertices, and DEG edges per vertex ./bfs 0 P N DEG work_per_thread
 
 Community Detection:
 	Input Graph from File: To run with P number of threads, I iterations, and an input file ./community_lock 1 P I <input_file>. To run a matrix format file (.mtx) ./community_lock 2 P I <input_file>. For the input file, use sample.txt OR any other file such as road networks from the SNAP datasets (e.g. roadNet-CA) https://snap.stanford.edu/data/#road.

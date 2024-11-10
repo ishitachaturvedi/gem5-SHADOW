@@ -4,8 +4,15 @@
 #include <stdbool.h>
 #include <stdatomic.h>
 
+#define GEM5
+
+#ifdef GEM5
+#include "gem5/m5ops.h"
+#endif
+
 #define TILE_SIZE 50  // Size of the tile (10x10)
-#define CHUNK_SIZE 5  // Size of the chunk for work stealing
+#define CHUNK_SIZE 1  // Size of the chunk for work stealing
+#define CHUNK_SIZE_STRONG 40  // Size of the chunk for work stealing
 
 // #define TILE_SIZE 50  // Size of the tile (10x10)
 // #define CHUNK_SIZE 5  // Size of the chunk for work stealing
@@ -29,6 +36,7 @@ typedef struct {
     int thread_id;
     int tile_row;
     int tile_col;
+    int chunk_size;
 } thread_data_t;
 
 int tile_row = 0;
@@ -40,10 +48,15 @@ int all_rows_done = 0;
 void *thread_func(void *arg) {
     thread_data_t *data = (thread_data_t *)arg;
 
+// #ifdef GEM5
+//     if(data->thread_id == 0) {
+//         m5_dump_reset_stats(0,0);
+//     }
+// #endif
+
     while(1) {
         // go to the next (row,tile) combination once you have covered all columns for this tile.
         // use tid 0 for this
-
         if(data->thread_id == 0) {
             if(reset!=0) {
                 tile_k = tile_k + TILE_SIZE;
@@ -65,6 +78,10 @@ void *thread_func(void *arg) {
             base_row = tile_row;
             base_col = tile_col;
             base_k = tile_k;
+
+            #ifdef GEM5
+            m5_dump_reset_stats(0,0);
+            #endif
         }
 
         // all threads reach barrier
@@ -80,35 +97,33 @@ void *thread_func(void *arg) {
         // start executing the  matrix multiplication for this tile
         while (true) {
             // Lock the mutex to fetch the next available chunk of rows
+
+            #ifdef GEM5
+            m5_start_mutex(data->thread_id);
+            #endif
             pthread_mutex_lock(&mutex);
+            #ifdef GEM5
+            m5_end_mutex(data->thread_id);
+            #endif
             
             int start_row = next_row;
-            next_row += CHUNK_SIZE; // Increment to the next chunk
+            next_row += data->chunk_size; // Increment to the next chunk
 
             // Check if we exceed the tile boundaries
             if (start_row >= base_row + TILE_SIZE) {
                 pthread_mutex_unlock(&mutex);
                 break;  // No more rows in the tile
             }
-            int end_row = start_row + CHUNK_SIZE;
+            int end_row = start_row + data->chunk_size;
             if (end_row > base_row + TILE_SIZE) {
                 end_row = base_row + TILE_SIZE; // Adjust to tile boundary
             }
 
             pthread_mutex_unlock(&mutex);
 
-            // Atomically fetch and increment next_row
-            // int start_row = atomic_fetch_add(&next_row, CHUNK_SIZE);
-
-            // // Check if we exceed the tile boundaries
-            // if (start_row >= base_row + TILE_SIZE) {
-            //     break;  // No more rows in the tile
-            // }
-
-            // int end_row = start_row + CHUNK_SIZE;
-            // if (end_row > base_row + TILE_SIZE) {
-            //     end_row = base_row + TILE_SIZE; // Adjust to tile boundary
-            // }
+            #ifdef GEM5
+            m5_numiter(data->thread_id);
+            #endif
 
             // Process the assigned chunk of rows
             for (int i = start_row; i < end_row; i++) {
@@ -123,8 +138,23 @@ void *thread_func(void *arg) {
                 rows_processed[data->thread_id]++;
             }
         } 
+        // m5_op(tid
         // wait for all threads to finish before resetting the value of the tiles.
-        pthread_barrier_wait(&barrier_done);  
+
+        #ifdef GEM5
+        m5_start_barrier(data->thread_id);
+        #endif
+        pthread_barrier_wait(&barrier_done); 
+
+        #ifdef GEM5
+        m5_end_barrier(data->thread_id);
+        #endif
+
+        // #ifdef GEM5
+        // if(data->thread_id == 0) {
+        //     m5_dump_reset_stats(0,0);
+        // }
+        // #endif
     }
 }
 
@@ -220,12 +250,20 @@ int main(int argc, char *argv[]) {
         pthread_t threads[num_threads];
         thread_data_t thread_data[num_threads];
 
+        #ifdef GEM5
+        m5_dump_reset_stats(0,0);
+        #endif 
 
         for (int t = 0; t < num_threads; t++) {
             thread_data[t].thread_id = t;
             thread_data[t].tile_row = 0; // Starting row of the tile
             thread_data[t].tile_col = 0; // Starting column of the tile
             rows_processed[t] = 0;
+            if( t == 0) {
+                thread_data[t].chunk_size = CHUNK_SIZE_STRONG;
+            } else {
+                thread_data[t].chunk_size = CHUNK_SIZE;
+            }
             pthread_create(&threads[t], NULL, thread_func, (void *)&thread_data[t]);
         }
 
@@ -233,6 +271,10 @@ int main(int argc, char *argv[]) {
         for (int t = 0; t < num_threads; t++) {
             pthread_join(threads[t], NULL);
         }
+
+        #ifdef GEM5
+        m5_dump_reset_stats(0,0);
+        #endif 
 
         // Perform single-threaded multiplication for validation
         // single_threaded_matrix_multiply();

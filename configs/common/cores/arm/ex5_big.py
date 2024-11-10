@@ -115,40 +115,71 @@ class ex5_big_BP(BiModeBP):
 
 
 class ex5_big(ArmO3CPU):
-    LQEntries = 16
-    SQEntries = 16
-    LSQDepCheckShift = 0
-    LFSTSize = 1024
-    SSITSize = 1024
-    decodeToFetchDelay = 1
-    renameToFetchDelay = 1
-    iewToFetchDelay = 1
-    commitToFetchDelay = 1
-    renameToDecodeDelay = 1
-    iewToDecodeDelay = 1
-    commitToDecodeDelay = 1
-    iewToRenameDelay = 1
-    commitToRenameDelay = 1
+    # LQEntries = 16
+    # SQEntries = 16
+    # LSQDepCheckShift = 0
+    # LFSTSize = 1024
+    # SSITSize = 1024
+    # decodeToFetchDelay = 1
+    # renameToFetchDelay = 1
+    # iewToFetchDelay = 1
+    # commitToFetchDelay = 1
+    # renameToDecodeDelay = 1
+    # iewToDecodeDelay = 1
+    # commitToDecodeDelay = 1
+    # iewToRenameDelay = 1
+    # commitToRenameDelay = 1
+    # commitToIEWDelay = 1
+    # # fetchWidth = 3
+    # # fetchBufferSize = 16
+    # fetchWidth = 4
+    # fetchBufferSize = 64
+    # fetchToDecodeDelay = 1
+    # decodeWidth = 3
+    # decodeToRenameDelay = 1
+    # renameWidth = 3
+    # renameToIEWDelay = 1
+    # issueToExecuteDelay = 1
+    # dispatchWidth = 6
+    # issueWidth = 8
+    # wbWidth = 8
+    # iewToCommitDelay = 1
+    # renameToROBDelay = 1
+    # commitWidth = 8
+    # squashWidth = 8
+    # trapLatency = 13
+    # backComSize = 5
+    # forwardComSize = 5
+
     commitToIEWDelay = 1
-    fetchWidth = 3
-    fetchBufferSize = 16
+    commitToRenameDelay = 1
+    iewToRenameDelay = 1
+    commitToDecodeDelay = 1
+    iewToDecodeDelay = 1
+    renameToDecodeDelay = 1
+    commitToFetchDelay = 1
+    iewToFetchDelay = 1
+    renameToFetchDelay = 1
+    decodeToFetchDelay = 1
+    fetchWidth = 12
+    fetchBufferSize = 64
     fetchToDecodeDelay = 1
-    decodeWidth = 3
+    decodeWidth = 8
     decodeToRenameDelay = 1
-    renameWidth = 3
+    renameWidth = 8
     renameToIEWDelay = 1
     issueToExecuteDelay = 1
-    dispatchWidth = 6
-    issueWidth = 8
+    dispatchWidth = 8
+    issueWidth = 4
     wbWidth = 8
-    fuPool = ex5_big_FUP()
     iewToCommitDelay = 1
     renameToROBDelay = 1
     commitWidth = 8
     squashWidth = 8
-    trapLatency = 13
+    trapLatency = 1
     backComSize = 5
     forwardComSize = 5
+
     numPhysIntRegs = 264 #90
     numPhysFloatRegs = 264 #90
     numPhysVecRegs = 264
@@ -158,6 +189,7 @@ class ex5_big(ArmO3CPU):
 
     switched_out = False
     branchPred = ex5_big_BP()
+    fuPool = ex5_big_FUP()
 
     smtLSQPolicy = "Partitioned"
     smtROBPolicy = "Partitioned"
@@ -178,25 +210,63 @@ class L1Cache(Cache):
 
 # Instruction Cache
 class L1I(L1Cache):
-    mshrs = 2
+    # mshrs = 2
+    # size = "32kB"
+    # assoc = 2
+    # is_read_only = True
+
+    tag_latency = 1
+    data_latency = 1
+    response_latency = 1
+    mshrs = 12
+    tgts_per_mshr = 8
     size = "32kB"
     assoc = 2
-    is_read_only = True
+    # write_buffers = 16
+    # Consider the L2 a victim cache also for clean lines
+    writeback_clean = True
 
 
 # Data Cache
 class L1D(L1Cache):
+    # mshrs = 6
+    # size = "32kB"
+    # assoc = 2
+    # write_buffers = 16
+
+    tag_latency = 2
+    data_latency = 2
+    response_latency = 2
     mshrs = 6
-    size = "32kB"
+    tgts_per_mshr = 8
+    #size = "32kB"
+    size = "64kB"
     assoc = 2
     write_buffers = 16
+    # Consider the L2 a victim cache also for clean lines
+    writeback_clean = True
 
 
 # L2 Cache
 class L2(Cache):
-    tag_latency = 15
-    data_latency = 15
-    response_latency = 15
+    # tag_latency = 15
+    # data_latency = 15
+    # response_latency = 15
+    # mshrs = 16
+    # tgts_per_mshr = 8
+    # size = "2MB"
+    # assoc = 16
+    # write_buffers = 8
+    # prefetch_on_access = True
+    # clusivity = "mostly_excl"
+    # # Simple stride prefetcher
+    # prefetcher = StridePrefetcher(degree=8, latency=1)
+    # tags = BaseSetAssoc()
+    # replacement_policy = RandomRP()
+
+    tag_latency = 12
+    data_latency = 12
+    response_latency = 12
     mshrs = 16
     tgts_per_mshr = 8
     size = "2MB"
