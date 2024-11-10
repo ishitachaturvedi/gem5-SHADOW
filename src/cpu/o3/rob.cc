@@ -76,7 +76,6 @@ ROB::ROB(CPU *_cpu, const BaseO3CPUParams &params)
         for (ThreadID tid = 0; tid < numThreads; tid++) {
             maxEntries[tid] = numEntries;
         }
-
     } else if (robPolicy == SMTQueuePolicy::Partitioned) {
         DPRINTF(Fetch, "ROB sharing policy set to Partitioned\n");
 
@@ -112,6 +111,28 @@ ROB::ROB(CPU *_cpu, const BaseO3CPUParams &params)
         for (ThreadID tid = 0; tid < numThreads; tid++) {
             maxEntries[tid] = threshold;
         }
+    }else if(robPolicy == SMTQueuePolicy::SDynamicWStatic) {
+        // try dynamic implementation first
+        if(numThreadsS > 1) {
+            int tid0size = 30;
+            int tid1size = numEntries;
+            maxEntries[0] = tid0size;
+            maxEntries[1] = tid1size;
+            for (ThreadID tid = 2; tid < numThreads; tid++) {
+                maxEntries[tid] = numEntries;
+            }
+        } else {
+            if(numThreadsS == 0) {
+                numThreadsS = 1;
+            }
+            
+            int part_amt = numEntries / numThreadsS;
+
+            //Divide ROB up evenly
+            for (ThreadID tid = 0; tid < numThreads; tid++) {
+                maxEntries[tid] = part_amt;
+            }
+        } 
     }
 
     for (ThreadID tid = numThreads; tid < MaxThreads; tid++) {
