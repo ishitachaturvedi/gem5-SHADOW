@@ -1592,148 +1592,139 @@ InstructionQueue::scheduleReadyInsts()
     list<ThreadID>::iterator threads = activeThreads->begin();
     list<ThreadID>::iterator end = activeThreads->end();
 
-    bool exists = std::any_of(activeThreads->begin(), activeThreads->end(), 
-                          [](ThreadID tid) { return tid >= 1; });
+    float AvgInstInFlightCounterTemp = 0;
+    float AvgMemInFlightCounterTemp = 0;
+    float AvgCompInFlightCounterTemp = 0;
+    float AvgInstStalledCounterTemp = 0;
+    float AvgMemStalledCounterTemp = 0;
+    float AvgCompStalledCounterTemp = 0;
+    float AvgOnlyMemInFLightCounterTemp = 0;
+    float AvgOnlyCompInFLightCounterTemp = 0;
+    float AvgMemAndCompInFLightCounterTemp = 0;
+    float AvgNothingInFLightCounterTemp = 0;
 
-    // only collect
-    if (exists) {
+    int cannot_issue = 0;
+    int ready_for_issue = 0;
+    int in_ready_queue = 0;
+    int checked_for_issue = 0;
+    int issued = 0;
+    int executed = 0;
+    int ready_for_commit = 0;
+    int committed = 0;
 
-        float AvgInstInFlightCounterTemp = 0;
-        float AvgMemInFlightCounterTemp = 0;
-        float AvgCompInFlightCounterTemp = 0;
-        float AvgInstStalledCounterTemp = 0;
-        float AvgMemStalledCounterTemp = 0;
-        float AvgCompStalledCounterTemp = 0;
-        float AvgOnlyMemInFLightCounterTemp = 0;
-        float AvgOnlyCompInFLightCounterTemp = 0;
-        float AvgMemAndCompInFLightCounterTemp = 0;
-        float AvgNothingInFLightCounterTemp = 0;
+    int total_inst = 0;
 
-        int cannot_issue = 0;
-        int ready_for_issue = 0;
-        int in_ready_queue = 0;
-        int checked_for_issue = 0;
-        int issued = 0;
-        int executed = 0;
-        int ready_for_commit = 0;
-        int committed = 0;
-
-        int total_inst = 0;
-
-        cycleCounter++;
-        while (threads != end) {
-            ThreadID tid = *threads++;
-            // we only consider insts which are not completed.
-            for (auto inst = instList[tid].begin(); inst != instList[tid].end(); ++inst) {
-                total_inst++;
-                if((*inst)->isIssued() && !(*inst)->isExecuted()) {
-                    AvgInstInFlightCounterTemp++;
-                    if((*inst)->isMemRef()) {
-                        AvgMemInFlightCounterTemp++;
-                    } else {
-                        AvgCompInFlightCounterTemp++;
-                    }
-                } else if(!(*inst)->isExecuted()) {
-                    AvgInstStalledCounterTemp++;
-                    if((*inst)->isMemRef()) {
-                        AvgMemStalledCounterTemp++;
-                    } else {
-                        AvgCompStalledCounterTemp++;
-                    }
+    cycleCounter++;
+    while (threads != end) {
+        ThreadID tid = *threads++;
+        // we only consider insts which are not completed.
+        for (auto inst = instList[tid].begin(); inst != instList[tid].end(); ++inst) {
+            total_inst++;
+            if((*inst)->isIssued() && !(*inst)->isExecuted()) {
+                AvgInstInFlightCounterTemp++;
+                if((*inst)->isMemRef()) {
+                    AvgMemInFlightCounterTemp++;
+                } else {
+                    AvgCompInFlightCounterTemp++;
                 }
-
-                if(((!cpu->thread[tid]->ControlInstIssued && !(cpu->thread[tid]->MemInstIssued && cpu->thread[tid]->MemInstIssued!= (*inst)->seqNum) &&  !olderIssuePending((*inst)->seqNum, (*inst)->threadNumber)) || cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)) { 
-                    if(!(*inst)->readyToIssue() && !(*inst)->isIssued() && !(*inst)->isExecuted() && !(*inst)->readyToCommit() && !(*inst)->isCommitted()) {
-                        cannot_issue++;
-                    } 
-                    if((*inst)->readyToIssue() && !(*inst)->isIssued() && !(*inst)->isExecuted() && !(*inst)->readyToCommit() && !(*inst)->isCommitted()){
-                        ready_for_issue++;
-                    } else if((*inst)->readyToIssue() && (*inst)->isIssued() && !(*inst)->isExecuted() && !(*inst)->readyToCommit() && !(*inst)->isCommitted()){
-                        issued++;
-                    } else if((*inst)->readyToIssue() && (*inst)->isIssued() && (*inst)->isExecuted() && !(*inst)->readyToCommit() && !(*inst)->isCommitted()){
-                        executed++;
-                    } else if((*inst)->readyToIssue() && (*inst)->isIssued() && (*inst)->isExecuted() && (*inst)->readyToCommit() && !(*inst)->isCommitted()){
-                        ready_for_commit++;
-                    } else if((*inst)->readyToIssue() && (*inst)->isIssued() && (*inst)->isExecuted() && (*inst)->readyToCommit() && (*inst)->isCommitted()){
-                        committed++;
-                    }
-
-                    if((*inst)->presentInReadyQueue() && (*inst)->IsCheckedForIssueInCycle()  && !(*inst)->isIssued() && !(*inst)->isExecuted() && !(*inst)->readyToCommit() && !(*inst)->isCommitted()){
-                     //   printf("OTHER_PROBLEM sn:%d memory %d in_ready_queue %d total_issued %d totalWidth %d listSize %d\n",(*inst)->seqNum, (*inst)->isMemRef(),(*inst)->presentInReadyQueue(), total_issued,totalWidth,listSize);
-                        in_ready_queue++;
-                    }
-                    if((*inst)->presentInReadyQueue() && !(*inst)->IsCheckedForIssueInCycle()  && !(*inst)->isIssued() && !(*inst)->isExecuted() && !(*inst)->readyToCommit() && !(*inst)->isCommitted()){
-                    //    printf("HELLO_ISSUE sn:%d memory %d in_ready_queue %d total_issued %d totalWidth %d listSize %d\n",(*inst)->seqNum, (*inst)->isMemRef(),(*inst)->presentInReadyQueue(), total_issued,totalWidth,listSize);
-                        checked_for_issue++;
-                    }
+            } else if(!(*inst)->isExecuted()) {
+                AvgInstStalledCounterTemp++;
+                if((*inst)->isMemRef()) {
+                    AvgMemStalledCounterTemp++;
+                } else {
+                    AvgCompStalledCounterTemp++;
                 }
-                (*inst)->clearCheckedForIssueInCycle();
             }
+
+            if(((!cpu->thread[tid]->ControlInstIssued && !(cpu->thread[tid]->MemInstIssued && cpu->thread[tid]->MemInstIssued!= (*inst)->seqNum) &&  !olderIssuePending((*inst)->seqNum, (*inst)->threadNumber)) || cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)) { 
+                if(!(*inst)->readyToIssue() && !(*inst)->isIssued() && !(*inst)->isExecuted() && !(*inst)->readyToCommit() && !(*inst)->isCommitted()) {
+                    cannot_issue++;
+                } 
+                if((*inst)->readyToIssue() && !(*inst)->isIssued() && !(*inst)->isExecuted() && !(*inst)->readyToCommit() && !(*inst)->isCommitted()){
+                    ready_for_issue++;
+                } else if((*inst)->readyToIssue() && (*inst)->isIssued() && !(*inst)->isExecuted() && !(*inst)->readyToCommit() && !(*inst)->isCommitted()){
+                    issued++;
+                } else if((*inst)->readyToIssue() && (*inst)->isIssued() && (*inst)->isExecuted() && !(*inst)->readyToCommit() && !(*inst)->isCommitted()){
+                    executed++;
+                } else if((*inst)->readyToIssue() && (*inst)->isIssued() && (*inst)->isExecuted() && (*inst)->readyToCommit() && !(*inst)->isCommitted()){
+                    ready_for_commit++;
+                } else if((*inst)->readyToIssue() && (*inst)->isIssued() && (*inst)->isExecuted() && (*inst)->readyToCommit() && (*inst)->isCommitted()){
+                    committed++;
+                }
+
+                if((*inst)->presentInReadyQueue() && (*inst)->IsCheckedForIssueInCycle()  && !(*inst)->isIssued() && !(*inst)->isExecuted() && !(*inst)->readyToCommit() && !(*inst)->isCommitted()){
+                    //   printf("OTHER_PROBLEM sn:%d memory %d in_ready_queue %d total_issued %d totalWidth %d listSize %d\n",(*inst)->seqNum, (*inst)->isMemRef(),(*inst)->presentInReadyQueue(), total_issued,totalWidth,listSize);
+                    in_ready_queue++;
+                }
+                if((*inst)->presentInReadyQueue() && !(*inst)->IsCheckedForIssueInCycle()  && !(*inst)->isIssued() && !(*inst)->isExecuted() && !(*inst)->readyToCommit() && !(*inst)->isCommitted()){
+                //    printf("HELLO_ISSUE sn:%d memory %d in_ready_queue %d total_issued %d totalWidth %d listSize %d\n",(*inst)->seqNum, (*inst)->isMemRef(),(*inst)->presentInReadyQueue(), total_issued,totalWidth,listSize);
+                    checked_for_issue++;
+                }
+            }
+            (*inst)->clearCheckedForIssueInCycle();
         }
+    }
 
-        //printf("*********CYCLE %d\n",curTick());
+    //printf("*********CYCLE %d\n",curTick());
 
-        // look for cycles with some collection of results
-        if(AvgInstInFlightCounterTemp == 0) {
-            AvgNothingInFLightCounterTemp++;
-        } 
-        if(AvgInstInFlightCounterTemp != 0 && AvgMemInFlightCounterTemp!= 0 && AvgCompInFlightCounterTemp == 0) {
-            AvgOnlyMemInFLightCounterTemp++;
-        }
-        if(AvgInstInFlightCounterTemp != 0 && AvgCompInFlightCounterTemp!= 0 && AvgMemInFlightCounterTemp == 0) {
-            AvgOnlyCompInFLightCounterTemp++;
-        }
-        if (AvgInstInFlightCounterTemp != 0 && AvgCompInFlightCounterTemp!= 0 && AvgMemInFlightCounterTemp != 0) {
-            AvgMemAndCompInFLightCounterTemp++;
-        }
+    // look for cycles with some collection of results
+    if(AvgInstInFlightCounterTemp == 0) {
+        AvgNothingInFLightCounterTemp++;
+    } 
+    if(AvgInstInFlightCounterTemp != 0 && AvgMemInFlightCounterTemp!= 0 && AvgCompInFlightCounterTemp == 0) {
+        AvgOnlyMemInFLightCounterTemp++;
+    }
+    if(AvgInstInFlightCounterTemp != 0 && AvgCompInFlightCounterTemp!= 0 && AvgMemInFlightCounterTemp == 0) {
+        AvgOnlyCompInFLightCounterTemp++;
+    }
+    if (AvgInstInFlightCounterTemp != 0 && AvgCompInFlightCounterTemp!= 0 && AvgMemInFlightCounterTemp != 0) {
+        AvgMemAndCompInFLightCounterTemp++;
+    }
 
-        // get the averages
-        AvgInstInFlightCounter = (AvgInstInFlightCounterTemp + AvgInstInFlightCounter * (cycleCounter -1)) / cycleCounter;
-        AvgMemInFlightCounter = (AvgMemInFlightCounterTemp + AvgMemInFlightCounter * (cycleCounter -1)) / cycleCounter;
-        AvgCompInFlightCounter = (AvgCompInFlightCounterTemp + AvgCompInFlightCounter * (cycleCounter -1)) / cycleCounter;
-        AvgInstStalledCounter = (AvgInstStalledCounterTemp + AvgInstStalledCounter * (cycleCounter -1)) / cycleCounter;
-        AvgMemStalledCounter = (AvgMemStalledCounterTemp + AvgMemStalledCounter * (cycleCounter -1)) / cycleCounter;
-        AvgCompStalledCounter = (AvgCompStalledCounterTemp + AvgCompStalledCounter * (cycleCounter -1)) / cycleCounter;
-        AvgOnlyMemInFLightCounter += AvgOnlyMemInFLightCounterTemp;
-        AvgOnlyCompInFLightCounter += AvgOnlyCompInFLightCounterTemp;
-        AvgMemAndCompInFLightCounter += AvgMemAndCompInFLightCounterTemp;
-        AvgNothingInFLightCounter += AvgNothingInFLightCounterTemp;
+    // get the averages
+    AvgInstInFlightCounter = (AvgInstInFlightCounterTemp + AvgInstInFlightCounter * (cycleCounter -1)) / cycleCounter;
+    AvgMemInFlightCounter = (AvgMemInFlightCounterTemp + AvgMemInFlightCounter * (cycleCounter -1)) / cycleCounter;
+    AvgCompInFlightCounter = (AvgCompInFlightCounterTemp + AvgCompInFlightCounter * (cycleCounter -1)) / cycleCounter;
+    AvgInstStalledCounter = (AvgInstStalledCounterTemp + AvgInstStalledCounter * (cycleCounter -1)) / cycleCounter;
+    AvgMemStalledCounter = (AvgMemStalledCounterTemp + AvgMemStalledCounter * (cycleCounter -1)) / cycleCounter;
+    AvgCompStalledCounter = (AvgCompStalledCounterTemp + AvgCompStalledCounter * (cycleCounter -1)) / cycleCounter;
+    AvgOnlyMemInFLightCounter += AvgOnlyMemInFLightCounterTemp;
+    AvgOnlyCompInFLightCounter += AvgOnlyCompInFLightCounterTemp;
+    AvgMemAndCompInFLightCounter += AvgMemAndCompInFLightCounterTemp;
+    AvgNothingInFLightCounter += AvgNothingInFLightCounterTemp;
 
 
-        cannot_issue_overall += (cannot_issue - cannot_issue_overall) / cycleCounter;
-        ready_for_issue_overall += (ready_for_issue - ready_for_issue_overall) / cycleCounter;
-        issued_overall += (issued - issued_overall) / cycleCounter;
-        executed_overall += (executed - executed_overall) / cycleCounter;
-        in_ready_queue_overall += (in_ready_queue - in_ready_queue_overall) / cycleCounter;
-        checked_for_issue_overall += (checked_for_issue - checked_for_issue_overall) / cycleCounter;
-        ready_for_commit_overall += (ready_for_commit - ready_for_commit_overall) / cycleCounter;
-        committed_overall += (committed - committed_overall) / cycleCounter;
+    cannot_issue_overall += (cannot_issue - cannot_issue_overall) / cycleCounter;
+    ready_for_issue_overall += (ready_for_issue - ready_for_issue_overall) / cycleCounter;
+    issued_overall += (issued - issued_overall) / cycleCounter;
+    executed_overall += (executed - executed_overall) / cycleCounter;
+    in_ready_queue_overall += (in_ready_queue - in_ready_queue_overall) / cycleCounter;
+    checked_for_issue_overall += (checked_for_issue - checked_for_issue_overall) / cycleCounter;
+    ready_for_commit_overall += (ready_for_commit - ready_for_commit_overall) / cycleCounter;
+    committed_overall += (committed - committed_overall) / cycleCounter;
 
-        iqStats.AvgInstInFlight = AvgInstInFlightCounter;
-        iqStats.AvgMemInFlight = AvgMemInFlightCounter;
-        iqStats.AvgCompInFlight = AvgCompInFlightCounter;
-        iqStats.AvgInstStalled = AvgInstStalledCounter;
-        iqStats.AvgMemStalled = AvgMemStalledCounter;
-        iqStats.AvgCompStalled = AvgCompStalledCounter;
-        iqStats.AvgOnlyMemInFLight = AvgOnlyMemInFLightCounter;
-        iqStats.AvgOnlyCompInFLight = AvgOnlyCompInFLightCounter;
-        iqStats.AvgMemAndCompInFLight = AvgMemAndCompInFLightCounter;
-        iqStats.AvgNothingInFLight = AvgNothingInFLightCounter;
+    iqStats.AvgInstInFlight = AvgInstInFlightCounter;
+    iqStats.AvgMemInFlight = AvgMemInFlightCounter;
+    iqStats.AvgCompInFlight = AvgCompInFlightCounter;
+    iqStats.AvgInstStalled = AvgInstStalledCounter;
+    iqStats.AvgMemStalled = AvgMemStalledCounter;
+    iqStats.AvgCompStalled = AvgCompStalledCounter;
+    iqStats.AvgOnlyMemInFLight = AvgOnlyMemInFLightCounter;
+    iqStats.AvgOnlyCompInFLight = AvgOnlyCompInFLightCounter;
+    iqStats.AvgMemAndCompInFLight = AvgMemAndCompInFLightCounter;
+    iqStats.AvgNothingInFLight = AvgNothingInFLightCounter;
 
-        iqStats.cannot_issue_Flight = cannot_issue_overall;
-        iqStats.ready_for_issue_Flight = ready_for_issue_overall;
-        iqStats.issued_Flight = issued_overall;
-        iqStats.executed_Flight = executed_overall;
-        iqStats.ready_for_commit_Flight = ready_for_commit_overall;
-        iqStats.committed_Flight = committed_overall;
-        iqStats.in_ready_queue_Flight = in_ready_queue_overall;
-        iqStats.checked_for_issue_Flight = checked_for_issue_overall;
+    iqStats.cannot_issue_Flight = cannot_issue_overall;
+    iqStats.ready_for_issue_Flight = ready_for_issue_overall;
+    iqStats.issued_Flight = issued_overall;
+    iqStats.executed_Flight = executed_overall;
+    iqStats.ready_for_commit_Flight = ready_for_commit_overall;
+    iqStats.committed_Flight = committed_overall;
+    iqStats.in_ready_queue_Flight = in_ready_queue_overall;
+    iqStats.checked_for_issue_Flight = checked_for_issue_overall;
 
 
         //printf("AvgInstInFlightCounterTemp %f AvgMemInFlightCounterTemp %f AvgCompInFlightCounterTemp %f InstInIQ %d InstInROB %d\n",AvgInstInFlightCounterTemp,AvgMemInFlightCounterTemp,///AvgCompInFlightCounterTemp,total_inst,cpu->rob.numInstsInROB);
-
-
-    }
 
     // check if op is free -> Backend utilization check
     for(int i = 0; i < OpClass::Num_OpClass; i++) {
