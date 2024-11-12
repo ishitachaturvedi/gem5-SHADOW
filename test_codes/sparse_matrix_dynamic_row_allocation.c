@@ -193,7 +193,7 @@ int main(int argc, char *argv[]) {
     int COLS_A = atoi(argv[2]);
     int ROWS_B = atoi(argv[3]);
     int COLS_B = atoi(argv[4]);
-    int val_non_zero = atoi(argv[5]); // degree of sparsity
+    float val_non_zero = atof(argv[5]); // degree of sparsity
     int num_threads = atoi(argv[6]);  // Number of threads
     // int first_thread_percentage = atoi(argv[7]);  // Number of threads
 
