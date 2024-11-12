@@ -681,25 +681,46 @@ class InstructionQueue
         statistics::Vector AverageNonIssuedInstPerOpTypeDependsOnCompute;
         statistics::Vector AverageNonIssuedInstPerOpTypeDependsOnTotal;
 
-        statistics::Scalar AvgInstInFlight;
-        statistics::Scalar AvgMemInFlight;
-        statistics::Scalar AvgCompInFlight;
-        statistics::Scalar AvgInstStalled;
-        statistics::Scalar AvgMemStalled;
-        statistics::Scalar AvgCompStalled;
-        statistics::Scalar AvgOnlyMemInFLight;
-        statistics::Scalar AvgOnlyCompInFLight;
-        statistics::Scalar AvgMemAndCompInFLight;
-        statistics::Scalar AvgNothingInFLight;
+        statistics::Formula AvgInstInFlight;
+        statistics::Formula AvgMemInFlight;
+        statistics::Formula AvgCompInFlight;
+        statistics::Formula AvgInstStalled;
+        statistics::Formula AvgMemStalled;
+        statistics::Formula AvgCompStalled;
+        statistics::Formula AvgOnlyMemInFLight;
+        statistics::Formula AvgOnlyCompInFLight;
+        statistics::Formula AvgMemAndCompInFLight;
+        statistics::Formula AvgNothingInFLight;
 
-        statistics::Scalar cannot_issue_Flight;
-        statistics::Scalar ready_for_issue_Flight;
-        statistics::Scalar issued_Flight;
-        statistics::Scalar executed_Flight;
-        statistics::Scalar ready_for_commit_Flight;
-        statistics::Scalar in_ready_queue_Flight;
-        statistics::Scalar checked_for_issue_Flight;
-        statistics::Scalar committed_Flight;
+        statistics::Formula cannot_issue_Flight;
+        statistics::Formula ready_for_issue_Flight;
+        statistics::Formula issued_Flight;
+        statistics::Formula executed_Flight;
+        statistics::Formula ready_for_commit_Flight;
+        statistics::Formula in_ready_queue_Flight;
+        statistics::Formula checked_for_issue_Flight;
+        statistics::Formula committed_Flight;
+
+
+        statistics::Scalar AvgInstInFlightTotal;
+        statistics::Scalar AvgMemInFlightTotal;
+        statistics::Scalar AvgCompInFlightTotal;
+        statistics::Scalar AvgInstStalledTotal;
+        statistics::Scalar AvgMemStalledTotal;
+        statistics::Scalar AvgCompStalledTotal;
+        statistics::Scalar AvgOnlyMemInFLightTotal;
+        statistics::Scalar AvgOnlyCompInFLightTotal;
+        statistics::Scalar AvgMemAndCompInFLightTotal;
+        statistics::Scalar AvgNothingInFLightTotal;
+
+        statistics::Scalar cannot_issue_FlightTotal;
+        statistics::Scalar ready_for_issue_FlightTotal;
+        statistics::Scalar issued_FlightTotal;
+        statistics::Scalar executed_FlightTotal;
+        statistics::Scalar ready_for_commit_FlightTotal;
+        statistics::Scalar in_ready_queue_FlightTotal;
+        statistics::Scalar checked_for_issue_FlightTotal;
+        statistics::Scalar committed_FlightTotal;
 
 
     } iqStats;

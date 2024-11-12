@@ -367,44 +367,100 @@ InstructionQueue::IQStats::IQStats(CPU *cpu, const unsigned &total_width)
     ADD_STAT(AverageNonIssuedInstPerOpTypeDependsOnTotal, statistics::units::Count::get(),
              "Avg number of instructions which cannot be issued with total # dependencies"),
 
-    ADD_STAT(AvgInstInFlight, statistics::units::Count::get(),
+    ADD_STAT(AvgInstInFlightTotal, statistics::units::Count::get(),
+             "Avg number of insts in flight::Useless stat"),
+    ADD_STAT(AvgMemInFlightTotal, statistics::units::Count::get(),
+             "Avg number of Mem insts in flight::Useless stat"),
+    ADD_STAT(AvgCompInFlightTotal, statistics::units::Count::get(),
+             "Avg number of Comp insts in flight::Useless stat"),
+    ADD_STAT(AvgInstStalledTotal, statistics::units::Count::get(),
+             "Avg number of insts stalled::Useless stat"),
+    ADD_STAT(AvgMemStalledTotal, statistics::units::Count::get(),
+             "Avg number of mem insts stalled::Useless stat"),
+    ADD_STAT(AvgCompStalledTotal, statistics::units::Count::get(),
+             "Avg number of comp insts stalled::Useless stat"),
+    ADD_STAT(AvgOnlyMemInFLightTotal, statistics::units::Count::get(),
+             "number of insts with only mem inst in flight::Useless stat"),
+    ADD_STAT(AvgOnlyCompInFLightTotal, statistics::units::Count::get(),
+             "number of insts with only comp inst in flight::Useless stat"),
+    ADD_STAT(AvgMemAndCompInFLightTotal, statistics::units::Count::get(),
+             "number of cycles with mem and comp inst in flight::Useless stat"),
+    ADD_STAT(AvgNothingInFLightTotal, statistics::units::Count::get(),
+             "number of cycles with no inst in flight::Useless stat"),
+
+    ADD_STAT(cannot_issue_FlightTotal, statistics::units::Count::get(),
+             "ROB: No instructions ready for issue::Useless stat"),
+    ADD_STAT(ready_for_issue_FlightTotal, statistics::units::Count::get(),
+             "ROB: Instructions ready for issue but not yet issued::Useless stat"),
+    ADD_STAT(issued_FlightTotal, statistics::units::Count::get(),
+             "ROB: Instructions in flight::Useless stat"),
+    ADD_STAT(executed_FlightTotal, statistics::units::Count::get(),
+             "ROB: Instructions finished execution::Useless stat"),
+    ADD_STAT(ready_for_commit_FlightTotal, statistics::units::Count::get(),
+             "ROB: Instructions ready for commit::Useless stat"),
+    ADD_STAT(committed_FlightTotal, statistics::units::Count::get(),
+             "ROB: Instructions committed::Useless stat"),
+    ADD_STAT(in_ready_queue_FlightTotal, statistics::units::Count::get(),
+             "ROB: Instruction in ready queue, was checked for isseu but not issued::Useless stat"),
+    ADD_STAT(checked_for_issue_FlightTotal, statistics::units::Count::get(),
+             "ROB: Instruction checked::Useless stat"),
+
+
+    ADD_STAT(AvgInstInFlight, statistics::units::Rate<
+                statistics::units::Count, statistics::units::Count>::get(),
              "Avg number of insts in flight"),
-    ADD_STAT(AvgMemInFlight, statistics::units::Count::get(),
+    ADD_STAT(AvgMemInFlight, statistics::units::Rate<
+                statistics::units::Count, statistics::units::Count>::get(),
              "Avg number of Mem insts in flight"),
-    ADD_STAT(AvgCompInFlight, statistics::units::Count::get(),
+    ADD_STAT(AvgCompInFlight, statistics::units::Rate<
+                statistics::units::Count, statistics::units::Count>::get(),
              "Avg number of Comp insts in flight"),
-    ADD_STAT(AvgInstStalled, statistics::units::Count::get(),
+    ADD_STAT(AvgInstStalled, statistics::units::Rate<
+                statistics::units::Count, statistics::units::Count>::get(),
              "Avg number of insts stalled"),
-    ADD_STAT(AvgMemStalled, statistics::units::Count::get(),
+    ADD_STAT(AvgMemStalled, statistics::units::Rate<
+                statistics::units::Count, statistics::units::Count>::get(),
              "Avg number of mem insts stalled"),
-    ADD_STAT(AvgCompStalled, statistics::units::Count::get(),
+    ADD_STAT(AvgCompStalled, statistics::units::Rate<
+                statistics::units::Count, statistics::units::Count>::get(),
              "Avg number of comp insts stalled"),
-    ADD_STAT(AvgOnlyMemInFLight, statistics::units::Count::get(),
+    ADD_STAT(AvgOnlyMemInFLight, statistics::units::Rate<
+                statistics::units::Count, statistics::units::Count>::get(),
              "number of insts with only mem inst in flight"),
-    ADD_STAT(AvgOnlyCompInFLight, statistics::units::Count::get(),
+    ADD_STAT(AvgOnlyCompInFLight, statistics::units::Rate<
+                statistics::units::Count, statistics::units::Count>::get(),
              "number of insts with only comp inst in flight"),
-    ADD_STAT(AvgMemAndCompInFLight, statistics::units::Count::get(),
+    ADD_STAT(AvgMemAndCompInFLight, statistics::units::Rate<
+                statistics::units::Count, statistics::units::Count>::get(),
              "number of cycles with mem and comp inst in flight"),
-    ADD_STAT(AvgNothingInFLight, statistics::units::Count::get(),
+    ADD_STAT(AvgNothingInFLight, statistics::units::Rate<
+                statistics::units::Count, statistics::units::Count>::get(),
              "number of cycles with no inst in flight"),
 
-    ADD_STAT(cannot_issue_Flight, statistics::units::Count::get(),
+    ADD_STAT(cannot_issue_Flight, statistics::units::Rate<
+                statistics::units::Count, statistics::units::Count>::get(),
              "ROB: No instructions ready for issue"),
-    ADD_STAT(ready_for_issue_Flight, statistics::units::Count::get(),
+    ADD_STAT(ready_for_issue_Flight, statistics::units::Rate<
+                statistics::units::Count, statistics::units::Count>::get(),
              "ROB: Instructions ready for issue but not yet issued"),
-    ADD_STAT(issued_Flight, statistics::units::Count::get(),
+    ADD_STAT(issued_Flight, statistics::units::Rate<
+                statistics::units::Count, statistics::units::Count>::get(),
              "ROB: Instructions in flight"),
-    ADD_STAT(executed_Flight, statistics::units::Count::get(),
+    ADD_STAT(executed_Flight, statistics::units::Rate<
+                statistics::units::Count, statistics::units::Count>::get(),
              "ROB: Instructions finished execution"),
-    ADD_STAT(ready_for_commit_Flight, statistics::units::Count::get(),
+    ADD_STAT(ready_for_commit_Flight, statistics::units::Rate<
+                statistics::units::Count, statistics::units::Count>::get(),
              "ROB: Instructions ready for commit"),
-    ADD_STAT(committed_Flight, statistics::units::Count::get(),
+    ADD_STAT(committed_Flight, statistics::units::Rate<
+                statistics::units::Count, statistics::units::Count>::get(),
              "ROB: Instructions committed"),
-    ADD_STAT(in_ready_queue_Flight, statistics::units::Count::get(),
+    ADD_STAT(in_ready_queue_Flight, statistics::units::Rate<
+                statistics::units::Count, statistics::units::Count>::get(),
              "ROB: Instruction in ready queue, was checked for isseu but not issued"),
-    ADD_STAT(checked_for_issue_Flight, statistics::units::Count::get(),
+    ADD_STAT(checked_for_issue_Flight, statistics::units::Rate<
+                statistics::units::Count, statistics::units::Count>::get(),
              "ROB: Instruction checked")
-
 {
     instsAdded
         .prereq(instsAdded);
@@ -416,6 +472,27 @@ InstructionQueue::IQStats::IQStats(CPU *cpu, const unsigned &total_width)
     for (int i=0; i < Num_OpClasses; ++i) {
         AverageNonIssuedInstPerOpType.subname(i, enums::OpClassStrings[i]);
     }
+
+    AvgInstInFlight = AvgInstInFlightTotal / cpu->baseStats.numCycles;
+    AvgMemInFlight = AvgMemInFlightTotal / cpu->baseStats.numCycles;
+    AvgCompInFlight = AvgCompInFlightTotal / cpu->baseStats.numCycles;
+    AvgInstStalled = AvgInstStalledTotal / cpu->baseStats.numCycles;
+    AvgMemStalled = AvgMemStalledTotal / cpu->baseStats.numCycles;
+    AvgCompStalled = AvgCompStalledTotal / cpu->baseStats.numCycles;
+    AvgOnlyMemInFLight = AvgOnlyMemInFLightTotal / cpu->baseStats.numCycles;
+    AvgOnlyCompInFLight = AvgOnlyCompInFLightTotal / cpu->baseStats.numCycles;
+    AvgMemAndCompInFLight = AvgMemAndCompInFLightTotal / cpu->baseStats.numCycles;
+    AvgNothingInFLight = AvgNothingInFLightTotal / cpu->baseStats.numCycles;
+
+
+    cannot_issue_Flight = cannot_issue_FlightTotal / cpu->baseStats.numCycles;
+    ready_for_issue_Flight = ready_for_issue_FlightTotal / cpu->baseStats.numCycles;
+    issued_Flight = issued_FlightTotal / cpu->baseStats.numCycles;
+    executed_Flight = executed_FlightTotal / cpu->baseStats.numCycles;
+    ready_for_commit_Flight = ready_for_commit_FlightTotal / cpu->baseStats.numCycles;
+    in_ready_queue_Flight = in_ready_queue_FlightTotal / cpu->baseStats.numCycles;
+    checked_for_issue_Flight = checked_for_issue_FlightTotal / cpu->baseStats.numCycles;
+    committed_Flight = committed_FlightTotal / cpu->baseStats.numCycles;
 
     AverageNonIssuedInstPerOpTypeDependsOnMemory
         .init(Num_OpClasses)
@@ -1703,25 +1780,46 @@ InstructionQueue::scheduleReadyInsts()
     ready_for_commit_overall += (ready_for_commit - ready_for_commit_overall) / cycleCounter;
     committed_overall += (committed - committed_overall) / cycleCounter;
 
-    iqStats.AvgInstInFlight = AvgInstInFlightCounter;
-    iqStats.AvgMemInFlight = AvgMemInFlightCounter;
-    iqStats.AvgCompInFlight = AvgCompInFlightCounter;
-    iqStats.AvgInstStalled = AvgInstStalledCounter;
-    iqStats.AvgMemStalled = AvgMemStalledCounter;
-    iqStats.AvgCompStalled = AvgCompStalledCounter;
-    iqStats.AvgOnlyMemInFLight = AvgOnlyMemInFLightCounter;
-    iqStats.AvgOnlyCompInFLight = AvgOnlyCompInFLightCounter;
-    iqStats.AvgMemAndCompInFLight = AvgMemAndCompInFLightCounter;
-    iqStats.AvgNothingInFLight = AvgNothingInFLightCounter;
+    // iqStats.AvgInstInFlight = AvgInstInFlightCounter;
+    // iqStats.AvgMemInFlight = AvgMemInFlightCounter;
+    // iqStats.AvgCompInFlight = AvgCompInFlightCounter;
+    // iqStats.AvgInstStalled = AvgInstStalledCounter;
+    // iqStats.AvgMemStalled = AvgMemStalledCounter;
+    // iqStats.AvgCompStalled = AvgCompStalledCounter;
+    // iqStats.AvgOnlyMemInFLight = AvgOnlyMemInFLightCounter;
+    // iqStats.AvgOnlyCompInFLight = AvgOnlyCompInFLightCounter;
+    // iqStats.AvgMemAndCompInFLight = AvgMemAndCompInFLightCounter;
+    // iqStats.AvgNothingInFLight = AvgNothingInFLightCounter;
 
-    iqStats.cannot_issue_Flight = cannot_issue_overall;
-    iqStats.ready_for_issue_Flight = ready_for_issue_overall;
-    iqStats.issued_Flight = issued_overall;
-    iqStats.executed_Flight = executed_overall;
-    iqStats.ready_for_commit_Flight = ready_for_commit_overall;
-    iqStats.committed_Flight = committed_overall;
-    iqStats.in_ready_queue_Flight = in_ready_queue_overall;
-    iqStats.checked_for_issue_Flight = checked_for_issue_overall;
+    // iqStats.cannot_issue_Flight = cannot_issue_overall;
+    // iqStats.ready_for_issue_Flight = ready_for_issue_overall;
+    // iqStats.issued_Flight = issued_overall;
+    // iqStats.executed_Flight = executed_overall;
+    // iqStats.ready_for_commit_Flight = ready_for_commit_overall;
+    // iqStats.committed_Flight = committed_overall;
+    // iqStats.in_ready_queue_Flight = in_ready_queue_overall;
+    // iqStats.checked_for_issue_Flight = checked_for_issue_overall;
+
+
+    iqStats.AvgInstInFlightTotal += AvgInstInFlightCounterTemp;
+    iqStats.AvgMemInFlightTotal += AvgMemInFlightCounterTemp;
+    iqStats.AvgCompInFlightTotal += AvgCompInFlightCounterTemp;
+    iqStats.AvgInstStalledTotal += AvgInstStalledCounterTemp;
+    iqStats.AvgMemStalledTotal += AvgMemStalledCounterTemp;
+    iqStats.AvgCompStalledTotal += AvgCompStalledCounterTemp;
+    iqStats.AvgOnlyMemInFLightTotal += AvgOnlyMemInFLightCounterTemp;
+    iqStats.AvgOnlyCompInFLightTotal += AvgOnlyCompInFLightCounterTemp;
+    iqStats.AvgMemAndCompInFLightTotal += AvgMemAndCompInFLightCounterTemp;
+    iqStats.AvgNothingInFLightTotal += AvgNothingInFLightCounterTemp;
+
+    iqStats.cannot_issue_FlightTotal += cannot_issue;
+    iqStats.ready_for_issue_FlightTotal += ready_for_issue;
+    iqStats.issued_FlightTotal += issued;
+    iqStats.executed_FlightTotal += executed;
+    iqStats.ready_for_commit_FlightTotal += ready_for_commit;
+    iqStats.committed_FlightTotal += committed;
+    iqStats.in_ready_queue_FlightTotal += in_ready_queue;
+    iqStats.checked_for_issue_FlightTotal += checked_for_issue;
 
 
         //printf("AvgInstInFlightCounterTemp %f AvgMemInFlightCounterTemp %f AvgCompInFlightCounterTemp %f InstInIQ %d InstInROB %d\n",AvgInstInFlightCounterTemp,AvgMemInFlightCounterTemp,///AvgCompInFlightCounterTemp,total_inst,cpu->rob.numInstsInROB);

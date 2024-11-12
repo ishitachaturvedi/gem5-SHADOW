@@ -582,6 +582,9 @@ class Commit
 
         statistics::Vector AvgInstInROB;
 
+        statistics::Vector ROBUtilization;
+        statistics::Formula ROBUtilizationRate;
+
         /** Instruciton Transit Time by instruction type (OpClass) */
         statistics::Vector totalTransitTime;
         statistics::Vector totalTransitTimeS;

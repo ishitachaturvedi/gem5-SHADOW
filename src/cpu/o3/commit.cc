@@ -192,6 +192,13 @@ Commit::CommitStats::CommitStats(CPU *cpu, Commit *commit)
                "Class of committed instruction"),
       ADD_STAT(AvgInstInROB, statistics::units::Count::get(),
                "Avg number of insts in ROB"),
+
+      ADD_STAT(ROBUtilization, statistics::units::Count::get(), "Total insts in ROB::Useless stat"),
+      ADD_STAT(ROBUtilizationRate, statistics::units::Rate<
+                statistics::units::Count, statistics::units::Count>::get(),
+             "ROB Utilization Rate"),
+
+
       ADD_STAT(commitEligibleSamples, statistics::units::Cycle::get(),
                "number cycles where commit BW limit reached"),
       ADD_STAT(totalTransitTime, statistics::units::Count::get(),
@@ -255,6 +262,17 @@ Commit::CommitStats::CommitStats(CPU *cpu, Commit *commit)
     branchMispredicts.prereq(branchMispredicts);
     branchMispredictsS.prereq(branchMispredictsS);
     branchMispredictsW.prereq(branchMispredictsW);
+
+    ROBUtilization
+        .init(cpu->numThreads)
+        .flags(statistics::total)
+    ;
+
+    ROBUtilizationRate
+        .flags(statistics::total)
+        ;
+
+    ROBUtilizationRate = ROBUtilization / cpu->baseStats.numCycles;
 
     numCommittedDist
         .init(0,(commit->commitWidth*cpu->numThreads),1)
@@ -841,6 +859,7 @@ Commit::tick()
         AvgInstInROBTid[tid] += (rob->getThreadEntries(tid) - AvgInstInROBTid[tid]) /  NumTicksTid[tid];
         stats.AvgInstInROB[tid] = AvgInstInROBTid[tid];
 
+        stats.ROBUtilization[tid] += rob->getThreadEntries(tid);
 
         if(maxNonCommitCycle < lastCommitedCycle[tid]) {
             maxNonCommitCycle = lastCommitedCycle[tid];
