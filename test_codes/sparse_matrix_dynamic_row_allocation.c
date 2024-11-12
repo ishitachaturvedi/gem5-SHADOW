@@ -12,6 +12,12 @@
 #include "gem5/m5ops.h"
 #endif
 
+
+// Function to compare integers for sorting (ascending order)
+int compare(const void *a, const void *b) {
+    return (*(int*)a - *(int*)b);
+}
+
 // Structure to represent a sparse matrix in CSR format
 typedef struct {
     int rows;
@@ -30,6 +36,23 @@ typedef struct {
     int num_threads;
     // int first_thread_percentage;
 } ThreadArgs;
+
+
+// Function to print non-zero values with their corresponding column indices
+void printNonZeroValues(SparseMatrix *mat, int rows) {
+    for (int i = 0; i < rows; i++) {
+        printf("Row %d: ", i);
+        int nonZeroCount = mat->rowPtr[i + 1] - mat->rowPtr[i]; // Number of non-zero elements in this row
+        if (nonZeroCount == 0) {
+            printf("No non-zero elements\n");
+        } else {
+            for (int j = mat->rowPtr[i]; j < mat->rowPtr[i + 1]; j++) {
+                printf("(%d, %f) ", mat->colIdx[j], mat->values[j]);  // (column index, value)
+            }
+            printf("\n");
+        }
+    }
+}
 
 // Global shared index to keep track of rows being processed
 int currentRow = 0;
@@ -163,12 +186,14 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
+    srand(5);
+
     // Read matrix dimensions and sparsity parameter from command-line arguments
     int ROWS_A = atoi(argv[1]);
     int COLS_A = atoi(argv[2]);
     int ROWS_B = atoi(argv[3]);
     int COLS_B = atoi(argv[4]);
-    int val_non_zero = atoi(argv[5]);
+    int val_non_zero = atoi(argv[5]); // degree of sparsity
     int num_threads = atoi(argv[6]);  // Number of threads
     // int first_thread_percentage = atoi(argv[7]);  // Number of threads
 
@@ -179,14 +204,14 @@ int main(int argc, char *argv[]) {
     }
 
     // Estimate the number of non-zero elements (can be adjusted based on sparsity)
-    int numNonZeroA = ROWS_A * COLS_A / val_non_zero; // Roughly non-zero elements in A
-    int numNonZeroB = ROWS_B * COLS_B / val_non_zero; // Roughly non-zero elements in B
+    int numNonZeroA = ROWS_A * COLS_A * (100 - val_non_zero) / 100; // Roughly non-zero elements in A
+    int numNonZeroB = ROWS_B * COLS_B * (100 - val_non_zero) / 100; // Roughly non-zero elements in B
 
     // Create sparse matrices A and B
     SparseMatrix A = createSparseMatrix(ROWS_A, COLS_A, numNonZeroA);
     SparseMatrix B = createSparseMatrix(ROWS_B, COLS_B, numNonZeroB);
 
-    // Randomly initialize matrix A (sparse data)
+    // // Randomly initialize matrix A (sparse data)
     for (int i = 0; i < numNonZeroA; i++) {
         A.colIdx[i] = rand() % COLS_A; // Random column indices
         A.values[i] = rand() % 10 + 1; // Random values between 1 and 10
@@ -209,6 +234,82 @@ int main(int argc, char *argv[]) {
         B.rowPtr[i] = i * (numNonZeroB / ROWS_B); // Simplistic distribution
     }
     B.rowPtr[ROWS_B] = numNonZeroB; // Last element points to the end of the non-zero values
+
+    // int nonZeroPerRowA = numNonZeroA / ROWS_A; // Non-zero elements per row in matrix A
+    // int nonZeroPerRowB = numNonZeroB / ROWS_B; // Non-zero elements per row in matrix B
+
+    // int idx = 0;
+    // for (int i = 0; i < ROWS_A; i++) {
+    //     int cols[nonZeroPerRowA];  // Temporary array to store column indices
+    //     int colCount = 0;
+
+    //     // Generate unique random column indices for this row
+    //     while (colCount < nonZeroPerRowA) {
+    //         int colIdx = rand() % COLS_A;
+    //         int unique = 1;
+    //         // Ensure the column index is unique within this row
+    //         for (int j = 0; j < colCount; j++) {
+    //             if (cols[j] == colIdx) {
+    //                 unique = 0;
+    //                 break;
+    //             }
+    //         }
+    //         if (unique) {
+    //             cols[colCount++] = colIdx;
+    //         }
+    //     }
+
+    //     // Sort column indices in ascending order
+    //     qsort(cols, nonZeroPerRowA, sizeof(int), compare);
+
+    //     // Assign the column indices to A.colIdx and generate random values
+    //     for (int j = 0; j < nonZeroPerRowA; j++) {
+    //         A.colIdx[idx] = cols[j];
+    //         A.values[idx] = rand() % 10 + 1; // Random values between 1 and 10
+    //         idx++;
+    //     }
+
+    //     // Update rowPtr for A to point to the correct position for the next row
+    //     A.rowPtr[i] = i * nonZeroPerRowA;
+    // }
+    // A.rowPtr[ROWS_A] = numNonZeroA; // Last element points to the end of the non-zero values
+
+    // // Randomly initialize matrix B (sparse data)
+    // idx = 0;
+    // for (int i = 0; i < ROWS_B; i++) {
+    //     int cols[nonZeroPerRowB];  // Temporary array to store column indices
+    //     int colCount = 0;
+
+    //     // Generate unique random column indices for this row
+    //     while (colCount < nonZeroPerRowB) {
+    //         int colIdx = rand() % COLS_B;
+    //         int unique = 1;
+    //         for (int j = 0; j < colCount; j++) {
+    //             if (cols[j] == colIdx) {
+    //                 unique = 0;
+    //                 break;
+    //             }
+    //         }
+    //         if (unique) {
+    //             cols[colCount++] = colIdx;
+    //         }
+    //     }
+
+    //     // Sort column indices in ascending order
+    //     qsort(cols, nonZeroPerRowB, sizeof(int), compare);
+
+    //     // Assign the column indices to B.colIdx and generate random values
+    //     for (int j = 0; j < nonZeroPerRowB; j++) {
+    //         B.colIdx[idx] = cols[j];
+    //         B.values[idx] = rand() % 10 + 1; // Random values between 1 and 10
+    //         idx++;
+    //     }
+
+    //     // Update rowPtr for B to point to the correct position for the next row
+    //     B.rowPtr[i] = i * nonZeroPerRowB;
+    // }
+    // B.rowPtr[ROWS_B] = numNonZeroB; // Last element points to the end of the non-zero values
+
 
     // Create the result matrix C (dense format for simplicity)
     SparseMatrix C = createSparseMatrix(ROWS_A, COLS_B, ROWS_A * COLS_B); // Result matrix size is ROWS_A x COLS_B
@@ -256,9 +357,9 @@ int main(int argc, char *argv[]) {
         pthread_join(threads[i], NULL);
     }
 
-    if(threadArgs->thread_id == 0) {
+    #ifdef GEM5
         m5_dump_reset_stats(0,0);
-    }
+    #endif
 
     clock_t thread_end = clock();
     double thread_time_spent = (double)(thread_end - thread_start) / CLOCKS_PER_SEC;
@@ -276,6 +377,12 @@ int main(int argc, char *argv[]) {
     // } else {
     //     printf("Result is incorrect!\n");
     // }
+
+    // printf("Matrix A (non-zero values with column indices):\n");
+    // printNonZeroValues(&A, ROWS_A);
+
+    // printf("\nMatrix B (non-zero values with column indices):\n");
+    // printNonZeroValues(&B, ROWS_B);
     
     // // Print execution times
     // printf("Single-threaded execution time: %f seconds\n", single_time_spent);
