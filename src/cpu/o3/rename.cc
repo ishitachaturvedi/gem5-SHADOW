@@ -1344,7 +1344,9 @@ Rename::renameInsts(ThreadID tid)
     }
 
     instsInProgress[tid] += renamed_insts;
-    stats.renamedInsts += renamed_insts;
+
+    if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
+        stats.renamedInsts += renamed_insts;
 
     // If we wrote to the time buffer, record this.
     if (toIEWIndex) {
@@ -1650,28 +1652,30 @@ Rename::renameSrcRegs(const DynInstPtr &inst, ThreadID tid)
         PhysRegIdPtr renamed_reg;
 
         renamed_reg = map->lookup(flat_reg);
-        switch (flat_reg.classValue()) {
-          case InvalidRegClass:
-            break;
-          case IntRegClass:
-            stats.intLookups++;
-            break;
-          case FloatRegClass:
-            stats.fpLookups++;
-            break;
-          case VecRegClass:
-          case VecElemClass:
-            stats.vecLookups++;
-            break;
-          case VecPredRegClass:
-            stats.vecPredLookups++;
-            break;
-          case CCRegClass:
-          case MiscRegClass:
-            break;
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+            switch (flat_reg.classValue()) {
+            case InvalidRegClass:
+                break;
+            case IntRegClass:
+                stats.intLookups++;
+                break;
+            case FloatRegClass:
+                stats.fpLookups++;
+                break;
+            case VecRegClass:
+            case VecElemClass:
+                stats.vecLookups++;
+                break;
+            case VecPredRegClass:
+                stats.vecPredLookups++;
+                break;
+            case CCRegClass:
+            case MiscRegClass:
+                break;
 
-          default:
-            panic("Invalid register class: %d.", flat_reg.classValue());
+            default:
+                panic("Invalid register class: %d.", flat_reg.classValue());
+            }
         }
 
         DPRINTF(Rename,

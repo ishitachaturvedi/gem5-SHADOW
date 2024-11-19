@@ -799,9 +799,9 @@ IEW::instToCommit(const DynInstPtr& inst)
             wbNumInst = 0;
         }
     }
-
     DPRINTF(IEW, "Current wb cycle: %i, width: %i, numInst: %i\nwbActual:%i\n",
             wbCycle, wbWidth, wbNumInst, wbCycle * wbWidth + wbNumInst);
+
     // Add finished instruction to queue to commit.
     (*iewQueue)[wbCycle].insts[wbNumInst] = inst;
     (*iewQueue)[wbCycle].size++;
@@ -1951,8 +1951,10 @@ IEW::writebackInsts()
             }
 
             if (dependents) {
-                iewStats.producerInst[tid]++;
-                iewStats.consumerInst[tid]+= dependents;
+                if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+                    iewStats.producerInst[tid]++;
+                    iewStats.consumerInst[tid]+= dependents;
+                }
             }
             iewStats.writebackCount[tid]++;
             iewStats.writebackCountTotal++;

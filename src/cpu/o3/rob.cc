@@ -250,7 +250,8 @@ ROB::insertInst(const DynInstPtr &inst)
 {
     assert(inst);
 
-    stats.writes++;
+    if(cpu->thread[inst->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Strong)
+        stats.writes++;
 
     DPRINTF(ROB, " [tid:%d] Adding inst PC %s to the ROB numInstsInROB %d numEntries %d free enties overall %d free entries tid %d [sn:%d].\n", inst->threadNumber,inst->pcState(),numInstsInROB,numEntries,numFreeEntries(),inst->threadNumber,inst->seqNum);
 
@@ -361,7 +362,8 @@ ROB::retireHead(ThreadID tid)
 bool
 ROB::isHeadReady(ThreadID tid)
 {
-    stats.reads++;
+    if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
+        stats.reads++;
     if (threadEntries[tid] != 0) {
         return instList[tid].front()->readyToCommit();
     }
@@ -402,7 +404,8 @@ ROB::numFreeEntries(ThreadID tid)
 void
 ROB::doSquash(ThreadID tid)
 {
-    stats.writes++;
+    if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong)
+        stats.writes++;
     DPRINTF(ROB, "[tid:%i] Squashing instructions until [sn:%llu].\n",
             tid, squashedSeqNum[tid]);
 

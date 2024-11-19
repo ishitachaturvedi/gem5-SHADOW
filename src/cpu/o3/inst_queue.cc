@@ -1052,10 +1052,10 @@ InstructionQueue::insert(const DynInstPtr &new_inst)
         --freeEntries;
     } else {
         if(cpu->thread[new_inst->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
-            //DPRINTF(IQ, "tid: %d STEP2 freeEntriesS %d\n",new_inst->threadNumber,freeEntriesS);
+            DPRINTF(IQ, "tid: %d STEP2 freeEntriesS %d\n",new_inst->threadNumber,freeEntriesS);
             --freeEntriesS;
         } else {
-            DPRINTF(IQ, "tid: %d STEP2 freeEntriesW %d\n",new_inst->threadNumber,freeEntriesS);
+            DPRINTF(IQ, "tid: %d STEP2 freeEntriesW %d\n",new_inst->threadNumber,freeEntriesW);
             --freeEntriesW;
         }
     }
@@ -1094,7 +1094,7 @@ InstructionQueue::insert(const DynInstPtr &new_inst)
         assert(freeEntries == (numEntries - countInsts()));
     } else {
         //DPRINTF(IQ, "tid: %d STEP3 freeEntriesS %d\n",new_inst->threadNumber,freeEntriesS);
-        DPRINTF(IQ, "tid: %d STEP3 freeEntriesW %d\n",new_inst->threadNumber,freeEntriesW);
+        DPRINTF(IQ, "tid: %d STEP3 freeEntriesS %d freeEntriesW %d\n",new_inst->threadNumber,freeEntriesS,freeEntriesW);
         assert(freeEntriesS == (numSEntries - countInstsS()));
         assert(freeEntriesW == (numWEntries - countInstsW()));
     }
@@ -1130,7 +1130,7 @@ InstructionQueue::insertNonSpec(const DynInstPtr &new_inst)
         assert(freeEntries != 0);
     } else {
         if(cpu->thread[new_inst->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
-            //DPRINTF(IQ, "tid: %d STEP4 freeEntriesS %d\n",new_inst->threadNumber,freeEntriesS);
+            DPRINTF(IQ, "tid: %d STEP4 freeEntriesS %d\n",new_inst->threadNumber,freeEntriesS);
             assert(freeEntriesS != 0);
         } else {
             DPRINTF(IQ, "tid: %d STEP4 freeEntriesW %d\n",new_inst->threadNumber,freeEntriesW);
@@ -1144,7 +1144,7 @@ InstructionQueue::insertNonSpec(const DynInstPtr &new_inst)
         --freeEntries;
     } else {
         if(cpu->thread[new_inst->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
-            //DPRINTF(IQ, "tid: %d STEP5 freeEntriesS %d\n",new_inst->threadNumber,freeEntriesS);
+            DPRINTF(IQ, "tid: %d STEP5 freeEntriesS %d\n",new_inst->threadNumber,freeEntriesS);
             --freeEntriesS;
         } else {
             DPRINTF(IQ, "tid: %d STEP5 freeEntriesW %d\n",new_inst->threadNumber,freeEntriesW);
@@ -1201,12 +1201,14 @@ InstructionQueue::getInstToExecute()
 
     DynInstPtr inst = std::move(instsToExecute.front());
     instsToExecute.pop_front();
-    if (inst->isFloating()) {
-        iqIOStats.fpInstQueueReads++;
-    } else if (inst->isVector()) {
-        iqIOStats.vecInstQueueReads++;
-    } else {
-        iqIOStats.intInstQueueReads++;
+    if(cpu->thread[inst->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+        if (inst->isFloating()) {
+            iqIOStats.fpInstQueueReads++;
+        } else if (inst->isVector()) {
+            iqIOStats.vecInstQueueReads++;
+        } else {
+            iqIOStats.intInstQueueReads++;
+        }
     }
     return inst;
 }
@@ -1541,7 +1543,7 @@ InstructionQueue::scheduleReadyInsts()
                     ++freeEntries;
                 } else {
                     if(cpu->thread[issuing_inst->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
-                        //DPRINTF(IQ, "tid: %d STEP7 freeEntriesS %d\n",issuing_inst->threadNumber,freeEntriesS);
+                        DPRINTF(IQ, "tid: %d STEP7 freeEntriesS %d\n",issuing_inst->threadNumber,freeEntriesS);
                         ++freeEntriesS;
                     } else {
                         DPRINTF(IQ, "tid: %d STEP7 freeEntriesW %d\n",issuing_inst->threadNumber,freeEntriesW);
@@ -2017,7 +2019,7 @@ InstructionQueue::wakeDependents(const DynInstPtr &completed_inst)
                 ++freeEntries;
             } else {
                 if(cpu->thread[completed_inst->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
-                    //DPRINTF(IQ, "tid: %d STEP9 freeEntriesS %d\n",completed_inst->threadNumber,freeEntriesS);
+                    DPRINTF(IQ, "tid: %d STEP9 freeEntriesS %d\n",completed_inst->threadNumber,freeEntriesS);
                     ++freeEntriesS;
                 } else {
                     DPRINTF(IQ, "tid: %d STEP9 freeEntriesW %d\n",completed_inst->threadNumber,freeEntriesW);
@@ -2777,7 +2779,7 @@ InstructionQueue::doSquash(ThreadID tid)
                 ++freeEntries;
             } else {
                 if(cpu->thread[squashed_inst->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
-                    //DPRINTF(IQ, "tid: %d STEP10 freeEntriesS %d\n",squashed_inst->threadNumber,freeEntriesS);
+                    DPRINTF(IQ, "tid: %d STEP10 freeEntriesS %d\n",squashed_inst->threadNumber,freeEntriesS);
                     ++freeEntriesS;
                 } else {
                     DPRINTF(IQ, "tid: %d STEP10 freeEntriesW %d\n",squashed_inst->threadNumber,freeEntriesW);
