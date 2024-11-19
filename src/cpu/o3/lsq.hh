@@ -902,6 +902,12 @@ class LSQ
     RequestPort &getStrongDataPort() { return dcachePortS; }
     RequestPort &getWeakDataPort() { return dcachePortW; }
 
+    /** Run 1 pthread iteration as S thread and all others as W threads**/
+    bool FirstThreadSOtherW;
+
+    /** Run main thread as S and all P threads as W */
+    bool MainSAllPW;
+
   protected:
     /** D-cache is blocked */
     bool _cacheBlocked;
@@ -929,7 +935,7 @@ class LSQ
      */
     static uint32_t
     maxLSQAllocation(SMTQueuePolicy pol, uint32_t entries,
-            uint32_t numThreads, uint32_t SMTThreshold)
+            uint32_t numThreads, uint32_t SMTThreshold, bool FirstThreadSOtherW, bool MainSAllPW)
     {
         if (pol == SMTQueuePolicy::Dynamic) {
             return entries;
@@ -942,10 +948,14 @@ class LSQ
             //amount of the LSQ
             return SMTThreshold;
         } else if (pol == SMTQueuePolicy::SDynamicWStatic) {
-            if(numThreads > 2) {
-                return entries / 2;
+            if(FirstThreadSOtherW) {
+                if(numThreads > 2) {
+                    return entries / 2;
+                } else {
+                    return entries / numThreads;
+                }
             } else {
-                return entries / numThreads;
+                return entries;
             }
         }
         return 0;

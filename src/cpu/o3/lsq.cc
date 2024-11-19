@@ -86,12 +86,14 @@ LSQ::LSQ(CPU *cpu_ptr, IEW *iew_ptr, const BaseO3CPUParams &params)
       LQEntries(params.LQEntries),
       SQEntries(params.SQEntries),
       maxLQEntries(maxLSQAllocation(lsqPolicy, LQEntries, params.numThreads,
-                  params.smtLSQThreshold)),
+                  params.smtLSQThreshold,params.FirstThreadSOtherW,params.MainSAllPW)),
       maxSQEntries(maxLSQAllocation(lsqPolicy, SQEntries, params.numThreads,
-                  params.smtLSQThreshold)),
+                  params.smtLSQThreshold,params.FirstThreadSOtherW,params.MainSAllPW)),
       dcachePort(this, cpu_ptr),
       dcachePortS(this, cpu_ptr),
       dcachePortW(this, cpu_ptr),
+      FirstThreadSOtherW(params.FirstThreadSOtherW),
+      MainSAllPW(params.MainSAllPW),
       numThreads(params.numThreads)
 {
     assert(numThreads > 0 && numThreads <= MaxThreads);
@@ -116,7 +118,7 @@ LSQ::LSQ(CPU *cpu_ptr, IEW *iew_ptr, const BaseO3CPUParams &params)
                 "%i entries per LQ | %i entries per SQ\n",
                 maxLQEntries,maxSQEntries);
     } else if (lsqPolicy == SMTQueuePolicy::SDynamicWStatic) {
-        DPRINTF(Fetch, "LSQ sharing policy set to SDynamicWStatic: "
+        DPRINTF(LSQ, "LSQ sharing policy set to SDynamicWStatic: "
                 "%i entries per LQ | %i entries per SQ\n",
                 maxLQEntries,maxSQEntries);
     } else {
@@ -128,16 +130,27 @@ LSQ::LSQ(CPU *cpu_ptr, IEW *iew_ptr, const BaseO3CPUParams &params)
 
     if (lsqPolicy == SMTQueuePolicy::SDynamicWStatic) {
         for (ThreadID tid = 0; tid < numThreads; tid++) {
-            if(tid < 2) {
-                thread.emplace_back(maxLQEntries, maxSQEntries);
-                thread[tid].init(cpu, iew_ptr, params, this, tid);
-                thread[tid].setDcachePort(&dcachePort);
+            if(FirstThreadSOtherW) {
+                if(tid < 2) {
+                    thread.emplace_back(maxLQEntries, maxSQEntries);
+                    thread[tid].init(cpu, iew_ptr, params, this, tid);
+                    thread[tid].setDcachePort(&dcachePort);
+                } else {
+                    thread.emplace_back(5, 5);
+                    thread[tid].init(cpu, iew_ptr, params, this, tid);
+                    thread[tid].setDcachePort(&dcachePort);
+                } 
             } else {
-                //thread.emplace_back(20, 20);
-                thread.emplace_back(5, 5);
-                thread[tid].init(cpu, iew_ptr, params, this, tid);
-                thread[tid].setDcachePort(&dcachePort);
-            } 
+                if(tid < 1) {
+                    thread.emplace_back(maxLQEntries, maxSQEntries);
+                    thread[tid].init(cpu, iew_ptr, params, this, tid);
+                    thread[tid].setDcachePort(&dcachePort);
+                } else {
+                    thread.emplace_back(5, 5);
+                    thread[tid].init(cpu, iew_ptr, params, this, tid);
+                    thread[tid].setDcachePort(&dcachePort);
+                } 
+            }
         }
     } else {
         for (ThreadID tid = 0; tid < numThreads; tid++) {
