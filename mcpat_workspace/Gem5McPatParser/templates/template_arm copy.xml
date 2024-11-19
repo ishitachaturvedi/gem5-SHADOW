@@ -1,0 +1,103 @@
+<?xml version="1.0"?>
+<component id="root" name="root">
+  <component id="system" name="system">
+    <param name="number_cache_levels" value="2"/>
+    <param name="number_of_cores" value="1"/>
+    <param name="number_of_L1Directories" value="1"/>
+    <param name="number_of_L2Directories" value="1"/>
+    <param name="number_of_L2s" value="1"/>
+    <param name="Private_L2" value="1"/>
+    <param name="number_of_L3s" value="0"/>
+    <param name="number_of_NoCs" value="0"/>
+    <param name="homogeneous_cores" value="1"/>
+    <param name="homogeneous_L2s" value="1"/>
+    <param name="homogeneous_L1Directories" value="1"/>
+    <param name="homogeneous_L2Directories" value="1"/>
+    <param name="homogeneous_L3s" value="0"/>
+    <param name="homogeneous_ccs" value="1"/>
+    <param name="homogeneous_NoCs" value="1"/>
+    <param name="core_tech_node" value="32"/>
+    <param name="target_core_clockrate" value="1000"/>
+    <param name="temperature" value="380"/>
+    <param name="interconnect_projection_type" value="0"/>
+    <param name="device_type" value="0"/>
+    <param name="longer_channel_device" value="1"/>
+    <param name="power_gating" value="1"/>
+    <param name="machine_bits" value="64"/>
+    <param name="virtual_address_width" value="64"/>
+    <param name="physical_address_width" value="52"/>
+    <param name="virtual_memory_page_size" value="4096"/>
+    <stat name="total_cycles" value="stats.system.cpu_cluster.cpus.numCycles"/>
+    <stat name="idle_cycles" value="stats.system.cpu.idleCycles"/>
+    <stat name="busy_cycles" value="stats.system.cpu_cluster.cpus.numCycles - stats.system.cpu.idleCycles"/>
+    <component id="system.core0" name="core0">
+      <param name="clock_rate" value="4000"/>
+      <param name="vdd" value="0"/>
+      <param name="opt_local" value="0"/>
+      <param name="instruction_length" value="32"/>
+      <param name="opcode_width" value="7"/>
+      <param name="x86" value="0"/>
+      <param name="micro_opcode_width" value="8"/>
+      <param name="machine_type" value="0"/>
+      <param name="number_hardware_threads" value="config.system.cpu_cluster.cpus.numThreads"/>
+      <param name="fetch_width" value="config.system.cpu_cluster.cpus.fetchWidth"/>
+      <param name="number_instruction_fetch_ports" value="1"/>
+      <param name="decode_width" value="config.system.cpu_cluster.cpus.decodeWidth"/>
+      <param name="issue_width" value="config.system.cpu_cluster.cpus.issueWidth"/>
+      <param name="peak_issue_width" value="config.system.cpu_cluster.cpus.issueWidth"/>
+      <param name="commit_width" value="config.system.cpu_cluster.cpus.commitWidth"/>
+      <param name="fp_issue_width" value="1"/>
+      <param name="prediction_width" value="1"/>
+      <param name="pipelines_per_core" value="1,1"/>
+      <param name="pipeline_depth" value="8,8"/>
+      <param name="ALU_per_core" value="6"/>
+      <param name="MUL_per_core" value="1"/>
+      <param name="FPU_per_core" value="2"/>
+      <param name="instruction_buffer_size" value="32"/>
+      <param name="decoded_stream_buffer_size" value="16"/>
+      <param name="instruction_window_scheme" value="0"/>
+      <param name="instruction_window_size" value="config.system.cpu_cluster.cpus.numIQEntries"/>
+      <param name="fp_instruction_window_size" value="config.system.cpu_cluster.cpus.numIQEntries"/>
+      <param name="ROB_size" value="config.system.cpu_cluster.cpus.numROBEntries"/>
+      <param name="archi_Regs_IRF_size" value="16"/>
+      <param name="archi_Regs_FRF_size" value="32"/>
+      <param name="phy_Regs_IRF_size" value="config.system.cpu_cluster.cpus.numPhysIntRegs"/>
+      <param name="phy_Regs_FRF_size" value="config.system.cpu_cluster.cpus.numPhysFloatRegs"/>
+      <param name="rename_scheme" value="0"/>
+      <param name="checkpoint_depth" value="1"/>  
+      <param name="register_windows_size" value="0"/>
+      <param name="LSU_order" value="inorder"/>
+      <param name="store_buffer_size" value="config.system.cpu_cluster.cpus.SQEntries"/>
+      <param name="load_buffer_size" value="config.system.cpu_cluster.cpus.LQEntries"/>
+      <param name="memory_ports" value="1"/>
+      <param name="RAS_size" value="16"/>
+      <component id="system.core0.predictor" name="PBT">
+        <param name="load_predictor" value="10,3,1024"/>
+        <param name="global_predictor" value="4096,2"/>
+        <param name="predictor_chooser" value="4096,2"/>
+      </component>
+      <component id="system.core0.itlb" name="itlb">
+        <param name="number_entries" value="64"/>
+        <stat name="total_accesses" value="0"/>
+        <stat name="total_misses" value="0"/>
+        <stat name="conflicts" value="0"/>
+      </component>
+      <component id="system.core0.icache" name="icache">
+        <param name="icache_config" value="65536,64,config.2,1,1,1,64,0"/>
+        <param name="buffer_sizes" value="config.system.cpu_cluster.cpus.icache_strong.mshrs,config.system.cpu_cluster.cpus.icache_strong.mshrs,config.system.cpu_cluster.cpus.icache_strong.mshrs,config.system.cpu_cluster.cpus.icache_strong.mshrs"/>
+        <stat name="read_accesses" value="stats.system.cpu_cluster.cpus.icache_strong.ReadReq.accesses::total"/>
+        <stat name="read_misses" value="stats.system.cpu_cluster.cpus.dcache_strong.ReadReq.misses::total"/>
+        <stat name="conflicts" value="stats.system.cpu.icache_strong.replacements"/>
+      </component>
+      <component id="system.core0.dcache" name="dcache">
+        <param name="dcache_config" value="config.system.cpu_cluster.cpus.dcache_strong.size,config.system.cpu_cluster.cpus.dcache_strong.tags.block_size,config.system.cpu_cluster.cpus.dcache_strong.assoc,1,1,config.system.cpu_cluster.cpus.dcache_strong.response_latency,config.system.cpu_cluster.cpus.dcache_strong.tags.block_size,0"/>
+        <param name="buffer_sizes" value="config.system.cpu_cluster.cpus.dcache_strong.mshrs,config.system.cpu_cluster.cpus.dcache_strong.mshrs,config.system.cpu_cluster.cpus.dcache_strong.mshrs,config.system.cpu_cluster.cpus.dcache_strong.mshrs"/>
+        <stat name="read_accesses" value="stats.system.cpu_cluster.cpus.dcache_strong.ReadReq.accesses::total"/>
+        <stat name="write_accesses" value="stats.system.cpu.dcache_strong.WriteReq_accesses::total"/>
+        <stat name="read_misses" value="stats.system.cpu_cluster.cpus.dcache_strong.ReadReq.misses::total"/>
+        <stat name="write_misses" value="stats.system.cpu_cluster.cpus.dcache_strong.WriteReq_misses::total"/>
+        <stat name="conflicts" value="stats.system.cpu.dcache_strong.replacements"/>
+      </component>
+    </component>
+  </component>
+</component>

@@ -1,0 +1,11 @@
+I have fixed Gem5McPATParser_updated.py and templates/template_arm.xml for SHADOW to read config and stats fle correctly
+Change stats and config files appropriately.
+
+Prune the file first:
+1. python prune_stats.py stats.txt stats_pruned.txt
+
+To run mcpat for SHADOW:
+1. cd /scratch/ishitac/GPU_killer/mcpat_workspace/Gem5McPatParser
+2. python3 Gem5McPATParser_updated.py -c /scratch/ishitac/GPU_killer/gem5-GPU_killer/sparse_matrix/final_results/Dynamic_1pThread_400_80Per_sparse_ROB256/config.json -s /scratch/ishitac/GPU_killer/gem5-GPU_killer/sparse_matrix/final_results/Dynamic_1pThread_400_80Per_sparse_ROB256/stats.txt -t templates/template_arm.xml &> out
+3. cd /scratch/ishitac/GPU_killer/mcpat_workspace/mcpat/mcpat_orig
+4. ./mcpat -infile ../../Gem5McPatParser/mcpat-out.xml -print_level 5 > test.out

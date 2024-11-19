@@ -1,0 +1,883 @@
+DEBUG:root:Evaluating expression: 2
+DEBUG:root:TEST2: 2
+DEBUG:root:TEST1: 2
+DEBUG:root:Resolved expression: 2 -> 2
+DEBUG:root:Evaluating expression: 1
+DEBUG:root:TEST2: 1
+DEBUG:root:TEST1: 1
+DEBUG:root:Resolved expression: 1 -> 1
+DEBUG:root:Evaluating expression: 1
+DEBUG:root:TEST2: 1
+DEBUG:root:TEST1: 1
+DEBUG:root:Resolved expression: 1 -> 1
+DEBUG:root:Evaluating expression: 1
+DEBUG:root:TEST2: 1
+DEBUG:root:TEST1: 1
+DEBUG:root:Resolved expression: 1 -> 1
+DEBUG:root:Evaluating expression: 1
+DEBUG:root:TEST2: 1
+DEBUG:root:TEST1: 1
+DEBUG:root:Resolved expression: 1 -> 1
+DEBUG:root:Evaluating expression: 1
+DEBUG:root:TEST2: 1
+DEBUG:root:TEST1: 1
+DEBUG:root:Resolved expression: 1 -> 1
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: 1
+DEBUG:root:TEST2: 1
+DEBUG:root:TEST1: 1
+DEBUG:root:Resolved expression: 1 -> 1
+DEBUG:root:Evaluating expression: 1
+DEBUG:root:TEST2: 1
+DEBUG:root:TEST1: 1
+DEBUG:root:Resolved expression: 1 -> 1
+DEBUG:root:Evaluating expression: 1
+DEBUG:root:TEST2: 1
+DEBUG:root:TEST1: 1
+DEBUG:root:Resolved expression: 1 -> 1
+DEBUG:root:Evaluating expression: 1
+DEBUG:root:TEST2: 1
+DEBUG:root:TEST1: 1
+DEBUG:root:Resolved expression: 1 -> 1
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: 1
+DEBUG:root:TEST2: 1
+DEBUG:root:TEST1: 1
+DEBUG:root:Resolved expression: 1 -> 1
+DEBUG:root:Evaluating expression: 1
+DEBUG:root:TEST2: 1
+DEBUG:root:TEST1: 1
+DEBUG:root:Resolved expression: 1 -> 1
+DEBUG:root:Evaluating expression: 32
+DEBUG:root:TEST2: 32
+DEBUG:root:TEST1: 32
+DEBUG:root:Resolved expression: 32 -> 32
+DEBUG:root:Evaluating expression: 1000
+DEBUG:root:TEST2: 1000
+DEBUG:root:TEST1: 1000
+DEBUG:root:Resolved expression: 1000 -> 1000
+DEBUG:root:Evaluating expression: 380
+DEBUG:root:TEST2: 380
+DEBUG:root:TEST1: 380
+DEBUG:root:Resolved expression: 380 -> 380
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: 1
+DEBUG:root:TEST2: 1
+DEBUG:root:TEST1: 1
+DEBUG:root:Resolved expression: 1 -> 1
+DEBUG:root:Evaluating expression: 1
+DEBUG:root:TEST2: 1
+DEBUG:root:TEST1: 1
+DEBUG:root:Resolved expression: 1 -> 1
+DEBUG:root:Evaluating expression: 64
+DEBUG:root:TEST2: 64
+DEBUG:root:TEST1: 64
+DEBUG:root:Resolved expression: 64 -> 64
+DEBUG:root:Evaluating expression: 64
+DEBUG:root:TEST2: 64
+DEBUG:root:TEST1: 64
+DEBUG:root:Resolved expression: 64 -> 64
+DEBUG:root:Evaluating expression: 52
+DEBUG:root:TEST2: 52
+DEBUG:root:TEST1: 52
+DEBUG:root:Resolved expression: 52 -> 52
+DEBUG:root:Evaluating expression: 4096
+DEBUG:root:TEST2: 4096
+DEBUG:root:TEST1: 4096
+DEBUG:root:Resolved expression: 4096 -> 4096
+DEBUG:root:Evaluating expression: 2000
+DEBUG:root:TEST2: 2000
+DEBUG:root:TEST1: 2000
+DEBUG:root:Resolved expression: 2000 -> 2000
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: 32
+DEBUG:root:TEST2: 32
+DEBUG:root:TEST1: 32
+DEBUG:root:Resolved expression: 32 -> 32
+DEBUG:root:Evaluating expression: 7
+DEBUG:root:TEST2: 7
+DEBUG:root:TEST1: 7
+DEBUG:root:Resolved expression: 7 -> 7
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: 8
+DEBUG:root:TEST2: 8
+DEBUG:root:TEST1: 8
+DEBUG:root:Resolved expression: 8 -> 8
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: config.system.cpu_cluster.cpus.numThreads
+DEBUG:root:Resolving config path: system.cpu_cluster.cpus.numThreads
+DEBUG:root:TEST2: 1
+DEBUG:root:TEST1: 1
+DEBUG:root:Resolved expression: config.system.cpu_cluster.cpus.numThreads -> 1
+DEBUG:root:Evaluating expression: config.system.cpu_cluster.cpus.fetchWidth
+DEBUG:root:Resolving config path: system.cpu_cluster.cpus.fetchWidth
+DEBUG:root:TEST2: 12
+DEBUG:root:TEST1: 12
+DEBUG:root:Resolved expression: config.system.cpu_cluster.cpus.fetchWidth -> 12
+DEBUG:root:Evaluating expression: 1
+DEBUG:root:TEST2: 1
+DEBUG:root:TEST1: 1
+DEBUG:root:Resolved expression: 1 -> 1
+DEBUG:root:Evaluating expression: config.system.cpu_cluster.cpus.decodeWidth
+DEBUG:root:Resolving config path: system.cpu_cluster.cpus.decodeWidth
+DEBUG:root:TEST2: 8
+DEBUG:root:TEST1: 8
+DEBUG:root:Resolved expression: config.system.cpu_cluster.cpus.decodeWidth -> 8
+DEBUG:root:Evaluating expression: config.system.cpu_cluster.cpus.issueWidth
+DEBUG:root:Resolving config path: system.cpu_cluster.cpus.issueWidth
+DEBUG:root:TEST2: 8
+DEBUG:root:TEST1: 8
+DEBUG:root:Resolved expression: config.system.cpu_cluster.cpus.issueWidth -> 8
+DEBUG:root:Evaluating expression: config.system.cpu_cluster.cpus.issueWidth
+DEBUG:root:Resolving config path: system.cpu_cluster.cpus.issueWidth
+DEBUG:root:TEST2: 8
+DEBUG:root:TEST1: 8
+DEBUG:root:Resolved expression: config.system.cpu_cluster.cpus.issueWidth -> 8
+DEBUG:root:Evaluating expression: config.system.cpu_cluster.cpus.commitWidth
+DEBUG:root:Resolving config path: system.cpu_cluster.cpus.commitWidth
+DEBUG:root:TEST2: 8
+DEBUG:root:TEST1: 8
+DEBUG:root:Resolved expression: config.system.cpu_cluster.cpus.commitWidth -> 8
+DEBUG:root:Evaluating expression: config.system.cpu_cluster.cpus.commitWidth
+DEBUG:root:Resolving config path: system.cpu_cluster.cpus.commitWidth
+DEBUG:root:TEST2: 8
+DEBUG:root:TEST1: 8
+DEBUG:root:Resolved expression: config.system.cpu_cluster.cpus.commitWidth -> 8
+DEBUG:root:Evaluating expression: 1
+DEBUG:root:TEST2: 1
+DEBUG:root:TEST1: 1
+DEBUG:root:Resolved expression: 1 -> 1
+DEBUG:root:Evaluating expression: 1,1
+DEBUG:root:TEST2: 1,1
+DEBUG:root:TEST1: 1,1
+DEBUG:root:Resolved expression: 1,1 -> 1,1
+DEBUG:root:Evaluating expression: 8,14
+DEBUG:root:TEST2: 8,14
+DEBUG:root:TEST1: 8,14
+DEBUG:root:Resolved expression: 8,14 -> 8,14
+DEBUG:root:Evaluating expression: 1
+DEBUG:root:TEST2: 1
+DEBUG:root:TEST1: 1
+DEBUG:root:Resolved expression: 1 -> 1
+DEBUG:root:Evaluating expression: 2
+DEBUG:root:TEST2: 2
+DEBUG:root:TEST1: 2
+DEBUG:root:Resolved expression: 2 -> 2
+DEBUG:root:Evaluating expression: 1
+DEBUG:root:TEST2: 1
+DEBUG:root:TEST1: 1
+DEBUG:root:Resolved expression: 1 -> 1
+DEBUG:root:Evaluating expression: config.system.cpu_cluster.cpus.numIQEntries
+DEBUG:root:Resolving config path: system.cpu_cluster.cpus.numIQEntries
+DEBUG:root:TEST2: 120
+DEBUG:root:TEST1: 120
+DEBUG:root:Resolved expression: config.system.cpu_cluster.cpus.numIQEntries -> 120
+DEBUG:root:Evaluating expression: config.system.cpu_cluster.cpus.decodeWidth
+DEBUG:root:Resolving config path: system.cpu_cluster.cpus.decodeWidth
+DEBUG:root:TEST2: 8
+DEBUG:root:TEST1: 8
+DEBUG:root:Resolved expression: config.system.cpu_cluster.cpus.decodeWidth -> 8
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: config.system.cpu_cluster.cpus.numIQEntries
+DEBUG:root:Resolving config path: system.cpu_cluster.cpus.numIQEntries
+DEBUG:root:TEST2: 120
+DEBUG:root:TEST1: 120
+DEBUG:root:Resolved expression: config.system.cpu_cluster.cpus.numIQEntries -> 120
+DEBUG:root:Evaluating expression: config.system.cpu_cluster.cpus.numIQEntries
+DEBUG:root:Resolving config path: system.cpu_cluster.cpus.numIQEntries
+DEBUG:root:TEST2: 120
+DEBUG:root:TEST1: 120
+DEBUG:root:Resolved expression: config.system.cpu_cluster.cpus.numIQEntries -> 120
+DEBUG:root:Evaluating expression: config.system.cpu_cluster.cpus.numROBEntries
+DEBUG:root:Resolving config path: system.cpu_cluster.cpus.numROBEntries
+DEBUG:root:TEST2: 256
+DEBUG:root:TEST1: 256
+DEBUG:root:Resolved expression: config.system.cpu_cluster.cpus.numROBEntries -> 256
+DEBUG:root:Evaluating expression: 32
+DEBUG:root:TEST2: 32
+DEBUG:root:TEST1: 32
+DEBUG:root:Resolved expression: 32 -> 32
+DEBUG:root:Evaluating expression: 32
+DEBUG:root:TEST2: 32
+DEBUG:root:TEST1: 32
+DEBUG:root:Resolved expression: 32 -> 32
+DEBUG:root:Evaluating expression: config.system.cpu_cluster.cpus.numPhysIntRegs
+DEBUG:root:Resolving config path: system.cpu_cluster.cpus.numPhysIntRegs
+DEBUG:root:TEST2: 300
+DEBUG:root:TEST1: 300
+DEBUG:root:Resolved expression: config.system.cpu_cluster.cpus.numPhysIntRegs -> 300
+DEBUG:root:Evaluating expression: config.system.cpu_cluster.cpus.numPhysFloatRegs
+DEBUG:root:Resolving config path: system.cpu_cluster.cpus.numPhysFloatRegs
+DEBUG:root:TEST2: 300
+DEBUG:root:TEST1: 300
+DEBUG:root:Resolved expression: config.system.cpu_cluster.cpus.numPhysFloatRegs -> 300
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: inorder
+DEBUG:root:TEST2: inorder
+DEBUG:root:TEST1: inorder
+DEBUG:root:Resolved expression: inorder -> inorder
+DEBUG:root:Evaluating expression: config.system.cpu_cluster.cpus.SQEntries
+DEBUG:root:Resolving config path: system.cpu_cluster.cpus.SQEntries
+DEBUG:root:TEST2: 68
+DEBUG:root:TEST1: 68
+DEBUG:root:Resolved expression: config.system.cpu_cluster.cpus.SQEntries -> 68
+DEBUG:root:Evaluating expression: config.system.cpu_cluster.cpus.LQEntries
+DEBUG:root:Resolving config path: system.cpu_cluster.cpus.LQEntries
+DEBUG:root:TEST2: 72
+DEBUG:root:TEST1: 72
+DEBUG:root:Resolved expression: config.system.cpu_cluster.cpus.LQEntries -> 72
+DEBUG:root:Evaluating expression: 2
+DEBUG:root:TEST2: 2
+DEBUG:root:TEST1: 2
+DEBUG:root:Resolved expression: 2 -> 2
+DEBUG:root:Evaluating expression: 16
+DEBUG:root:TEST2: 16
+DEBUG:root:TEST1: 16
+DEBUG:root:Resolved expression: 16 -> 16
+DEBUG:root:Evaluating expression: 2
+DEBUG:root:TEST2: 2
+DEBUG:root:TEST1: 2
+DEBUG:root:Resolved expression: 2 -> 2
+DEBUG:root:Evaluating expression: 10,3,1024
+DEBUG:root:TEST2: 10,3,1024
+DEBUG:root:TEST1: 10,3,1024
+DEBUG:root:Resolved expression: 10,3,1024 -> 10,3,1024
+DEBUG:root:Evaluating expression: 4096,2
+DEBUG:root:TEST2: 4096,2
+DEBUG:root:TEST1: 4096,2
+DEBUG:root:Resolved expression: 4096,2 -> 4096,2
+DEBUG:root:Evaluating expression: 4096,2
+DEBUG:root:TEST2: 4096,2
+DEBUG:root:TEST1: 4096,2
+DEBUG:root:Resolved expression: 4096,2 -> 4096,2
+DEBUG:root:Evaluating expression: 64
+DEBUG:root:TEST2: 64
+DEBUG:root:TEST1: 64
+DEBUG:root:Resolved expression: 64 -> 64
+DEBUG:root:Evaluating expression: 65536,64,2,1,1,1,64,0
+DEBUG:root:TEST2: 65536,64,2,1,1,1,64,0
+DEBUG:root:TEST1: 65536,64,2,1,1,1,64,0
+DEBUG:root:Resolved expression: 65536,64,2,1,1,1,64,0 -> 65536,64,2,1,1,1,64,0
+DEBUG:root:Evaluating expression: 12,12,12,12
+DEBUG:root:TEST2: 12,12,12,12
+DEBUG:root:TEST1: 12,12,12,12
+DEBUG:root:Resolved expression: 12,12,12,12 -> 12,12,12,12
+DEBUG:root:Evaluating expression: 64
+DEBUG:root:TEST2: 64
+DEBUG:root:TEST1: 64
+DEBUG:root:Resolved expression: 64 -> 64
+DEBUG:root:Evaluating expression: 65536,32,2,1,2,2,32,1
+DEBUG:root:TEST2: 65536,32,2,1,2,2,32,1
+DEBUG:root:TEST1: 65536,32,2,1,2,2,32,1
+DEBUG:root:Resolved expression: 65536,32,2,1,2,2,32,1 -> 65536,32,2,1,2,2,32,1
+DEBUG:root:Evaluating expression: 12,12,12,12
+DEBUG:root:TEST2: 12,12,12,12
+DEBUG:root:TEST1: 12,12,12,12
+DEBUG:root:Resolved expression: 12,12,12,12 -> 12,12,12,12
+DEBUG:root:Evaluating expression: 2
+DEBUG:root:TEST2: 2
+DEBUG:root:TEST1: 2
+DEBUG:root:Resolved expression: 2 -> 2
+DEBUG:root:Evaluating expression: 16384,4,2,2,1,1
+DEBUG:root:TEST2: 16384,4,2,2,1,1
+DEBUG:root:TEST1: 16384,4,2,2,1,1
+DEBUG:root:Resolved expression: 16384,4,2,2,1,1 -> 16384,4,2,2,1,1
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: 4096,2,1,1,100,100, 8
+DEBUG:root:TEST2: 4096,2,1,1,100,100, 8
+DEBUG:root:TEST1: 4096,2,1,1,100,100, 8
+DEBUG:root:Resolved expression: 4096,2,1,1,100,100, 8 -> 4096,2,1,1,100,100, 8
+DEBUG:root:Evaluating expression: 8, 8, 8, 8
+DEBUG:root:TEST2: 8, 8, 8, 8
+DEBUG:root:TEST1: 8, 8, 8, 8
+DEBUG:root:Resolved expression: 8, 8, 8, 8 -> 8, 8, 8, 8
+DEBUG:root:Evaluating expression: 1000
+DEBUG:root:TEST2: 1000
+DEBUG:root:TEST1: 1000
+DEBUG:root:Resolved expression: 1000 -> 1000
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: 1,1,1
+DEBUG:root:TEST2: 1,1,1
+DEBUG:root:TEST1: 1,1,1
+DEBUG:root:Resolved expression: 1,1,1 -> 1,1,1
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: 1
+DEBUG:root:TEST2: 1
+DEBUG:root:TEST1: 1
+DEBUG:root:Resolved expression: 1 -> 1
+DEBUG:root:Evaluating expression: 1048576,16,16,1,2, 100
+DEBUG:root:TEST2: 1048576,16,16,1,2, 100
+DEBUG:root:TEST1: 1048576,16,16,1,2, 100
+DEBUG:root:Resolved expression: 1048576,16,16,1,2, 100 -> 1048576,16,16,1,2, 100
+DEBUG:root:Evaluating expression: 8, 8, 8, 8
+DEBUG:root:TEST2: 8, 8, 8, 8
+DEBUG:root:TEST1: 8, 8, 8, 8
+DEBUG:root:Resolved expression: 8, 8, 8, 8 -> 8, 8, 8, 8
+DEBUG:root:Evaluating expression: 1000
+DEBUG:root:TEST2: 1000
+DEBUG:root:TEST1: 1000
+DEBUG:root:Resolved expression: 1000 -> 1000
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: 1,1,1
+DEBUG:root:TEST2: 1,1,1
+DEBUG:root:TEST1: 1,1,1
+DEBUG:root:Resolved expression: 1,1,1 -> 1,1,1
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: 1048576,64,8,1,10,10,32,1
+DEBUG:root:TEST2: 1048576,64,8,1,10,10,32,1
+DEBUG:root:TEST1: 1048576,64,8,1,10,10,32,1
+DEBUG:root:Resolved expression: 1048576,64,8,1,10,10,32,1 -> 1048576,64,8,1,10,10,32,1
+DEBUG:root:Evaluating expression: 20,20,20,8
+DEBUG:root:TEST2: 20,20,20,8
+DEBUG:root:TEST1: 20,20,20,8
+DEBUG:root:Resolved expression: 20,20,20,8 -> 20,20,20,8
+DEBUG:root:Evaluating expression: 1000
+DEBUG:root:TEST2: 1000
+DEBUG:root:TEST1: 1000
+DEBUG:root:Resolved expression: 1000 -> 1000
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: 1,1,1
+DEBUG:root:TEST2: 1,1,1
+DEBUG:root:TEST1: 1,1,1
+DEBUG:root:Resolved expression: 1,1,1 -> 1,1,1
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: 2000
+DEBUG:root:TEST2: 2000
+DEBUG:root:TEST1: 2000
+DEBUG:root:Resolved expression: 2000 -> 2000
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: 1
+DEBUG:root:TEST2: 1
+DEBUG:root:TEST1: 1
+DEBUG:root:Resolved expression: 1 -> 1
+DEBUG:root:Evaluating expression: 1
+DEBUG:root:TEST2: 1
+DEBUG:root:TEST1: 1
+DEBUG:root:Resolved expression: 1 -> 1
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: 1
+DEBUG:root:TEST2: 1
+DEBUG:root:TEST1: 1
+DEBUG:root:Resolved expression: 1 -> 1
+DEBUG:root:Evaluating expression: 1
+DEBUG:root:TEST2: 1
+DEBUG:root:TEST1: 1
+DEBUG:root:Resolved expression: 1 -> 1
+DEBUG:root:Evaluating expression: 1
+DEBUG:root:TEST2: 1
+DEBUG:root:TEST1: 1
+DEBUG:root:Resolved expression: 1 -> 1
+DEBUG:root:Evaluating expression: 1
+DEBUG:root:TEST2: 1
+DEBUG:root:TEST1: 1
+DEBUG:root:Resolved expression: 1 -> 1
+DEBUG:root:Evaluating expression: 64
+DEBUG:root:TEST2: 64
+DEBUG:root:TEST1: 64
+DEBUG:root:Resolved expression: 64 -> 64
+DEBUG:root:Evaluating expression: 1
+DEBUG:root:TEST2: 1
+DEBUG:root:TEST1: 1
+DEBUG:root:Resolved expression: 1 -> 1
+DEBUG:root:Evaluating expression: 0.5
+DEBUG:root:TEST2: 0.5
+DEBUG:root:TEST1: 0.5
+DEBUG:root:Resolved expression: 0.5 -> 0.5
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: 1000
+DEBUG:root:TEST2: 1000
+DEBUG:root:TEST1: 1000
+DEBUG:root:Resolved expression: 1000 -> 1000
+DEBUG:root:Evaluating expression: 1.5
+DEBUG:root:TEST2: 1.5
+DEBUG:root:TEST1: 1.5
+DEBUG:root:Resolved expression: 1.5 -> 1.5
+DEBUG:root:Evaluating expression: 3200
+DEBUG:root:TEST2: 3200
+DEBUG:root:TEST1: 3200
+DEBUG:root:Resolved expression: 3200 -> 3200
+DEBUG:root:Evaluating expression: 64
+DEBUG:root:TEST2: 64
+DEBUG:root:TEST1: 64
+DEBUG:root:Resolved expression: 64 -> 64
+DEBUG:root:Evaluating expression: 1
+DEBUG:root:TEST2: 1
+DEBUG:root:TEST1: 1
+DEBUG:root:Resolved expression: 1 -> 1
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: 2
+DEBUG:root:TEST2: 2
+DEBUG:root:TEST1: 2
+DEBUG:root:Resolved expression: 2 -> 2
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: 32
+DEBUG:root:TEST2: 32
+DEBUG:root:TEST1: 32
+DEBUG:root:Resolved expression: 32 -> 32
+DEBUG:root:Evaluating expression: 32
+DEBUG:root:TEST2: 32
+DEBUG:root:TEST1: 32
+DEBUG:root:Resolved expression: 32 -> 32
+DEBUG:root:Evaluating expression: 128
+DEBUG:root:TEST2: 128
+DEBUG:root:TEST1: 128
+DEBUG:root:Resolved expression: 128 -> 128
+DEBUG:root:Evaluating expression: 51
+DEBUG:root:TEST2: 51
+DEBUG:root:TEST1: 51
+DEBUG:root:Resolved expression: 51 -> 51
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.numCycles
+DEBUG:root:TEST2: 19836202
+DEBUG:root:TEST1: 19836202
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.numCycles -> 19836202
+DEBUG:root:Evaluating expression: stats.system.cpu.idleCycles
+WARNING:root:********* SECOND Stats key 'system.cpu.idleCycles' not found. Defaulting to 0. expr 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: stats.system.cpu.idleCycles -> 0
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.numCycles
+DEBUG:root:TEST2: 19836202
+DEBUG:root:TEST1: 19836202
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.numCycles -> 19836202
+DEBUG:root:Evaluating expression: stats.simInsts
+DEBUG:root:TEST2: 44623008
+DEBUG:root:TEST1: 44623008
+DEBUG:root:Resolved expression: stats.simInsts -> 44623008
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.intAluAccesses
+DEBUG:root:TEST2: 18620956
+DEBUG:root:TEST1: 18620956
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.intAluAccesses -> 18620956
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.fpAluAccesses
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.fpAluAccesses -> 0
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.branchPred.condPredicted
+DEBUG:root:TEST2: 2745217
+DEBUG:root:TEST1: 2745217
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.branchPred.condPredicted -> 2745217
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.branchPred.condIncorrect
+DEBUG:root:TEST2: 32517
+DEBUG:root:TEST1: 32517
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.branchPred.condIncorrect -> 32517
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.numLoadInsts
+DEBUG:root:TEST2: 8072714
+DEBUG:root:TEST1: 8072714
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.numLoadInsts -> 8072714
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.numStoreInsts
+DEBUG:root:TEST2: 2567031
+DEBUG:root:TEST1: 2567031
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.numStoreInsts -> 2567031
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.committedInsts
+DEBUG:root:TEST2: 33838935
+DEBUG:root:TEST1: 33838935
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.committedInsts -> 33838935
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.commit.integer
+DEBUG:root:TEST2: 28690159
+DEBUG:root:TEST1: 28690159
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.commit.integer -> 28690159
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.commit.floating
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.commit.floating -> 0
+DEBUG:root:Evaluating expression: 0.890992
+DEBUG:root:TEST2: 0.890992
+DEBUG:root:TEST1: 0.890992
+DEBUG:root:Resolved expression: 0.890992 -> 0.890992
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.numCycles
+DEBUG:root:TEST2: 19836202
+DEBUG:root:TEST1: 19836202
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.numCycles -> 19836202
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.numCycles
+DEBUG:root:TEST2: 19836202
+DEBUG:root:TEST1: 19836202
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.numCycles -> 19836202
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.rob.reads
+DEBUG:root:TEST2: 81382181
+DEBUG:root:TEST1: 81382181
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.rob.reads -> 81382181
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.rob.writes
+DEBUG:root:TEST2: 68131911
+DEBUG:root:TEST1: 68131911
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.rob.writes -> 68131911
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.rename.lookups
+DEBUG:root:TEST2: 104130986
+DEBUG:root:TEST1: 104130986
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.rename.lookups -> 104130986
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.rename.renamedInsts
+DEBUG:root:TEST2: 34147595
+DEBUG:root:TEST1: 34147595
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.rename.renamedInsts -> 34147595
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.rename.fpLookups
+WARNING:root:********* SECOND Stats key 'system.cpu_cluster.cpus.rename.fpLookups' not found. Defaulting to 0. expr 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.rename.fpLookups -> 0
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.rename.fpLookups
+WARNING:root:********* SECOND Stats key 'system.cpu_cluster.cpus.rename.fpLookups' not found. Defaulting to 0. expr 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.rename.fpLookups -> 0
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.intInstQueueReads+stats.system.cpu_cluster.cpus.fpInstQueueReads+stats.system.cpu_cluster.cpus.vecInstQueueReads
+WARNING:root:parts ['stats.system.cpu_cluster.cpus.intInstQueueReads', 'stats.system.cpu_cluster.cpus.fpInstQueueReads', 'stats.system.cpu_cluster.cpus.vecInstQueueReads']
+DEBUG:root:TEST2: 31037402
+DEBUG:root:TEST1: 31037402
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.intInstQueueReads+stats.system.cpu_cluster.cpus.fpInstQueueReads+stats.system.cpu_cluster.cpus.vecInstQueueReads -> 31037402
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.intInstQueueWrites+stats.system.cpu_cluster.cpus.fpInstQueueWrites+stats.system.cpu_cluster.cpus.vecInstQueueWrites
+WARNING:root:parts ['stats.system.cpu_cluster.cpus.intInstQueueWrites', 'stats.system.cpu_cluster.cpus.fpInstQueueWrites', 'stats.system.cpu_cluster.cpus.vecInstQueueWrites']
+DEBUG:root:TEST2: 15538262
+DEBUG:root:TEST1: 15538262
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.intInstQueueWrites+stats.system.cpu_cluster.cpus.fpInstQueueWrites+stats.system.cpu_cluster.cpus.vecInstQueueWrites -> 15538262
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.intInstQueueWakeupAccesses+stats.system.cpu_cluster.cpus.fpInstQueueWakeupAccesses+stats.system.cpu_cluster.cpus.vecInstQueueWakeupAccesses
+WARNING:root:parts ['stats.system.cpu_cluster.cpus.intInstQueueWakeupAccesses', 'stats.system.cpu_cluster.cpus.fpInstQueueWakeupAccesses', 'stats.system.cpu_cluster.cpus.vecInstQueueWakeupAccesses']
+DEBUG:root:TEST2: 15426541
+DEBUG:root:TEST1: 15426541
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.intInstQueueWakeupAccesses+stats.system.cpu_cluster.cpus.fpInstQueueWakeupAccesses+stats.system.cpu_cluster.cpus.vecInstQueueWakeupAccesses -> 15426541
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.fpInstQueueReads
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.fpInstQueueReads -> 0
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.fpInstQueueWrites
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.fpInstQueueWrites -> 0
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.fpInstQueueWakeupAccesses
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.fpInstQueueWakeupAccesses -> 0
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.intRegfileReads
+DEBUG:root:TEST2: 165330663
+DEBUG:root:TEST1: 165330663
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.intRegfileReads -> 165330663
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.fpRegfileReads
+WARNING:root:********* SECOND Stats key 'system.cpu_cluster.cpus.fpRegfileReads' not found. Defaulting to 0. expr 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.fpRegfileReads -> 0
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.intRegfileWrites
+DEBUG:root:TEST2: 15837314
+DEBUG:root:TEST1: 15837314
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.intRegfileWrites -> 15837314
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.fpRegfileWrites
+WARNING:root:********* SECOND Stats key 'system.cpu_cluster.cpus.fpRegfileWrites' not found. Defaulting to 0. expr 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.fpRegfileWrites -> 0
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.commit.functionCalls
+DEBUG:root:TEST2: 2808
+DEBUG:root:TEST1: 2808
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.commit.functionCalls -> 2808
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.intAluAccesses
+DEBUG:root:TEST2: 18620956
+DEBUG:root:TEST1: 18620956
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.intAluAccesses -> 18620956
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.fpAluAccesses
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.fpAluAccesses -> 0
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.vecAluAccesses
+DEBUG:root:TEST2: 15525389
+DEBUG:root:TEST1: 15525389
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.vecAluAccesses -> 15525389
+DEBUG:root:Evaluating expression: 150414622
+DEBUG:root:TEST2: 150414622
+DEBUG:root:TEST1: 150414622
+DEBUG:root:Resolved expression: 150414622 -> 150414622
+DEBUG:root:Evaluating expression: 11970
+DEBUG:root:TEST2: 11970
+DEBUG:root:TEST1: 11970
+DEBUG:root:Resolved expression: 11970 -> 11970
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: 0.25
+DEBUG:root:TEST2: 0.25
+DEBUG:root:TEST1: 0.25
+DEBUG:root:Resolved expression: 0.25 -> 0.25
+DEBUG:root:Evaluating expression: 0.25
+DEBUG:root:TEST2: 0.25
+DEBUG:root:TEST1: 0.25
+DEBUG:root:Resolved expression: 0.25 -> 0.25
+DEBUG:root:Evaluating expression: 0.25
+DEBUG:root:TEST2: 0.25
+DEBUG:root:TEST1: 0.25
+DEBUG:root:Resolved expression: 0.25 -> 0.25
+DEBUG:root:Evaluating expression: 0.25
+DEBUG:root:TEST2: 0.25
+DEBUG:root:TEST1: 0.25
+DEBUG:root:Resolved expression: 0.25 -> 0.25
+DEBUG:root:Evaluating expression: 1
+DEBUG:root:TEST2: 1
+DEBUG:root:TEST1: 1
+DEBUG:root:Resolved expression: 1 -> 1
+DEBUG:root:Evaluating expression: 0.3
+DEBUG:root:TEST2: 0.3
+DEBUG:root:TEST1: 0.3
+DEBUG:root:Resolved expression: 0.3 -> 0.3
+DEBUG:root:Evaluating expression: 0.3
+DEBUG:root:TEST2: 0.3
+DEBUG:root:TEST1: 0.3
+DEBUG:root:Resolved expression: 0.3 -> 0.3
+DEBUG:root:Evaluating expression: 1
+DEBUG:root:TEST2: 1
+DEBUG:root:TEST1: 1
+DEBUG:root:Resolved expression: 1 -> 1
+DEBUG:root:Evaluating expression: 0.3
+DEBUG:root:TEST2: 0.3
+DEBUG:root:TEST1: 0.3
+DEBUG:root:Resolved expression: 0.3 -> 0.3
+DEBUG:root:Evaluating expression: 0.3
+DEBUG:root:TEST2: 0.3
+DEBUG:root:TEST1: 0.3
+DEBUG:root:Resolved expression: 0.3 -> 0.3
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.icache_strong.ReadReq.accesses::total
+DEBUG:root:TEST2: 5455528
+DEBUG:root:TEST1: 5455528
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.icache_strong.ReadReq.accesses::total -> 5455528
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.dcache_strong.ReadReq.misses::total
+DEBUG:root:TEST2: 1512429
+DEBUG:root:TEST1: 1512429
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.dcache_strong.ReadReq.misses::total -> 1512429
+DEBUG:root:Evaluating expression: stats.system.cpu.icache_strong.replacements
+WARNING:root:********* SECOND Stats key 'system.cpu.icache_strong.replacements' not found. Defaulting to 0. expr 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: stats.system.cpu.icache_strong.replacements -> 0
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.mmu.TotalTLBTranslations
+DEBUG:root:TEST2: 16005767
+DEBUG:root:TEST1: 16005767
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.mmu.TotalTLBTranslations -> 16005767
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.dcache_strong.ReadReq.accesses::total
+DEBUG:root:TEST2: 7975437
+DEBUG:root:TEST1: 7975437
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.dcache_strong.ReadReq.accesses::total -> 7975437
+DEBUG:root:Evaluating expression: stats.system.cpu.dcache_strong.WriteReq_accesses::total
+WARNING:root:********* SECOND Stats key 'system.cpu.dcache_strong.WriteReq_accesses::total' not found. Defaulting to 0. expr 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: stats.system.cpu.dcache_strong.WriteReq_accesses::total -> 0
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.dcache_strong.ReadReq.misses::total
+DEBUG:root:TEST2: 1512429
+DEBUG:root:TEST1: 1512429
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.dcache_strong.ReadReq.misses::total -> 1512429
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.dcache_strong.WriteReq_misses::total
+WARNING:root:********* SECOND Stats key 'system.cpu_cluster.cpus.dcache_strong.WriteReq_misses::total' not found. Defaulting to 0. expr 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.dcache_strong.WriteReq_misses::total -> 0
+DEBUG:root:Evaluating expression: stats.system.cpu.dcache_strong.replacements
+WARNING:root:********* SECOND Stats key 'system.cpu.dcache_strong.replacements' not found. Defaulting to 0. expr 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: stats.system.cpu.dcache_strong.replacements -> 0
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.branchPred.BTBLookups
+DEBUG:root:TEST2: 2710416
+DEBUG:root:TEST1: 2710416
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.branchPred.BTBLookups -> 2710416
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.branchPred.BTBUpdates
+DEBUG:root:TEST2: 117
+DEBUG:root:TEST1: 117
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.branchPred.BTBUpdates -> 117
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.dcache_strong.ReadReq.hits::total
+DEBUG:root:TEST2: 6463008
+DEBUG:root:TEST1: 6463008
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.dcache_strong.ReadReq.hits::total -> 6463008
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.dcache_strong.WriteReq.hits::total
+DEBUG:root:TEST2: 2564316
+DEBUG:root:TEST1: 2564316
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.dcache_strong.WriteReq.hits::total -> 2564316
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.dcache_strong.ReadReq.misses::total
+DEBUG:root:TEST2: 1512429
+DEBUG:root:TEST1: 1512429
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.dcache_strong.ReadReq.misses::total -> 1512429
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.dcache_strong.WriteReq.misses::total
+DEBUG:root:TEST2: 1712
+DEBUG:root:TEST1: 1712
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.dcache_strong.WriteReq.misses::total -> 1712
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.cpus.dcache_strong.replacements
+DEBUG:root:TEST2: 494103
+DEBUG:root:TEST1: 494103
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.cpus.dcache_strong.replacements -> 494103
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.l2.ReadSharedReq.hits::total+stats.system.cpu_cluster.l2.ReadExReq.hits::total
+WARNING:root:parts ['stats.system.cpu_cluster.l2.ReadSharedReq.hits::total', 'stats.system.cpu_cluster.l2.ReadExReq.hits::total']
+DEBUG:root:TEST2: 586
+DEBUG:root:TEST1: 586
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.l2.ReadSharedReq.hits::total+stats.system.cpu_cluster.l2.ReadExReq.hits::total -> 586
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.l2.WritebackClean.accesses::total
+DEBUG:root:TEST2: 400758
+DEBUG:root:TEST1: 400758
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.l2.WritebackClean.accesses::total -> 400758
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.l2.ReadSharedReq.misses::total+stats.system.cpu_cluster.l2.ReadExReq.misses::total
+WARNING:root:parts ['stats.system.cpu_cluster.l2.ReadSharedReq.misses::total', 'stats.system.cpu_cluster.l2.ReadExReq.misses::total']
+DEBUG:root:TEST2: 2
+DEBUG:root:TEST1: 2
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.l2.ReadSharedReq.misses::total+stats.system.cpu_cluster.l2.ReadExReq.misses::total -> 2
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.l2.ReadSharedReq.misses::total
+DEBUG:root:TEST2: 22645
+DEBUG:root:TEST1: 22645
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.l2.ReadSharedReq.misses::total -> 22645
+DEBUG:root:Evaluating expression: stats.system.cpu_cluster.l2.replacements
+DEBUG:root:TEST2: 38093
+DEBUG:root:TEST1: 38093
+DEBUG:root:Resolved expression: stats.system.cpu_cluster.l2.replacements -> 38093
+DEBUG:root:Evaluating expression: 0
+DEBUG:root:TEST2: 0
+DEBUG:root:TEST1: 0
+DEBUG:root:Resolved expression: 0 -> 0
+DEBUG:root:Evaluating expression: 100000
+DEBUG:root:TEST2: 100000
+DEBUG:root:TEST1: 100000
+DEBUG:root:Resolved expression: 100000 -> 100000
+DEBUG:root:Evaluating expression: 0.2
+DEBUG:root:TEST2: 0.2
+DEBUG:root:TEST1: 0.2
+DEBUG:root:Resolved expression: 0.2 -> 0.2
+DEBUG:root:Evaluating expression: 282961
+DEBUG:root:TEST2: 282961
+DEBUG:root:TEST1: 282961
+DEBUG:root:Resolved expression: 282961 -> 282961
+DEBUG:root:Evaluating expression: 218170
+DEBUG:root:TEST2: 218170
+DEBUG:root:TEST1: 218170
+DEBUG:root:Resolved expression: 218170 -> 218170
+DEBUG:root:Evaluating expression: 64791
+DEBUG:root:TEST2: 64791
+DEBUG:root:TEST1: 64791
+DEBUG:root:Resolved expression: 64791 -> 64791
+Processed XML written to mcpat-out.xml
