@@ -199,6 +199,9 @@ class SimpleSeSystem(System):
             cpu.numPhysVecRegs = args.numPhysVecRegs
             cpu.numPhysIntRegs = args.numPhysIntRegs
             cpu.smtROBPolicy = args.smtROBPolicy
+            cpu.smtLSQPolicy = args.smtLSQPolicy
+            cpu.SQEntries = args.SQEntries
+            cpu.numIQEntries = args.numIQEntries
 
         # for cpu in self.cpu_cluster.cpus:
         #     cpu.numThreads = numThreads
@@ -354,6 +357,8 @@ def main():
     parser.add_argument('-ROBSize', type=int, default = 128)
 
     parser.add_argument('-numSIQEntries', type=int, default = 120)
+
+    parser.add_argument('-numIQEntries', type=int, default = 120)
 
     parser.add_argument('-numWIQEntries', type=int, default = 10)
     
