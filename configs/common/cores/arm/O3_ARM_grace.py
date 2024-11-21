@@ -581,16 +581,30 @@ class Grace12Wide_testConfig(ArmO3CPU):
     renameToROBDelay = 1
     
 
+    # fetchWidth = 12
+    # fetchBufferSize = 64
+    # decodeWidth = 8
+    # renameWidth = 8
+    # dispatchWidth = 8
+    # issueWidth = 8
+    # wbWidth = 8
+    # commitWidth = 8
+    # squashWidth = 8
+    # trapLatency = 8
+    # backComSize = 5
+    # forwardComSize = 5
+
+    # 4
     fetchWidth = 12
     fetchBufferSize = 64
     decodeWidth = 8
     renameWidth = 8
-    dispatchWidth = 8
-    issueWidth = 8
+    dispatchWidth = 4
+    issueWidth = 4
     wbWidth = 8
-    commitWidth = 8
+    commitWidth = 4
     squashWidth = 8
-    trapLatency = 1
+    trapLatency = 4
     backComSize = 5
     forwardComSize = 5
 
@@ -892,8 +906,8 @@ class O3_ARM_grace_DCache(Cache):
     tag_latency = 2
     data_latency = 2
     response_latency = 2
-    mshrs = 6
-    tgts_per_mshr = 8
+    mshrs = 24
+    tgts_per_mshr = 24
     #size = "32kB"
     size = "64kB"
     assoc = 2
@@ -924,11 +938,11 @@ class O3_ARM_grace_L2(Cache):
     tag_latency = 12
     data_latency = 12
     response_latency = 12
-    mshrs = 16
-    tgts_per_mshr = 8
+    mshrs = 24
+    tgts_per_mshr = 24
     size = "1MB"
     assoc = 16
-    write_buffers = 8
+    write_buffers = 16
     prefetch_on_access = True
     clusivity = "mostly_excl"
     # Simple stride prefetcher
