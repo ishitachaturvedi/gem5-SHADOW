@@ -353,6 +353,14 @@ class InstructionQueue
 
     void AverageIQInsts(int tid);
 
+    int getMaxEntries(int tid) {
+      return maxEntries[tid];
+    }
+
+    int getInstCount(int tid) {
+      return count[tid];
+    }
+
   private:
     /** Does the actual squashing. */
     void doSquash(ThreadID tid);

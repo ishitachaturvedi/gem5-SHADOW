@@ -569,85 +569,85 @@ class Rename
         RenameStats(statistics::Group *parent);
 
         /** Stat for total number of cycles spent squashing. */
-        statistics::Scalar squashCycles;
-        statistics::Scalar squashCyclesSThread;
-        statistics::Scalar squashCyclesWThread;
+        statistics::Vector squashCycles;
+        statistics::Vector squashCyclesSThread;
+        statistics::Vector squashCyclesWThread;
         /** Stat for total number of cycles spent idle. */
         statistics::Scalar idleCycles;
         statistics::Vector idleCyclesPerThread;
-        statistics::Scalar idleCyclesSThread;
-        statistics::Scalar idleCyclesWThread;
+        statistics::Vector idleCyclesSThread;
+        statistics::Vector idleCyclesWThread;
         /** Stat for total number of cycles spent blocking. */
         statistics::Scalar blockCycles;
         statistics::Vector blockCyclesPerThread;
-        statistics::Scalar blockCyclesSThread;
-        statistics::Scalar blockCyclesWThread;
+        statistics::Vector blockCyclesSThread;
+        statistics::Vector blockCyclesWThread;
         /** Stat for total number of cycles spent stalling for a serializing
          *  inst. */
         statistics::Scalar serializeStallCycles;
         /** Stat for total number of cycles spent running normally. */
         statistics::Scalar runCycles;
-        statistics::Scalar runCyclesSThread;
-        statistics::Scalar runCyclesWThread;
+        statistics::Vector runCyclesSThread;
+        statistics::Vector runCyclesWThread;
         /** Stat for total number of cycles spent unblocking. */
-        statistics::Scalar unblockCycles;
+        statistics::Vector unblockCycles;
         /** Stat for total number of renamed instructions. */
         statistics::Scalar renamedInsts;
         /** Stat for total number of squashed instructions that rename
          * discards. */
-        statistics::Scalar squashedInsts;
+        statistics::Vector squashedInsts;
         /** Stat for total number of times that the ROB starts a stall in
          * rename. */
-        statistics::Scalar ROBFullEvents;
+        statistics::Vector ROBFullEvents;
         /** Stat for total number of times that the IQ starts a stall in
          *  rename. */
-        statistics::Scalar IQFullEvents;
+        statistics::Vector IQFullEvents;
         /** Stat for total number of times that the LQ starts a stall in
          *  rename. */
-        statistics::Scalar LQFullEvents;
+        statistics::Vector LQFullEvents;
         /** Stat for total number of times that the SQ starts a stall in
          *  rename. */
-        statistics::Scalar SQFullEvents;
+        statistics::Vector SQFullEvents;
         /** Stat for total number of times that rename runs out of free
          *  registers to use to rename. */
-        statistics::Scalar fullRegistersEvents;
+        statistics::Vector fullRegistersEvents;
         /** Stat for total number of renamed destination registers. */
         statistics::Scalar renamedOperands;
 
-        statistics::Scalar iewStallS;
-        statistics::Scalar iewStallW;
-        statistics::Scalar NoROBFreeS;
-        statistics::Scalar NoROBFreeW;
-        statistics::Scalar NoIQFreeS;
-        statistics::Scalar NoIQFreeW;
-        statistics::Scalar NoLSQFreeS;
-        statistics::Scalar NoLSQFreeW;
-        statistics::Scalar NoRenameFreeS;
-        statistics::Scalar NoRenameFreeW;
-        statistics::Scalar SerializeROBFullS;
-        statistics::Scalar SerializeROBFullW;
+        statistics::Vector iewStallS;
+        statistics::Vector iewStallW;
+        statistics::Vector NoROBFreeS;
+        statistics::Vector NoROBFreeW;
+        statistics::Vector NoIQFreeS;
+        statistics::Vector NoIQFreeW;
+        statistics::Vector NoLSQFreeS;
+        statistics::Vector NoLSQFreeW;
+        statistics::Vector NoRenameFreeS;
+        statistics::Vector NoRenameFreeW;
+        statistics::Vector SerializeROBFullS;
+        statistics::Vector SerializeROBFullW;
         statistics::Scalar renameDeactivate;
-        statistics::Scalar BlockedBecauseOneThread;
-        statistics::Scalar resumeSerializeS;
-        statistics::Scalar resumeSerializeW;
-        statistics::Scalar resumeUnblockingS;
-        statistics::Scalar resumeUnblockingW;
+        statistics::Vector BlockedBecauseOneThread;
+        statistics::Vector resumeSerializeS;
+        statistics::Vector resumeSerializeW;
+        statistics::Vector resumeUnblockingS;
+        statistics::Vector resumeUnblockingW;
 
-        statistics::Scalar RunningS;
-        statistics::Scalar RunningW;
-        statistics::Scalar IdleS;
-        statistics::Scalar IdleW;
-        statistics::Scalar StartSquashS;
-        statistics::Scalar StartSquashW;
-        statistics::Scalar SquashingS;
-        statistics::Scalar SquashingW;
-        statistics::Scalar BlockedS;
-        statistics::Scalar BlockedW;
-        statistics::Scalar UnblockingS;
-        statistics::Scalar UnblockingW;
-        statistics::Scalar SerializeStallS;
-        statistics::Scalar SerializeStallW;
-        statistics::Scalar unknownStallS;
+        statistics::Vector RunningS;
+        statistics::Vector RunningW;
+        statistics::Vector IdleS;
+        statistics::Vector IdleW;
+        statistics::Vector StartSquashS;
+        statistics::Vector StartSquashW;
+        statistics::Vector SquashingS;
+        statistics::Vector SquashingW;
+        statistics::Vector BlockedS;
+        statistics::Vector BlockedW;
+        statistics::Vector UnblockingS;
+        statistics::Vector UnblockingW;
+        statistics::Vector SerializeStallS;
+        statistics::Vector SerializeStallW;
+        statistics::Vector unknownStallS;
 
         statistics::Scalar FreeIntRegClass;
         statistics::Scalar FreeFloatRegClass;
@@ -708,21 +708,22 @@ class Rename
         statistics::Scalar stalledSAndW;
         statistics::Scalar notStalled;
 
-        statistics::Scalar blockingIQFull;
-        statistics::Scalar blockingIQFullS;
-        statistics::Scalar blockingIQFullW;
-        statistics::Scalar blockingROBFull;
-        statistics::Scalar blockingROBFullS;
-        statistics::Scalar blockingROBFullW;
-        statistics::Scalar blockingBandwidthFull;
-        statistics::Scalar blockingBandwidthFullS;
-        statistics::Scalar blockingBandwidthFullW;
-        statistics::Scalar blockingRegFull;
-        statistics::Scalar blockingRegFullS;
-        statistics::Scalar blockingRegFullW;
-        statistics::Scalar blockingSerialized;
-        statistics::Scalar blockingSerializedS;
-        statistics::Scalar blockingSerializedW;
+        statistics::Vector blockingIQFull;
+        statistics::Vector blockingIQFullOutOfSpace;
+        statistics::Vector blockingIQFullS;
+        statistics::Vector blockingIQFullW;
+        statistics::Vector blockingROBFull;
+        statistics::Vector blockingROBFullS;
+        statistics::Vector blockingROBFullW;
+        statistics::Vector blockingBandwidthFull;
+        statistics::Vector blockingBandwidthFullS;
+        statistics::Vector blockingBandwidthFullW;
+        statistics::Vector blockingRegFull;
+        statistics::Vector blockingRegFullS;
+        statistics::Vector blockingRegFullW;
+        statistics::Vector blockingSerialized;
+        statistics::Vector blockingSerializedS;
+        statistics::Vector blockingSerializedW;
     } stats;
 };
 
