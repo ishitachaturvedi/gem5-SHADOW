@@ -135,20 +135,32 @@ LSQ::LSQ(CPU *cpu_ptr, IEW *iew_ptr, const BaseO3CPUParams &params)
                     thread.emplace_back(maxLQEntries, maxSQEntries);
                     thread[tid].init(cpu, iew_ptr, params, this, tid);
                     thread[tid].setDcachePort(&dcachePort);
+                    printf("tid:%d LSQ sharing policy set to %d: "
+                    "%i entries per LQ | %i entries per SQ\n",
+                    tid,lsqPolicy,maxLQEntries,maxSQEntries);
                 } else {
                     thread.emplace_back(5, 5);
                     thread[tid].init(cpu, iew_ptr, params, this, tid);
                     thread[tid].setDcachePort(&dcachePort);
+                    printf("tid:%d LSQ sharing policy set to %d: "
+                    "%i entries per LQ | %i entries per SQ\n",
+                    tid,lsqPolicy,5,5);
                 } 
             } else {
                 if(tid < 1) {
                     thread.emplace_back(maxLQEntries, maxSQEntries);
                     thread[tid].init(cpu, iew_ptr, params, this, tid);
                     thread[tid].setDcachePort(&dcachePort);
+                    printf("tid:%d LSQ sharing policy set to %d: "
+                    "%i entries per LQ | %i entries per SQ\n",
+                    tid,lsqPolicy,maxLQEntries,maxSQEntries);
                 } else {
                     thread.emplace_back(5, 5);
                     thread[tid].init(cpu, iew_ptr, params, this, tid);
                     thread[tid].setDcachePort(&dcachePort);
+                    printf("tid:%d LSQ sharing policy set to %d: "
+                    "%i entries per LQ | %i entries per SQ\n",
+                    tid,lsqPolicy,5,5);
                 } 
             }
         }
@@ -157,6 +169,9 @@ LSQ::LSQ(CPU *cpu_ptr, IEW *iew_ptr, const BaseO3CPUParams &params)
             thread.emplace_back(maxLQEntries, maxSQEntries);
             thread[tid].init(cpu, iew_ptr, params, this, tid);
             thread[tid].setDcachePort(&dcachePort);
+            printf("tid:%d LSQ sharing policy set to %d: "
+                "%i entries per LQ | %i entries per SQ\n",
+                tid,lsqPolicy,maxLQEntries,maxSQEntries);
         }
     }
 }
