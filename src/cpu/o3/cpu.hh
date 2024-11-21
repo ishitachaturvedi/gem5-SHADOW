@@ -378,6 +378,10 @@ class CPU : public BaseCPU
     /** Debug function to print all instructions on the list. */
     void dumpInsts();
 
+    /** Do not use registers meant for in-order execution for OoO **/
+    std::array<int, CCRegClass + 1> TotalRegsAvailableForOoO;
+    std::array<int, CCRegClass + 1> RegsAvailableForOoO;
+
   public:
 #ifndef NDEBUG
     /** Count of total number of dynamic instructions in flight. */

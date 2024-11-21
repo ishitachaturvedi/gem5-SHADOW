@@ -927,6 +927,8 @@ Rename::squash(const InstSeqNum &squash_seq_num, ThreadID tid)
 void
 Rename::tick()
 {
+    //wroteToTimeBuffer = false;
+
     wroteToTimeBuffer = false;
 
     blockThisCycle = false;
@@ -941,7 +943,11 @@ Rename::tick()
     unsigned notBlockedW = 0;
     unsigned wThreadCount = 0;
 
+    total_insts_renamed = 0;
+
     toIEWIndex = 0;
+
+    DPRINTF(Rename,"toIEW->size %d\n",toIEW->size);
 
     sortInsts();
 
@@ -1043,6 +1049,7 @@ Rename::tick()
                 all_threads_idle = false;
             }
             // Always rename W threads
+
             rename(status_change, tid);
         }
     }
@@ -1061,6 +1068,7 @@ Rename::tick()
     getRenamingThread();
 
     for(int i = 0; i < RenamePreference.size() ; i++) {
+
         ThreadID tid = RenamePreference[i];
         if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
             continue;
@@ -1225,6 +1233,8 @@ Rename::tick()
     if(SingleThreadFetchiew) {
         assert(SThreadsRenamed <= 1);
     }
+
+    DPRINTF(Rename,"DONE toIEW->size %d\n",toIEW->size);
 }
 
 void
@@ -1301,6 +1311,7 @@ Rename::rename(bool &status_change, ThreadID tid)
         // an overall status change.
         status_change = unblock(tid) || status_change || blockThisCycle;
     }
+
 }
 
 void
@@ -1310,6 +1321,7 @@ Rename::renameInsts(ThreadID tid)
     // instructions coming from decode, depending on the status.
     int insts_available = renameStatus[tid] == Unblocking ?
         skidBuffer[tid].size() : insts[tid].size();
+
 
     // Check the decode queue to see if instructions are available.
     // If there are no available instructions to rename, then do nothing.
@@ -1402,7 +1414,7 @@ Rename::renameInsts(ThreadID tid)
                 ++stats.blockingIQFullW[tid];
             }
         }  
-        // incrFullStat(source,tid);
+        incrFullStat(source,tid);
     }
 
     InstQueue &insts_to_rename = renameStatus[tid] == Unblocking ?
@@ -1432,7 +1444,7 @@ Rename::renameInsts(ThreadID tid)
     int renamed_insts = 0;
     int renamed_insts_s = 0;
 
-    while (insts_available > 0 &&  renamed_insts_s < renameWidth) {
+    while (insts_available > 0 &&  renamed_insts_s < renameWidth && total_insts_renamed < 30) {
         DPRINTF(Rename, "[tid:%i] Sending instructions to IEW.\n", tid);
 
         assert(!insts_to_rename.empty());
@@ -1494,10 +1506,36 @@ Rename::renameInsts(ThreadID tid)
 
         // Check here to make sure there are enough destination registers
         // to rename to.  Otherwise block.
-        if (!renameMap[tid]->canRename(inst)) {
+
+        bool RegOoOAvailable = true;
+        if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
+            for (auto type = 0; type <= CCRegClass; type = (type + 1)) {
+                if (inst->numDestRegs((RegClassType)type) > cpu->RegsAvailableForOoO[type]) {
+                    // printf("Exceeded Reg Count have %d need %d\n",cpu->RegsAvailableForOoO[type],inst->numDestRegs((RegClassType)type));
+                    RegOoOAvailable = false;
+                    break;
+                }
+            }
+        }
+
+        //printf("Reg distribution OoO Reg Count have %d total Regs available %d\n",cpu->RegsAvailableForOoO[0],renameMap[tid]->numFreeEntries());
+
+        //if (!renameMap[tid]->canRename(inst) || !RegOoOAvailable) {
+        // in order is not renamed so does not require reg check
+        if(!RegOoOAvailable) {
             DPRINTF(Rename,
                     "Blocking due to "
                     " lack of free physical registers to rename to.\n");
+
+            if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak) {
+                for (auto type = 0; type <= CCRegClass; type = (type + 1)) {
+                    if (inst->numDestRegs((RegClassType)type) > cpu->RegsAvailableForOoO[type]) {
+                        // printf("INORDER Exceeded OoO Reg Count have %d need %d total Regs available %d\n",cpu->RegsAvailableForOoO[type],inst->numDestRegs((RegClassType)type),renameMap[tid]->numFreeEntries());
+                        RegOoOAvailable = false;
+                        break;
+                    }
+                }
+            }
 
             blockThisCycle = true;
             insts_to_rename.push_front(inst);
@@ -1528,7 +1566,6 @@ Rename::renameInsts(ThreadID tid)
         // instructions.
         if (inst->isSerializeBefore() && !inst->isSerializeHandled()) {
             DPRINTF(Rename, "Serialize before instruction encountered.\n");
-
             if (!inst->isTempSerializeBefore()) {
                 stats.serializing++;
                 inst->setSerializeHandled();
@@ -1592,6 +1629,10 @@ Rename::renameInsts(ThreadID tid)
         if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
             ++renamed_insts_s;
         }
+        ++total_insts_renamed;
+
+        DPRINTF(Rename,"STEP31 IEW stage 1 %llu IEW stage 2 %llu\n",renameQueue->getWire(0)->size,renameQueue->getWire(1)->size);
+
         // Notify potential listeners that source and destination registers for
         // this instruction have been renamed.
         ppRename->notify(inst);
@@ -1599,9 +1640,11 @@ Rename::renameInsts(ThreadID tid)
         // Put instruction in rename queue.
         inst->cycleRenamed = cpu->curCycle();
         toIEW->insts[toIEWIndex] = inst;
-        ++(toIEW->size);
+        ++toIEW->size;
+        DPRINTF(Rename,"INCREASE toIEW->size %d\n",toIEW->size);
 
-
+        DPRINTF(Rename,"STEP32 IEW stage 1 %llu IEW stage 2 %llu\n",renameQueue->getWire(0)->size,renameQueue->getWire(1)->size);
+ 
         // Increment which instruction we're on.
         ++toIEWIndex;
 
@@ -1830,6 +1873,7 @@ Rename::doSquash(const InstSeqNum &squashed_seq_num, ThreadID tid)
 
                 // Put the renamed physical register back on the free list.
                 freeList->addReg(hb_it->newPhysReg);
+                cpu->RegsAvailableForOoO[hb_it->newPhysReg->classValue()]++;
             }
         }
 
@@ -1888,6 +1932,7 @@ Rename::removeFromHistory(InstSeqNum inst_seq_num, ThreadID tid)
 
             if (hb_it->newPhysReg != hb_it->prevPhysReg) {
                 freeList->addReg(hb_it->prevPhysReg);
+                cpu->RegsAvailableForOoO[hb_it->prevPhysReg->classValue()]++;
             }
         }
 
@@ -2003,6 +2048,10 @@ Rename::renameDestRegs(const DynInstPtr &inst, ThreadID tid)
         bool isWThread = (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Weak);
 
         rename_result = map->rename(flat_dest_regid, isWThread, tid, inst->seqNum);
+
+        if(!isWThread) {
+            cpu->RegsAvailableForOoO[dest_reg.classValue()]--;
+        }
 
         if(cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong) {
             std::vector<int> FreeRegs = map->getFreeRegCount();
@@ -2160,6 +2209,17 @@ Rename::checkStall(ThreadID tid)
     bool ret_val = false;
     bool isSType = (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong);
 
+    bool RegOoOAvailable = true;
+    if(isSType) {
+        for (auto type = 0; type <= CCRegClass; type = (type + 1)) {
+            if (cpu->RegsAvailableForOoO[type] == 0) {
+                //printf("No Reg Count have %d\n",cpu->RegsAvailableForOoO[type]);
+                RegOoOAvailable = false;
+                break;
+            }
+        }
+    }
+
     if (stalls[tid].iew) {
         DPRINTF(Rename,"[tid:%i] Stall from IEW stage detected.\n", tid);
         ret_val = true;
@@ -2188,8 +2248,9 @@ Rename::checkStall(ThreadID tid)
             ++stats.NoLSQFreeS[tid];
         else    
             ++stats.NoLSQFreeW[tid];
-    } else if (renameMap[tid]->numFreeEntries() <= 0) {
-        // only S threads need
+    //} else if (renameMap[tid]->numFreeEntries() <= 0 || !RegOoOAvailable) {
+    // in order is not renamed so does not require this check
+    } else if(!RegOoOAvailable) {
         DPRINTF(Rename,"[tid:%i] Stall: RenameMap has 0 free entries renameMap[tid].numFreeEntries() %d\n", tid,renameMap[tid]->numFreeEntries());
         ret_val = true;
         if(isSType)

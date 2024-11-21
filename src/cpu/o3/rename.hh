@@ -137,6 +137,8 @@ class Rename
     /** Rename constructor. */
     Rename(CPU *_cpu, const BaseO3CPUParams &params);
 
+    int total_insts_renamed;
+
     /** Returns the name of rename. */
     std::string name() const;
 

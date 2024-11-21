@@ -1021,6 +1021,9 @@ IEW::sortInsts()
     //     }
     // }
 
+    // printf("Cycle:%d insts_from_rename_S %d insts_from_rename_W %d\n",curTick(),fromRename_S->size,fromRename_W->size);
+    // fflush(stdout);
+
     int insts_from_rename_S = fromRename_S->size;
 
     for (int i = 0; i < insts_from_rename_S; ++i) {
@@ -1047,6 +1050,7 @@ IEW::sortInsts()
     if(insts_from_rename_W == 0) {
         iewStats.NoWInstFromRename++;
     }
+
 }
 
 void

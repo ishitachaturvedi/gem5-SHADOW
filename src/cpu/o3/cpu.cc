@@ -394,6 +394,32 @@ CPU::CPU(const BaseO3CPUParams &params)
     commit.setRenameMap(commitRenameMap);
     rename.setFreeList(&freeList);
 
+    // integer setup
+    int archRegsForInOrder = WThreads * regClasses.at(IntRegClass)->numRegs();
+    int archRegsForOoO = params.numPhysIntRegs - archRegsForInOrder;
+    TotalRegsAvailableForOoO[IntRegClass] = archRegsForOoO;
+    RegsAvailableForOoO[IntRegClass] = archRegsForOoO;
+
+    archRegsForInOrder = WThreads * regClasses.at(FloatRegClass)->numRegs();
+    archRegsForOoO = params.numPhysFloatRegs - archRegsForInOrder;
+    TotalRegsAvailableForOoO[FloatRegClass] = archRegsForOoO;
+    RegsAvailableForOoO[FloatRegClass] = archRegsForOoO;
+
+    archRegsForInOrder = WThreads * regClasses.at(VecRegClass)->numRegs();
+    archRegsForOoO = params.numPhysVecRegs - archRegsForInOrder;
+    TotalRegsAvailableForOoO[VecRegClass] = archRegsForOoO;
+    RegsAvailableForOoO[VecRegClass] = archRegsForOoO;
+
+    archRegsForInOrder = WThreads * regClasses.at(VecPredRegClass)->numRegs();
+    archRegsForOoO = params.numPhysVecPredRegs - archRegsForInOrder;
+    TotalRegsAvailableForOoO[VecPredRegClass] = archRegsForOoO;
+    RegsAvailableForOoO[VecPredRegClass] = archRegsForOoO;
+
+    archRegsForInOrder = WThreads * regClasses.at(CCRegClass)->numRegs();
+    archRegsForOoO = params.numPhysCCRegs - archRegsForInOrder;
+    TotalRegsAvailableForOoO[CCRegClass] = archRegsForOoO;
+    RegsAvailableForOoO[CCRegClass] = archRegsForOoO;
+
     //for (ThreadID tid = 0; tid < active_threads; tid++) { 
     for (ThreadID tid = 0; tid < numThreads; tid++) {
         for (auto type = (RegClassType)0; type <= CCRegClass;
@@ -404,8 +430,29 @@ CPU::CPU(const BaseO3CPUParams &params)
                 PhysRegIdPtr phys_reg = freeList.getReg(type);
                 renameMap[tid].setEntry(id, phys_reg);
                 commitRenameMap[tid].setEntry(id, phys_reg);
+
+                // reduce the number of available registers for OoO because they are mapped here
+                if(tid < SThreads) {
+                    RegsAvailableForOoO[type]--;
+                }
             }
         }
+    }
+
+    printf("Regs for renaming IntRegClass %d usedRegs %d\n",TotalRegsAvailableForOoO[IntRegClass],RegsAvailableForOoO[IntRegClass]);
+    printf("Regs for renaming FloatRegClass %d usedRegs %d\n",TotalRegsAvailableForOoO[FloatRegClass],RegsAvailableForOoO[FloatRegClass]);
+    printf("Regs for renaming VecRegClass %d usedRegs %d\n",TotalRegsAvailableForOoO[VecRegClass],RegsAvailableForOoO[VecRegClass]);
+    printf("Regs for renaming VecPredRegClass %d usedRegs %d\n",TotalRegsAvailableForOoO[VecPredRegClass],RegsAvailableForOoO[VecPredRegClass]);
+    printf("Regs for renaming CCRegClass %d usedRegs %d\n",TotalRegsAvailableForOoO[CCRegClass],RegsAvailableForOoO[CCRegClass]);
+
+    // test print # architectural regs for each reg type Ishita test
+    for (auto type = (RegClassType)0; type <= CCRegClass;
+     type = (RegClassType)(type + 1)) {
+    // Assuming regClasses.at(type) returns a container like std::vector
+        size_t numRegs = regClasses.at(type)->numRegs();
+        // Print the type and the number of registers
+        std::cout << "RegClassType: " << static_cast<int>(type) 
+                << ", Number of Registers: " << numRegs << std::endl;
     }
 
     // O3CPU always requires an interrupt controller.
@@ -581,11 +628,54 @@ CPU::tick()
     //Daniel possible change:
     // Iterate through active Threads and check for s thread, if active s thread set s thread variable to true
     //Tick each of the stages
+
+    for(int i = 0; i < 10; i++) {
+        DPRINTF(O3CPU,"PRE FETCH idx: %d size:%d\n",i,renameQueue[i].size);
+    }
+
     fetch.tick();
+
+    for(int i = 0; i < 10; i++) {
+        DPRINTF(O3CPU,"PRE DECODE idx: %d size:%d\n",i,renameQueue[i].size);
+    }
+
+
     decode.tick();
+
+    for(int i = 0; i < 10; i++) {
+        DPRINTF(O3CPU,"PRE RENAME idx: %d size:%d\n",i,renameQueue[i].size);
+    }
+
     rename.tick();
+
+    for(int i = 0; i < 10; i++) {
+        DPRINTF(O3CPU,"PRE IEW idx: %d size:%d\n",i,renameQueue[i].size);
+    }
+
+
     iew.tick();
+
+    for(int i = 0; i < 10; i++) {
+        DPRINTF(O3CPU,"PRE COMMIT idx: %d size:%d\n",i,renameQueue[i].size);
+    }
+
     commit.tick();
+
+    for(int i = 0; i < 10; i++) {
+        DPRINTF(O3CPU,"POST COMMIT idx: %d size:%d\n",i,renameQueue[i].size);
+    }
+
+
+    // //if(RegsAvailableForOoO[IntRegClass] < 1)
+    //     printf("Regs for renaming IntRegClass %d usedRegs %d\n",TotalRegsAvailableForOoO[IntRegClass],RegsAvailableForOoO[IntRegClass]);
+    // //if(RegsAvailableForOoO[FloatRegClass] < 1)
+    //     printf("Regs for renaming FloatRegClass %d usedRegs %d\n",TotalRegsAvailableForOoO[FloatRegClass],RegsAvailableForOoO[FloatRegClass]);
+    // //if(RegsAvailableForOoO[VecRegClass] < 1)
+    //     printf("Regs for renaming VecRegClass %d usedRegs %d\n",TotalRegsAvailableForOoO[VecRegClass],RegsAvailableForOoO[VecRegClass]);
+    // //if(RegsAvailableForOoO[VecPredRegClass] < 1)
+    //     printf("Regs for renaming VecPredRegClass %d usedRegs %d\n",TotalRegsAvailableForOoO[VecPredRegClass],RegsAvailableForOoO[VecPredRegClass]);
+    // //if(RegsAvailableForOoO[CCRegClass] < 1)
+    //     printf("Regs for renaming CCRegClass %d usedRegs %d\n",TotalRegsAvailableForOoO[CCRegClass],RegsAvailableForOoO[CCRegClass]);
 
     // Now advance the time buffers
 
@@ -595,6 +685,10 @@ CPU::tick()
     renameQueue.advance();
     iewQueue.advance();
     activityRec.advance();
+
+    for(int i = 0; i < 10; i++) {
+        DPRINTF(O3CPU,"idx: %d size:%d\n",i,renameQueue[i].size);
+    }
 
     if (removeInstsThisCycle) {
         cleanUpRemovedInsts();
@@ -733,8 +827,6 @@ CPU::deactivateThread(ThreadID tid)
 {
     // hardware transactional memory
     // shouldn't deactivate thread in the middle of a transaction
-
-
     for (int i = 0; i < timeBuffer.getSize(); ++i) {
         timeBuffer[i].decodeBlock[tid] = 0;
         timeBuffer[i].decodeUnblock[tid] = 0;
