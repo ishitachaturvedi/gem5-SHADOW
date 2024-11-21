@@ -290,6 +290,14 @@ IEW::IEWStats::IEWStats(CPU *cpu)
         .init(cpu->numThreads)
         .flags(statistics::total);
 
+    lsqFullEvents
+        .init(cpu->numThreads)
+        .flags(statistics::total);
+
+    iqFullEvents
+        .init(cpu->numThreads)
+        .flags(statistics::total);
+    
     writebackCount
         .init(cpu->numThreads)
         .flags(statistics::total);
@@ -319,6 +327,10 @@ IEW::IEWStats::IEWStats(CPU *cpu)
     InstructionAvaialbleNoneIssued
         .init(cpu->numThreads)
         .flags(statistics::total);
+
+    blockingLSQFull
+        .init(cpu->numThreads)
+        .flags(statistics::total);
     
     wbRate
         .flags(statistics::total);
@@ -333,6 +345,10 @@ IEW::IEWStats::IEWStats(CPU *cpu)
     wbRateTotal = writebackCountTotal / cpu->baseStats.numCycles;
     wbRateSTotal = writebackCountSTotal / cpu->baseStats.numCycles;
     wbRateWTotal = writebackCountWTotal / cpu->baseStats.numCycles;
+
+    blockingIQFull
+        .init(cpu->numThreads)
+        .flags(statistics::total);
 
     wbFanout
         .flags(statistics::total);
@@ -916,7 +932,7 @@ IEW::checkStall(ThreadID tid)
     } else if (instQueue.isFull(tid)) {
         DPRINTF(IEW,"[tid:%i] block_reason Stall: IQ  is full.\n",tid);
         ret_val = true;
-        ++iewStats.blockingIQFull;
+        ++iewStats.blockingIQFull[tid];
         if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
             ++iewStats.blockingIQFullS;
         }
@@ -934,6 +950,9 @@ IEW::checkSignalsAndUpdate(ThreadID tid)
     //     if so then go to unblocking
     // If status was Squashing
     //     check if squashing is not high.  Switch to running this cycle.
+
+
+    // printf("tid:%d IQSIZE:%d UsedValue:%d\n",tid,instQueue.getMaxEntries(tid),instQueue.getInstCount(tid));
 
     if (fromCommit->commitInfo[tid].squash) {
         DPRINTF(IEW,"[tid:%i] Squash signal from Commit!.\n", tid);
@@ -1244,8 +1263,6 @@ IEW::dispatchInsts(ThreadID tid)
 
             DPRINTF(IEW, "[tid:%i] block_reason Issue: IQ has become full.\n", tid);
 
-            // Call function to start blocking.
-            ++iewStats.blockingIQFull;
             if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
                 ++iewStats.blockingIQFullS;
             }
@@ -1256,7 +1273,7 @@ IEW::dispatchInsts(ThreadID tid)
             // get full in the IQ.
             toRename->iewUnblock[tid] = false;
 
-            ++iewStats.iqFullEvents;
+            ++iewStats.iqFullEvents[tid];
             if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
                 ++iewStats.iqFullEventsS;
             } else {
@@ -1276,7 +1293,7 @@ IEW::dispatchInsts(ThreadID tid)
                     inst->isLoad() ? "LQ" : "SQ");
 
             // Call function to start blocking.
-            ++iewStats.blockingLSQFull;
+            ++iewStats.blockingLSQFull[tid];
             if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
                 ++iewStats.blockingLSQFullS;
             }
@@ -1287,7 +1304,7 @@ IEW::dispatchInsts(ThreadID tid)
             // get full in the IQ.
             toRename->iewUnblock[tid] = false;
 
-            ++iewStats.lsqFullEvents;
+            ++iewStats.lsqFullEvents[tid];
             if (cpu->thread[tid]->tc->getProcessPtr()->getprocessThreadType() == Strong){
                 ++iewStats.lsqFullEventsS;
             } else {

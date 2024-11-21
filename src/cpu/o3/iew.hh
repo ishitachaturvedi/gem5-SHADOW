@@ -546,11 +546,11 @@ class IEW
         /** Stat for total number of dispatched non speculative insts. */
         statistics::Scalar dispNonSpecInsts;
         /** Stat for number of times the IQ becomes full. */
-        statistics::Scalar iqFullEvents;
+        statistics::Vector iqFullEvents;
         statistics::Scalar iqFullEventsS;
         statistics::Scalar iqFullEventsW;
         /** Stat for number of times the LSQ becomes full. */
-        statistics::Scalar lsqFullEvents;
+        statistics::Vector lsqFullEvents;
         statistics::Scalar lsqFullEventsS;
         statistics::Scalar lsqFullEventsW;
         /** Stat for total number of memory ordering violation events. */
@@ -571,9 +571,9 @@ class IEW
         statistics::Scalar notStalled;
         statistics::Scalar blockingS;
         statistics::Scalar blockingW;
-        statistics::Scalar blockingIQFull;
+        statistics::Vector blockingIQFull;
         statistics::Scalar blockingIQFullS;
-        statistics::Scalar blockingLSQFull;
+        statistics::Vector blockingLSQFull;
         statistics::Scalar blockingLSQFullS;
         statistics::Scalar blockingBandwidthFull;
         statistics::Scalar blockingBandwidthFullS;
