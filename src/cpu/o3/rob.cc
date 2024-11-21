@@ -90,6 +90,8 @@ ROB::ROB(CPU *_cpu, const BaseO3CPUParams &params)
         
         int part_amt = numEntries / numThreadsS;
 
+        printf("ROB size for each thread %d\n",part_amt);
+
         //Divide ROB up evenly
         for (ThreadID tid = 0; tid < numThreads; tid++) {
             maxEntries[tid] = part_amt;
@@ -337,8 +339,8 @@ ROB::retireHead(ThreadID tid)
     assert(head_inst->readyToCommit());
 
     DPRINTF(ROB, "[tid:%i] Retiring head instruction, "
-            "instruction PC %s, [sn:%llu] threadEntries[tid] %d\n", tid, head_inst->pcState(),
-            head_inst->seqNum,threadEntries[tid]);
+            "instruction PC %s, [sn:%llu] threadEntries[tid] %d numInstsInROB %d\n", tid, head_inst->pcState(),
+            head_inst->seqNum,threadEntries[tid],numInstsInROB);
 
     --numInstsInROB;
     --threadEntries[tid];
@@ -398,6 +400,7 @@ ROB::numFreeEntries()
 unsigned
 ROB::numFreeEntries(ThreadID tid)
 {
+    // printf("tid %d MaxEntries %d threadEntries %d\n",tid,maxEntries[tid],threadEntries[tid]);
     return maxEntries[tid] - threadEntries[tid];
 }
 
@@ -527,6 +530,32 @@ ROB::updateHead()
         head = instList[0].end();
     }
 
+}
+
+void 
+ROB::printROB() 
+{
+    // only thread 0
+    int tid = 0;
+
+    DPRINTF(ROB,"*******************************************\n");
+
+    DPRINTF(ROB,"Number of ROB insts %d size of list %d\n",threadEntries[tid],instList[tid].size());
+
+    if (instList[tid].empty()) {
+        return;
+    }
+
+    bool first_valid = true;
+    int counter = 0;
+
+    for (const auto& inst : instList[0]) {
+        // Process each element in the list
+        DPRINTF(ROB,"num:%d seqNum:%d issued:%d executed:%d squashed:%d committed:%d isMem:%d\n",counter,inst->seqNum,inst->isIssued(),inst->isExecuted(),inst->isSquashed(),inst->isCompleted(),inst->isMemRef());
+        counter++;
+    }
+
+    DPRINTF(ROB,"*******************************************\n");
 }
 
 void

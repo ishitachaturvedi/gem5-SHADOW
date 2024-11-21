@@ -678,6 +678,7 @@ Commit::changedROBEntries()
 size_t
 Commit::numROBFreeEntries(ThreadID tid)
 {
+    // printf("NUm Free entries %d\n",rob->numFreeEntries(tid));
     return rob->numFreeEntries(tid);
 }
 
@@ -926,7 +927,8 @@ Commit::tick()
                 tid, rob->countInsts(tid), rob->numFreeEntries(tid), trapSquash[tid]);
 
         // always update this number because ROB is dynamically partitioned
-        // toIEW->commitInfo[tid].freeROBEntries = rob->numFreeEntries(tid);
+        //printf("STAGE3 tid:%d freeROBEntries %d\n",tid,toIEW->commitInfo[tid].freeROBEntries);
+        //toIEW->commitInfo[tid].freeROBEntries = rob->numFreeEntries(tid);
     }
 
 
@@ -942,6 +944,8 @@ Commit::tick()
     DPRINTF(pipelineView,"commit_vals_1_sent %d\n",commit_vals_1_sent);
 
     rob->GetAvgIters();
+
+    //rob->printROB();
 }
 
 void
@@ -1207,6 +1211,8 @@ Commit::commit()
 
         toIEW->commitInfo[tid].freeROBEntries = rob->numFreeEntries(tid);
 
+        // printf("cycle%llu STAGE1 tid:%d freeROBEntries %d\n",curTick(),tid,toIEW->commitInfo[tid].freeROBEntries);
+
         // ROB is only considered "empty" for previous stages if: a)
         // ROB is empty, b) there are no outstanding stores, c) IEW
         // stage has received any information regarding stores that
@@ -1220,6 +1226,7 @@ Commit::commit()
             checkEmptyROB[tid] = false;
             toIEW->commitInfo[tid].usedROB = true;
             toIEW->commitInfo[tid].emptyROB = true;
+            // printf("STAGE2 tid:%d freeROBEntries %d\n",tid,toIEW->commitInfo[tid].freeROBEntries);
             toIEW->commitInfo[tid].freeROBEntries = rob->numFreeEntries(tid);
             wroteToTimeBuffer = true;
         }

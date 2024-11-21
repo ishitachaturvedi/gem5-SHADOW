@@ -220,6 +220,9 @@ class ROB
     /** Updates the tail instruction with the new youngest instruction. */
     void updateTail();
 
+    // print the ROB
+    void printROB();
+
     /* If a thread is a W thread it has a very large ROB because technically W threads dont use the ROB */
     void changeEntrySizeForWThreads(int tid);
 
