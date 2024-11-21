@@ -3,12 +3,12 @@
 # # Common configuration values
 ROBSize=256
 numSIQEntries=256
-numWIQEntries=20
+numWIQEntries=10
 LQEntries=72
 SQEntries=68
-numPhysFloatRegs=300
-numPhysVecRegs=300
-numPhysIntRegs=300
+numPhysFloatRegs=350
+numPhysVecRegs=350
+numPhysIntRegs=350
 
 # ROBSize=256
 # numSIQEntries=256
@@ -19,7 +19,7 @@ numPhysIntRegs=300
 # numPhysVecRegs=264
 # numPhysIntRegs=264
 
-OUTPUT_DIR="sweep_configuration"
+OUTPUT_DIR="test_sweep_configuration"
 
 # Create necessary directories if they don't exist
 mkdir -p sparse_matrix/$OUTPUT_DIR/txt_files
@@ -27,10 +27,10 @@ mkdir -p sparse_matrix/$OUTPUT_DIR/txt_files
 
 # Loop over percentages from 10 to 90
 #for PERCENTAGE in 50 60 70 80 85 90 95 98 99 99.9; do
-#for PERCENTAGE in 50 60 70 80 85 90 98 99 99.9; do
-for PERCENTAGE in 95; do
-    MATRIX_DIMENSIONS="400 400 400 400 $PERCENTAGE"     # Update the fifth dimension
-    FILE_SUFFIX="400_${PERCENTAGE}Per_sparse_ROB256"           # Update the file suffix
+#for PERCENTAGE in 50 70 85 90 98 99 99.9; do
+for PERCENTAGE in 80 85 90; do
+    MATRIX_DIMENSIONS="600 600 600 600 $PERCENTAGE"     # Update the fifth dimension
+    FILE_SUFFIX="600_${PERCENTAGE}Per_sparse_ROB256"           # Update the file suffix
 
     # # Run simulations with different configurations
 
@@ -189,8 +189,8 @@ for PERCENTAGE in 95; do
         --mem-channels=2 \
         --num-cpus=1 \
         --smt -t 6 -WThreads 6 -SThreads 0 \
-        -ROBSize $ROBSize -numSIQEntries 40 -numWIQEntries 0 -numIQEntries $numSIQEntries \
-         -LQEntries 72 -SQEntries 68 -smtIQPolicy="Partitioned" -SQEntries 40 -smtLSQPolicy="Partitioned" \
+        -ROBSize $ROBSize -numSIQEntries 60 -numWIQEntries 0 -numIQEntries 60 \
+        -LQEntries 30 -SQEntries 30 -smtIQPolicy="Partitioned" -smtLSQPolicy="Partitioned" \
         -numPhysFloatRegs $numPhysFloatRegs -numPhysVecRegs $numPhysVecRegs -numPhysIntRegs $numPhysIntRegs \
         > sparse_matrix/$OUTPUT_DIR/txt_files/pthreadDynamic_AllW6_${FILE_SUFFIX}.txt  \
         2> sparse_matrix/$OUTPUT_DIR/txt_files/pthreadDynamic_AllW6_${FILE_SUFFIX}_error.txt &
