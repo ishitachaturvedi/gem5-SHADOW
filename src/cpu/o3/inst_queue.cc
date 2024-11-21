@@ -239,6 +239,12 @@ InstructionQueue::InstructionQueue(CPU *cpu_ptr, IEW *iew_ptr,
     for (ThreadID tid = numThreads; tid < MaxThreads; tid++) {
         maxEntries[tid] = 0;
     }
+
+
+    for (ThreadID tid = 0; tid < numThreads; tid++) {
+        printf("tid:%d IQ size  %d\n",tid,maxEntries[tid]);
+    }
+    
 }
 
 InstructionQueue::~InstructionQueue()
@@ -2826,6 +2832,14 @@ InstructionQueue::PqCompare::operator()(
 bool 
 InstructionQueue::compareInstructions(const DynInstPtr &lhs, const DynInstPtr &rhs) {
     CPU* cpu = this->cpu;
+
+    // Priority 1: Strong thread type
+    bool lhsIsStrong = (cpu->thread[lhs->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Strong);
+    bool rhsIsStrong = (cpu->thread[rhs->threadNumber]->tc->getProcessPtr()->getprocessThreadType() == Strong);
+
+    if (lhsIsStrong != rhsIsStrong) {
+        return lhsIsStrong; // True if lhs is Strong and rhs is not
+    }
 
     bool lhsCondition = ((!cpu->thread[lhs->threadNumber]->ControlInstIssued &&
                             !(cpu->thread[lhs->threadNumber]->MemInstIssued &&
