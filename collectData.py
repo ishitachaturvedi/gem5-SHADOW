@@ -52,11 +52,13 @@ def read_val(fin, stat_names, stage_specfic_stats, cpu_stage_specfic_stats, cpul
     ticks_per_cycle = 0
 
     avg_counter = 0
-    line_look_for = 0
+    line_look_for1 = 0
+    line_look_for2 = 0
     line_found = 0
     if(m5_ops_stats):
         if(loop_type == "main_loop"):
-            line_look_for = "thread_1.numIters"
+            line_look_for1 = "thread_1.numIters"
+            line_look_for2 = "thread_0.numIters"
         else:
             print("loop_type ",loop_type," not implemented")
             exit(0)
@@ -85,7 +87,7 @@ def read_val(fin, stat_names, stage_specfic_stats, cpu_stage_specfic_stats, cpul
                 stat_val[index] = value
             else:
                 stat_val_temp[index] = value
-        if(m5_ops_stats and line_look_for in line):
+        if(m5_ops_stats and (line_look_for1 in line or line_look_for2 in line)):
             line1 = [x for x in line1 if x != '']
             value =  float(line1[1])
             if(value > 0):
@@ -160,9 +162,9 @@ def get_stats(parent_folder, files_check, stat_names, output_file, directory, st
                 substring = file_subset[0]
                 line = substring + ","
                 line = line + bmrk + ","
-                line = line + stat_name_main[i] + ","
+                line = line + stat_name_main[i]
                 for j in range(len(file_subset)):
-                    line = line + str(all_stats[i][j]) + ","
+                    line = line + "," + str(all_stats[i][j])
                 line = line + "\n"
                 csv.write(line)
 
@@ -420,39 +422,227 @@ def main():
         #"sparse_matrix/novocore_changing_matrix_size"
         #'CRONO_results/apsp_work_stealing/test'
         #"results/CRONO"
-        "sparse_matrix/changing_sparsity"
+        "sparse_matrix/sweep_configuration"
         #"CRONO_results/bc/test"
     ]  
 
     m5_ops_stats = True
 
     files_check = [
+        # [
+        #     "Dynamic_1pThread_600_50Per_sparse_ROB256",
+        #     "Dynamic_2pThread_600_50Per_sparse_ROB256",
+        #     "Dynamic_3pThread_600_50Per_sparse_ROB256",
+        #     "pthreadDynamic_AllW6_600_50Per_sparse_ROB256",
+        #     "pthreadDynamic_1S1W_600_50Per_sparse_ROB256",
+        #     "pthreadDynamic_1S2W_600_50Per_sparse_ROB256",
+        #     "pthreadDynamic_1S3W_600_50Per_sparse_ROB256",
+        #     "pthreadDynamic_1S4W_600_50Per_sparse_ROB256",
+        #     "pthreadDynamic_2S1W_600_50Per_sparse_ROB256",
+        #     "pthreadDynamic_2S2W_600_50Per_sparse_ROB256",
+        # ],
+        # [
+        #     "Dynamic_1pThread_600_60Per_sparse_ROB256",
+        #     "Dynamic_2pThread_600_60Per_sparse_ROB256",
+        #     "Dynamic_3pThread_600_60Per_sparse_ROB256",
+        #     "pthreadDynamic_AllW6_600_60Per_sparse_ROB256",
+        #     "pthreadDynamic_1S1W_600_60Per_sparse_ROB256",
+        #     "pthreadDynamic_1S2W_600_60Per_sparse_ROB256",
+        #     "pthreadDynamic_1S3W_600_60Per_sparse_ROB256",
+        #     "pthreadDynamic_1S4W_600_60Per_sparse_ROB256",
+        #     "pthreadDynamic_2S1W_600_60Per_sparse_ROB256",
+        #     "pthreadDynamic_2S2W_600_60Per_sparse_ROB256",
+        # ],
+        # [
+        #     "Dynamic_1pThread_600_70Per_sparse_ROB256",
+        #     "Dynamic_2pThread_600_70Per_sparse_ROB256",
+        #     "Dynamic_3pThread_600_70Per_sparse_ROB256",
+        #     "pthreadDynamic_AllW6_600_70Per_sparse_ROB256",
+        #     "pthreadDynamic_1S1W_600_70Per_sparse_ROB256",
+        #     "pthreadDynamic_1S2W_600_70Per_sparse_ROB256",
+        #     "pthreadDynamic_1S3W_600_70Per_sparse_ROB256",
+        #     "pthreadDynamic_1S4W_600_70Per_sparse_ROB256",
+        #     "pthreadDynamic_2S1W_600_70Per_sparse_ROB256",
+        #     "pthreadDynamic_2S2W_600_70Per_sparse_ROB256",
+        # ],
+        # [
+        #     "Dynamic_1pThread_400_80Per_sparse_ROB128",
+        #     "Dynamic_2pThread_400_80Per_sparse_ROB128",
+        #     #"Dynamic_3pThread_400_80Per_sparse_ROB128",
+        #     "pthreadDynamic_AllW6_400_80Per_sparse_ROB128",
+        #     "pthreadDynamic_1S1W_400_80Per_sparse_ROB128",
+        #     "pthreadDynamic_1S2W_400_80Per_sparse_ROB128",
+        #     "pthreadDynamic_1S3W_400_80Per_sparse_ROB128",
+        #     "pthreadDynamic_1S4W_400_80Per_sparse_ROB128",
+        #     "pthreadDynamic_2S1W_400_80Per_sparse_ROB128",
+        #     #"pthreadDynamic_2S2W_400_80Per_sparse_ROB128",
+        # ],
         [
-            # SPARSE
+           "Dynamic_1pThread_400_80Per_sparse_ROB128_REG290",
+            "Dynamic_2pThread_400_80Per_sparse_ROB128_REG290",
+            "Dynamic_3pThread_400_80Per_sparse_ROB128_REG290",
+            "pthreadDynamic_AllW6_400_80Per_sparse_ROB128_REG290",
+            "pthreadDynamic_1S1W_400_80Per_sparse_ROB128_REG290",
+            "pthreadDynamic_1S2W_400_80Per_sparse_ROB128_REG290",
+            "pthreadDynamic_1S3W_400_80Per_sparse_ROB128_REG290",
+            "pthreadDynamic_1S4W_400_80Per_sparse_ROB128_REG290",
+            "pthreadDynamic_2S1W_400_80Per_sparse_ROB128_REG290",
+            "pthreadDynamic_2S2W_400_80Per_sparse_ROB128_REG290",
+        ],
+        [
+           "Dynamic_1pThread_400_85Per_sparse_ROB128_REG290",
+            "Dynamic_2pThread_400_85Per_sparse_ROB128_REG290",
+            "Dynamic_3pThread_400_85Per_sparse_ROB128_REG290",
+            "pthreadDynamic_AllW6_400_85Per_sparse_ROB128_REG290",
+            "pthreadDynamic_1S1W_400_85Per_sparse_ROB128_REG290",
+            "pthreadDynamic_1S2W_400_85Per_sparse_ROB128_REG290",
+            "pthreadDynamic_1S3W_400_85Per_sparse_ROB128_REG290",
+            "pthreadDynamic_1S4W_400_85Per_sparse_ROB128_REG290",
+            "pthreadDynamic_2S1W_400_85Per_sparse_ROB128_REG290",
+            "pthreadDynamic_2S2W_400_85Per_sparse_ROB128_REG290",
+        ],
+        [
+            "Dynamic_1pThread_400_90Per_sparse_ROB128_REG290",
+            "Dynamic_2pThread_400_90Per_sparse_ROB128_REG290",
+            "Dynamic_3pThread_400_90Per_sparse_ROB128_REG290",
+            "pthreadDynamic_AllW6_400_90Per_sparse_ROB128_REG290",
+            "pthreadDynamic_1S1W_400_90Per_sparse_ROB128_REG290",
+            "pthreadDynamic_1S2W_400_90Per_sparse_ROB128_REG290",
+            "pthreadDynamic_1S3W_400_90Per_sparse_ROB128_REG290",
+            "pthreadDynamic_1S4W_400_90Per_sparse_ROB128_REG290",
+            "pthreadDynamic_2S1W_400_90Per_sparse_ROB128_REG290",
+            "pthreadDynamic_2S2W_400_90Per_sparse_ROB128_REG290",
+        ],
+        [
+            "Dynamic_1pThread_400_95Per_sparse_ROB128_REG290",
+            "Dynamic_2pThread_400_95Per_sparse_ROB128_REG290",
+            "Dynamic_3pThread_400_95Per_sparse_ROB128_REG290",
+            "pthreadDynamic_AllW6_400_95Per_sparse_ROB128_REG290",
+            "pthreadDynamic_1S1W_400_95Per_sparse_ROB128_REG290",
+            "pthreadDynamic_1S2W_400_95Per_sparse_ROB128_REG290",
+            "pthreadDynamic_1S3W_400_95Per_sparse_ROB128_REG290",
+            "pthreadDynamic_1S4W_400_95Per_sparse_ROB128_REG290",
+            "pthreadDynamic_2S1W_400_95Per_sparse_ROB128_REG290",
+            "pthreadDynamic_2S2W_400_95Per_sparse_ROB128_REG290"
+        ],
 
-            # "Dynamic_1pThread_400_10Per_sparse",
-            # "Dynamic_1pThread_400_20Per_sparse",
-            # "Dynamic_1pThread_400_30Per_sparse",
-            # "Dynamic_1pThread_400_40Per_sparse",
-            # "Dynamic_1pThread_400_50Per_sparse",
-            # "Dynamic_1pThread_400_60Per_sparse",
-            # "Dynamic_1pThread_400_70Per_sparse",
-            # "Dynamic_1pThread_400_80Per_sparse",
-            # "Dynamic_1pThread_400_90Per_sparse",
+        # [
+        #     "Dynamic_1pThread_400_90Per_sparse_ROB128_REG280",
+        #     "Dynamic_1pThread_400_90Per_sparse_ROB256_REG280"
+        # ]
 
 
-            # "Dynamic_1pThread_400_90Per_sparse_ROB128",
-            # "Dynamic_1pThread_400_90Per_sparse_ROB256",
-            # "Dynamic_1pThread_400_90Per_sparse_ROB512",
-            # "Dynamic_1pThread_400_90Per_sparse_ROB1024",
+        #[
+        #     "Dynamic_1pThread_600_99Per_sparse_ROB256",
+        #     "Dynamic_2pThread_600_99Per_sparse_ROB256",
+        #     "Dynamic_3pThread_600_99Per_sparse_ROB256",
+        #     "pthreadDynamic_AllW6_600_99Per_sparse_ROB256",
+        #     "pthreadDynamic_1S1W_600_99Per_sparse_ROB256",
+        #     "pthreadDynamic_1S2W_600_99Per_sparse_ROB256",
+        #     "pthreadDynamic_1S3W_600_99Per_sparse_ROB256",
+        #     "pthreadDynamic_1S4W_600_99Per_sparse_ROB256",
+        #     "pthreadDynamic_2S1W_600_99Per_sparse_ROB256",
+        #     "pthreadDynamic_2S2W_600_99Per_sparse_ROB256",
+        # ],
+        # [
+        #     "Dynamic_1pThread_600_99.9Per_sparse_ROB256",
+        #     "Dynamic_2pThread_600_99.9Per_sparse_ROB256",
+        #     "Dynamic_3pThread_600_99.9Per_sparse_ROB256",
+        #     "pthreadDynamic_AllW6_600_99.9Per_sparse_ROB256",
+        #     "pthreadDynamic_1S1W_600_99.9Per_sparse_ROB256",
+        #     "pthreadDynamic_1S2W_600_99.9Per_sparse_ROB256",
+        #     "pthreadDynamic_1S3W_600_99.9Per_sparse_ROB256",
+        #     "pthreadDynamic_1S4W_600_99.9Per_sparse_ROB256",
+        #     "pthreadDynamic_2S1W_600_99.9Per_sparse_ROB256",
+        #     "pthreadDynamic_2S2W_600_99.9Per_sparse_ROB256",
+        # ]
+
+        # ["Dynamic_1pThread_800_95Per_sparse_ROB256_4wide",
+        #     "Dynamic_2pThread_800_95Per_sparse_ROB256_4wide",
+        #     "pthreadDynamic_AllW6_800_95Per_sparse_ROB256_4wide",
+        #     "pthreadDynamic_1S4W_800_95Per_sparse_ROB256_4wide",
+        # ],
+        # ["Dynamic_1pThread_700_95Per_sparse_ROB256_4wide",
+        #     "Dynamic_2pThread_700_95Per_sparse_ROB256_4wide",
+        #     "pthreadDynamic_AllW6_700_95Per_sparse_ROB256_4wide",
+        #     "pthreadDynamic_1S4W_700_95Per_sparse_ROB256_4wide",
+        # ],
+        # ["Dynamic_1pThread_600_95Per_sparse_ROB256_4wide",
+        #     "Dynamic_2pThread_600_95Per_sparse_ROB256_4wide",
+        #     "pthreadDynamic_AllW6_600_95Per_sparse_ROB256_4wide",
+        #     "pthreadDynamic_1S4W_600_95Per_sparse_ROB256_4wide",
+        # ],
+        # ["Dynamic_1pThread_500_95Per_sparse_ROB256_4wide",
+        #     "Dynamic_2pThread_500_95Per_sparse_ROB256_4wide",
+        #     "pthreadDynamic_AllW6_500_95Per_sparse_ROB256_4wide",
+        #     "pthreadDynamic_1S4W_500_95Per_sparse_ROB256_4wide",
+        # ],
+        # ["Dynamic_1pThread_400_95Per_sparse_ROB256_4wide",
+        #     "Dynamic_2pThread_400_95Per_sparse_ROB256_4wide",
+        #     "pthreadDynamic_AllW6_400_95Per_sparse_ROB256_4wide",
+        #     "pthreadDynamic_1S4W_400_95Per_sparse_ROB256_4wide",
+        # ],
 
 
-            "Dynamic_1pThread_400_70Per_sparse_ROB256",
-            "pthreadDynamic_2S1W_400_70Per_sparse_ROB256",
-            "pthreadDynamic_2S2W_400_70Per_sparse_ROB256",
-            "pthreadDynamic_2S3W_400_70Per_sparse_ROB256",
-            "pthreadDynamic_AllW4_400_70Per_sparse_ROB256",
-        ]
+        # [
+        #     "Dynamic_1pThread_400_95Per_sparse_ROB128",
+        #     "Dynamic_1pThread_400_95Per_sparse_ROB256",
+        #     "Dynamic_1pThread_400_95Per_sparse_ROB512",
+        #     "Dynamic_1pThread_400_95Per_sparse_ROB1024",
+
+        # ]
+
+        # [
+        #     "Dynamic_1pThread_400_98Per_sparse_ROB256",
+        #     "Dynamic_2pThread_400_98Per_sparse_ROB256",
+        #     "Dynamic_3pThread_400_98Per_sparse_ROB256",
+        #     "pthreadDynamic_1S1W_400_98Per_sparse_ROB256",
+        #     "pthreadDynamic_1S2W_400_98Per_sparse_ROB256",
+        #     "pthreadDynamic_1S3W_400_98Per_sparse_ROB256",
+        #     "pthreadDynamic_1S4W_400_98Per_sparse_ROB256",
+        #     "pthreadDynamic_2S1W_400_98Per_sparse_ROB256",
+        #     "pthreadDynamic_2S2W_400_98Per_sparse_ROB256",
+        #     "pthreadDynamic_AllW6_400_98Per_sparse_ROB256",
+        # ],
+        # [
+        #     "Dynamic_1pThread_800_95Per_sparse_ROB256",
+        #     "Dynamic_2pThread_800_95Per_sparse_ROB256",
+        #     "Dynamic_3pThread_800_95Per_sparse_ROB256",
+        #     "pthreadDynamic_1S1W_800_95Per_sparse_ROB256",
+        #     "pthreadDynamic_1S2W_800_95Per_sparse_ROB256",
+        #     "pthreadDynamic_1S3W_800_95Per_sparse_ROB256",
+        #     "pthreadDynamic_1S4W_800_95Per_sparse_ROB256",
+        #     "pthreadDynamic_2S1W_800_95Per_sparse_ROB256",
+        #     "pthreadDynamic_2S2W_800_95Per_sparse_ROB256",
+        #     "pthreadDynamic_AllW6_800_95Per_sparse_ROB256",
+        # ],
+        # [
+        #     "Dynamic_1pThread_1000_98Per_sparse_ROB256",
+        #     "Dynamic_2pThread_1000_98Per_sparse_ROB256",
+        #     "Dynamic_3pThread_1000_98Per_sparse_ROB256",
+        #     "pthreadDynamic_1S1W_1000_98Per_sparse_ROB256",
+        #     "pthreadDynamic_1S2W_1000_98Per_sparse_ROB256",
+        #     "pthreadDynamic_1S3W_1000_98Per_sparse_ROB256",
+        #     "pthreadDynamic_1S4W_1000_98Per_sparse_ROB256",
+        #     "pthreadDynamic_2S1W_1000_98Per_sparse_ROB256",
+        #     "pthreadDynamic_2S2W_1000_98Per_sparse_ROB256",
+        #     "pthreadDynamic_AllW6_1000_98Per_sparse_ROB256",
+        # ]
+
+        # [
+        #     "Dynamic_1pThread_1000_95Per_sparse_ROB256",
+        #     "Dynamic_2pThread_1000_95Per_sparse_ROB256",
+        #     "Dynamic_3pThread_1000_95Per_sparse_ROB256",
+        #     # "pthreadDynamic_1S1W_1000_95Per_sparse_ROB256",
+        #     # "pthreadDynamic_1S2W_1000_95Per_sparse_ROB256",
+        #     # "pthreadDynamic_1S3W_1000_95Per_sparse_ROB256",
+        #     "pthreadDynamic_1S4W_1000_95Per_sparse_ROB256",
+        #     # "pthreadDynamic_2S1W_1000_95Per_sparse_ROB256",
+        #     # "pthreadDynamic_2S2W_1000_95Per_sparse_ROB256",
+        #     "pthreadDynamic_AllW6_1000_95Per_sparse_ROB256",
+        # ]
+
+
     ]
 
     top_line = "input,benchmark,stat"
@@ -467,9 +657,12 @@ def main():
     # fetch_stats = []
     # iew_stats = []
 
+
+
     stat_names = ["numCycles","issueRate","totalIpc","ipc::1","ipc::0","TotalInstIssued","TotalOoOInstIssued","TotalInstIssued::0","TotalOoOInstIssued::0","TotalInstIssued::1","TotalOoOInstIssued::1"]
 
-    stat_names = ["numCycles","issueRate","numIssuedDist::mean","statFuBusyPerThreadCollective","statStalledOnControlInstructionPerThread","statNumIssueNotPossiblePerThread","fuBusyS","fuBusyW","totalIpc", "cycleCountS", "cycleCountW","statFuNoFree::IntAlu","statFuNoFree::IntMult","statFuNoFree::IntDiv","statFuNoFree::MemRead","statFuNoFree::MemWrite","ipc::0","ipc::1","ipc::2","ipc::3","ipc::4","ipc::5","cpi::0","cpi::1","cpi::2","cpi::3","cpi::4","cpi::5","totalCpi","committedInsts::0","committedInsts::1","committedInsts::2","committedInsts::3","committedInsts::4","committedInsts::5","fuBusyRate::0","fuBusyRate::1","fuBusyRate::2","fuBusyRate::3","fuBusyRate::4","fuBusyRate::5","NoReadyInst","ReadyInstMoreThanBW","TotalOoOInstIssued::1","thread_1.numIters","thread_2.numIters","thread_3.numIters","thread_4.numIters","thread_5.numIters","thread_6.numIters","thread_7.numIters","thread_8.numIters","thread_1.MutexOverhead","thread_2.MutexOverhead","thread_3.MutexOverhead","thread_4.MutexOverhead","thread_1.BarrierOverhead","thread_2.BarrierOverhead","thread_3.BarrierOverhead","thread_4.BarrierOverhead","TimeSpentWaitingOnMem::0","TimeSpentWaitingOnMem::1","TimeSpentWaitingOnMem::2","TimeSpentWaitingOnMem::3","TimeSpentWaitingOnMem::4","AverageInstinIQ::0","AverageInstinIQ::1","AverageInstinIQ::2","AverageInstinIQ::total","statFuBusy::IntMult","statFuBusy::MemRead","statFuBusy::MemWrite","statAvgFUUtilization::IntMult","statAvgFUUtilization::MemRead","statAvgFUUtilization::MemWrite","AverageNonIssuedInstPerThread::0","AverageNonIssuedInstPerThread::1","AverageNonIssuedInstPerThread::2","AverageNonIssuedInstPerThread::3","AverageNonIssuedInstPerThread::4","AverageNonIssuedInstPerThread::total","AverageIssuedInstPerThread::0","AverageIssuedInstPerThread::1","AverageIssuedInstPerThread::2","AverageIssuedInstPerThread::3","AverageIssuedInstPerThread::total","AverageInstsThread::0","AverageInstsThread::1","AverageInstsThread::2","AverageInstsThread::3","AverageInstsThread::4","AverageInstsThread::total","AverageNonIssuedInstPerThreadDependsOnMemory::0","AverageNonIssuedInstPerThreadDependsOnMemory::1","AverageNonIssuedInstPerThreadDependsOnMemory::2","AverageNonIssuedInstPerThreadDependsOnMemory::3","AverageNonIssuedInstPerThreadDependsOnMemory::4","AverageNonIssuedInstPerThreadDependsOnMemory::total","AverageNonIssuedInstPerThreadDependsOnCompute::0","AverageNonIssuedInstPerThreadDependsOnCompute::1","AverageNonIssuedInstPerThreadDependsOnCompute::2","AverageNonIssuedInstPerThreadDependsOnCompute::3","AverageNonIssuedInstPerThreadDependsOnCompute::4","AverageNonIssuedInstPerThreadDependsOnCompute::total","AverageNonIssuedInstPerThreadDependsOnTotal::0","AverageNonIssuedInstPerThreadDependsOnTotal::1","AverageNonIssuedInstPerThreadDependsOnTotal::2","AverageNonIssuedInstPerThreadDependsOnTotal::3","AverageNonIssuedInstPerThreadDependsOnTotal::4","AverageNonIssuedInstPerThreadDependsOnTotal::total","AvgInstInFlight","AvgMemInFlight","AvgCompInFlight","AvgInstStalled","AvgMemStalled","AvgCompStalled","AvgOnlyMemInFLight","AvgOnlyCompInFLight","AvgMemAndCompInFLight","AvgNothingInFLight","cannot_issue_Flight","ready_for_issue_Flight","issued_Flight","checked_for_issue_Flight","in_ready_queue_Flight","executed_Flight","ready_for_commit_Flight","committed_Flight"]
+    stat_names = ["numCycles","issueRate","numIssuedDist::mean","statFuBusyPerThreadCollective","statStalledOnControlInstructionPerThread","statNumIssueNotPossiblePerThread","fuBusyS","fuBusyW","cycleCountS", "cycleCountW","statFuNoFree::IntAlu","statFuNoFree::IntMult","statFuNoFree::IntDiv","statFuNoFree::MemRead","statFuNoFree::MemWrite","totalIpc","ipc","ipc::0","ipc::1","ipc::2","ipc::3","ipc::4","ipc::5","cpi","cpi::0","cpi::1","cpi::2","cpi::3","cpi::4","cpi::5","totalCpi","committedInsts::0","committedInsts::1","committedInsts::2","committedInsts::3","committedInsts::4","committedInsts::5","AverageInstinIQ", "AverageInstinIQ::0", "AverageInstinIQ::1", "AverageInstinIQ::2", "AverageInstinIQ::total", "AverageInstsThread", "AverageInstsThread::0", "AverageInstsThread::1", "AverageInstsThread::2", "AverageInstsThread::3", "AverageInstsThread::4", "AverageInstsThread::total", "AverageIssuedInstPerThread", "AverageIssuedInstPerThread::0", "AverageIssuedInstPerThread::1", "AverageIssuedInstPerThread::2", "AverageIssuedInstPerThread::3", "AverageIssuedInstPerThread::total", "AverageNonIssuedInstPerOpType", "AverageNonIssuedInstPerOpTypeDependsOnCompute", "AverageNonIssuedInstPerOpTypeDependsOnMemory", "AverageNonIssuedInstPerOpTypeDependsOnTotal", "AverageNonIssuedInstPerThread", "AverageNonIssuedInstPerThread::0", "AverageNonIssuedInstPerThread::1", "AverageNonIssuedInstPerThread::2", "AverageNonIssuedInstPerThread::3", "AverageNonIssuedInstPerThread::4", "AverageNonIssuedInstPerThread::total", "AverageNonIssuedInstPerThreadDependsOnCompute", "AverageNonIssuedInstPerThreadDependsOnCompute::0", "AverageNonIssuedInstPerThreadDependsOnCompute::1", "AverageNonIssuedInstPerThreadDependsOnCompute::2", "AverageNonIssuedInstPerThreadDependsOnCompute::3", "AverageNonIssuedInstPerThreadDependsOnCompute::4", "AverageNonIssuedInstPerThreadDependsOnCompute::total", "AverageNonIssuedInstPerThreadDependsOnMemory", "AverageNonIssuedInstPerThreadDependsOnMemory::0", "AverageNonIssuedInstPerThreadDependsOnMemory::1", "AverageNonIssuedInstPerThreadDependsOnMemory::2", "AverageNonIssuedInstPerThreadDependsOnMemory::3", "AverageNonIssuedInstPerThreadDependsOnMemory::4", "AverageNonIssuedInstPerThreadDependsOnMemory::total", "AverageNonIssuedInstPerThreadDependsOnTotal", "AverageNonIssuedInstPerThreadDependsOnTotal::0", "AverageNonIssuedInstPerThreadDependsOnTotal::1", "AverageNonIssuedInstPerThreadDependsOnTotal::2", "AverageNonIssuedInstPerThreadDependsOnTotal::3", "AverageNonIssuedInstPerThreadDependsOnTotal::4", "AverageNonIssuedInstPerThreadDependsOnTotal::total", "AvgCompInFlight", "AvgCompInFlightTotal", "AvgCompStalled", "AvgCompStalledTotal", "AvgInstInFlight", "AvgInstInFlightTotal", "AvgInstStalled", "AvgInstStalledTotal", "AvgMemAndCompInFLight", "AvgMemAndCompInFLightTotal", "AvgMemInFlight", "AvgMemInFlightTotal", "AvgMemStalled", "AvgMemStalledTotal", "AvgNothingInFLight", "AvgNothingInFLightTotal", "AvgOnlyCompInFLight", "AvgOnlyCompInFLightTotal", "AvgOnlyMemInFLight", "AvgOnlyMemInFLightTotal", "NoReadyInst", "ReadyInstMoreThanBW", "TimeSpentWaitingOnMem", "TimeSpentWaitingOnMem::0", "TimeSpentWaitingOnMem::1", "TimeSpentWaitingOnMem::2", "TimeSpentWaitingOnMem::3", "TimeSpentWaitingOnMem::4", "TotalInstIssued", "TotalOoOInstIssued", "TotalOoOInstIssued::1", "branchInstsIssued", "cannot_issue_Flight", "cannot_issue_FlightTotal", "checked_for_issue_Flight", "checked_for_issue_FlightTotal", "committedInsts::0", "committedInsts::1", "committedInsts::2", "committedInsts::3", "committedInsts::4", "committedInsts::5", "committed_Flight", "committed_FlightTotal", "cpi::0", "cpi::1", "cpi::2", "cpi::3", "cpi::4", "cpi::5", "cycleCountS", "cycleCountW", "executed_Flight", "executed_FlightTotal", "floatInstsIssued", "fuBusy", "fuBusyRate", "fuBusyRate::0", "fuBusyRate::1", "fuBusyRate::2", "fuBusyRate::3", "fuBusyRate::4", "fuBusyRate::5", "fuBusyS", "fuBusyW", "in_ready_queue_Flight", "in_ready_queue_FlightTotal", "instsAdded", "instsIssued", "intInstsIssued", "ipc", "ipc::0", "ipc::1", "ipc::2", "ipc::3", "ipc::4", "ipc::5", "issueRate", "issued_Flight", "issued_FlightTotal", "memInstsIssued", "miscInstsIssued", "nonSpecInstsAdded", "numCycles", "numIssuedDist", "numIssuedDist::mean", "ready_for_commit_Flight", "ready_for_commit_FlightTotal", "ready_for_issue_Flight", "ready_for_issue_FlightTotal", "squashedInstsExamined", "squashedInstsIssued", "squashedNonSpecRemoved", "squashedOperandsExamined", "statAvgFUUtilization", "statAvgFUUtilization::IntMult", "statAvgFUUtilization::MemRead", "statAvgFUUtilization::MemWrite", "statFuBusy", "statFuBusy::IntMult", "statFuBusy::MemRead", "statFuBusy::MemWrite", "statFuBusyPerThread", "statFuBusyPerThreadCollective", "statFuNoFree", "statFuNoFree::IntAlu", "statFuNoFree::IntDiv", "statFuNoFree::IntMult", "statFuNoFree::MemRead", "statFuNoFree::MemWrite", "statIssuedInstType", "statNumCheckIssuePerThread", "statNumIssueNotPossiblePerThread", "statOlderROBNotIssuedPerThread", "statOlderROBNotIssuedPerThreadRate", "statStalledNotOldestInIQPerThread", "statStalledNotOldestInIQPerThreadRate", "statStalledOnControlInstructionPerThread", "statStalledOnControlInstructionPerThreadRate", "statStalledOnMemoryReorderPerThread", "statStalledOnMemoryReorderPerThreadRate", "thread_0.MutexOverhead", "thread_0.numIters", "thread_1.BarrierOverhead", "thread_1.MutexOverhead", "thread_1.numIters", "thread_2.BarrierOverhead", "thread_2.MutexOverhead", "thread_2.numIters", "thread_3.BarrierOverhead", "thread_3.MutexOverhead", "thread_3.numIters", "thread_4.BarrierOverhead", "thread_4.MutexOverhead", "thread_4.numIters", "thread_5.numIters", "thread_6.numIters", "thread_7.numIters", "thread_8.numIters", "totalCpi"]
+
 
     l2_stats = ["overallMissRate::total","overallMissLatency::total","demandHits::total","demandMisses::total","demandMissLatency::total","demandAccesses::total","overallAccesses::total","l2.overallHits::cpu_cluster.cpus.data","l2.overallHits::total","l2.overallMissRate::total"]
 
@@ -478,15 +671,88 @@ def main():
 
     decode_stats = ["idleCycles","idleCyclesPerThread::0","idleCyclesPerThread::1","idleCyclesPerThread::2","idleCyclesPerThread::3","idleCyclesPerThread::total","blockedCycles","blockedCyclesPerThread::0","blockedCyclesPerThread::1","blockedCyclesPerThread::2","blockedCyclesPerThread::3","blockedCyclesPerThread::total","runCycles","unblockCycles","branchMispred","branchMispredSThread","branchMispredWThread","controlMispred","stalledS","stalledW","notStalled","blocking","blockingS","DecodeWidthUtilization::0","DecodeWidthUtilization::1","DecodeWidthUtilization::2","DecodeWidthUtilization::3","DecodeWidthUtilization::4","DecodeWidthUtilization::5","DecodeWidthUtilization::6","DecodeWidthUtilization::7","DecodeWidthUtilization::8","squashCycles","squashCyclesPerThread::0","squashCyclesPerThread::1","squashCyclesPerThread::2","squashCyclesPerThread::3"]
 
-    rename_stats = ["squashCycles","squashCyclesSThread","squashCyclesWThread","idleCycles","idleCyclesPerThread::0","idleCyclesPerThread::1","idleCyclesPerThread::2","idleCyclesPerThread::3","idleCyclesPerThread::total","idleCyclesSThread","idleCyclesWThread","blockCycles","blockCyclesPerThread::0","blockCyclesPerThread::1","blockCyclesPerThread::2","blockCyclesPerThread::3","blockCyclesPerThread::total","blockCyclesSThread","blockCyclesWThread","serializeStallCycles","runCycles","runCyclesSThread","runCyclesWThread","ROBFullEvents","ROBFullEventsS","ROBFullEventsW","IQFullEvents","IQFullEventsS","IQFullEventsW","LQFullEvents","LQFullEventsS","LQFullEventsW","SQFullEvents","SQFullEventsS","SQFullEventW","fullRegistersEvents","fullRegistersEventsS","fullRegistersEventsW","renamedOperands","stalledS","stalledW","stalledSNotW","stalledSAndW","notStalled","blockingIQFull","blockingIQFullS","blockingIQFullW","blockingROBFull","blockingROBFullS","blockingROBFullW","blockingBandwidthFull","blockingBandwidthFullS","blockingBandwidthFullW","blockingRegFull","blockingRegFullS","blockingRegFullW","skidInsts","iewStallS","iewStallW","NoROBFreeS","NoROBFreeW","NoIQFreeS","NoIQFreeW","NoLSQFreeS","NoLSQFreeW","NoRenameFreeS","NoRenameFreeW","SerializeROBFullS","SerializeROBFullW","renameDeactivate","BlockedBecauseOneThread","resumeSerializeS","resumeSerializeW","resumeUnblockingS","resumeUnblockingW","RunningS","RunningW","IdleS","IdleW","StartSquashS","StartSquashW","SquashingS","SquashingW","BlockedS","BlockedW","UnblockingS","UnblockingW","SerializeStallS","SerializeStallW"]
+    #rename_stats = ["squashCycles", "squashCyclesSThread", "squashCyclesWThread", "idleCycles", "idleCyclesPerThread", "idleCyclesSThread", "idleCyclesWThread", "blockCycles", "blockCyclesPerThread::0","blockCyclesPerThread::1","blockCyclesPerThread::2","blockCyclesPerThread::3", "blockCyclesSThread", "blockCyclesWThread", "serializeStallCycles", "runCycles", "runCyclesSThread", "runCyclesWThread", "unblockCycles", "renamedInsts", "squashedInsts", "ROBFullEvents", "ROBFullEventsS", "ROBFullEventsW", "iewStallS", "iewStallW", "NoROBFreeS", "NoROBFreeW", "NoIQFreeS", "NoIQFreeW", "NoLSQFreeS", "NoLSQFreeW", "NoRenameFreeS", "NoRenameFreeW", "SerializeROBFullS", "SerializeROBFullW", "renameDeactivate", "BlockedBecauseOneThread", "resumeSerializeS", "resumeSerializeW", "resumeUnblockingS", "resumeUnblockingW", "RunningS", "RunningW", "IdleS", "IdleW", "StartSquashS", "StartSquashW", "BlockedS", "BlockedW", "UnblockingS", "UnblockingW", "SerializeStallS", "SerializeStallW", "unknownStallS", "IQFullEvents", "IQFullEventsS", "IQFullEventsW", "LQFullEvents", "LQFullEventsS", "LQFullEventsW", "SQFullEvents", "SQFullEventsS", "SQFullEventsW", "fullRegistersEvents", "fullRegistersEventsS", "fullRegistersEventsW", "renamedOperands", "lookups", "intLookups", "fpLookups", "vecLookups", "vecPredLookups", "committedMaps", "undoneMaps", "serializing", "tempSerializing", "skidInsts", "FreeIntRegClass", "FreeFloatRegClass", "FreeVecElemClass", "FreeVecRegClass", "FreeVecPredRegClass", "FreeCCRegClass", "stalledS", "stalledW", "noInstsAvailableW", "stalledSNotW", "stalledSAndW", "notStalled", "blockingIQFull", "blockingIQFullS", "blockingIQFullW", "blockingROBFull", "blockingROBFullS", "blockingROBFullW", "blockingBandwidthFull", "blockingBandwidthFullS", "blockingBandwidthFullW", "blockingRegFull", "blockingRegFullS", "blockingRegFullW", "blockingSerialized", "blockingSerializedS", "blockingSerializedW"]
 
-    iew_stats = ["idleCyclesDispatch","ExecuteInstsIdle","squashCycles","squashCyclesS","squashCyclesW","blockCycles","blockCyclesS","blockCyclesW","unblockCycles","dispatchedInsts","dispSquashedInsts","dispSquashedInstsS","dispSquashedInstsW","iqFullEvents","iqFullEventsS","iqFullEventsW","lsqFullEvents","lsqFullEventsS","lsqFullEventsW","memOrderViolationEvents","branchMispredicts","instsToCommit","wbRateTotal","wbRateSTotal","wbRateWTotal","stalledS","stalledW","notStalled","blockingS","blockingW","blockingIQFull","blockingIQFullS","blockingLSQFull","blockingLSQFullS","blockingBandwidthFull","blockingBandwidthFullS","NoIntructionsAvailable::0","NoIntructionsAvailable::1","NoIntructionsAvailable::2","NoIntructionsAvailable::3","NoIntructionsAvailable::4","NoIntructionsAvailable::5","instsToCommit::0","NoSInstFromRename","NoWInstFromRename"]
+    rename_stats = [
+        "squashCycles::0", "squashCycles::1", "squashCycles::2", "squashCycles::3", "squashCycles::4", "squashCycles::total",
+        "squashCyclesSThread::0", "squashCyclesSThread::1", "squashCyclesSThread::2", "squashCyclesSThread::3", "squashCyclesSThread::4", "squashCyclesSThread::total",
+        "squashCyclesWThread::0", "squashCyclesWThread::1", "squashCyclesWThread::2", "squashCyclesWThread::3", "squashCyclesWThread::4", "squashCyclesWThread::total",
+        "idleCycles", "idleCyclesPerThread",
+        "idleCyclesSThread::0", "idleCyclesSThread::1", "idleCyclesSThread::2", "idleCyclesSThread::3", "idleCyclesSThread::4", "idleCyclesSThread::total",
+        "idleCyclesWThread::0", "idleCyclesWThread::1", "idleCyclesWThread::2", "idleCyclesWThread::3", "idleCyclesWThread::4", "idleCyclesWThread::total",
+        "blockCycles", "blockCyclesPerThread::0", "blockCyclesPerThread::1", "blockCyclesPerThread::2", "blockCyclesPerThread::3",
+        "blockCyclesSThread::0", "blockCyclesSThread::1", "blockCyclesSThread::2", "blockCyclesSThread::3", "blockCyclesSThread::4", "blockCyclesSThread::total",
+        "blockCyclesWThread::0", "blockCyclesWThread::1", "blockCyclesWThread::2", "blockCyclesWThread::3", "blockCyclesWThread::4", "blockCyclesWThread::total",
+        "serializeStallCycles", "runCycles",
+        "runCyclesSThread::0", "runCyclesSThread::1", "runCyclesSThread::2", "runCyclesSThread::3", "runCyclesSThread::4", "runCyclesSThread::total",
+        "runCyclesWThread::0", "runCyclesWThread::1", "runCyclesWThread::2", "runCyclesWThread::3", "runCyclesWThread::4", "runCyclesWThread::total",
+        "unblockCycles::0", "unblockCycles::1", "unblockCycles::2", "unblockCycles::3", "unblockCycles::4", "unblockCycles::total",
+        "renamedInsts",
+        "squashedInsts::0", "squashedInsts::1", "squashedInsts::2", "squashedInsts::3", "squashedInsts::4", "squashedInsts::total",
+        "ROBFullEvents::0","ROBFullEvents::1","ROBFullEvents::2","ROBFullEvents::3","ROBFullEvents::4", "ROBFullEventsS", "ROBFullEventsW",
+        "iewStallS::0", "iewStallS::1", "iewStallS::2", "iewStallS::3", "iewStallS::4", "iewStallS::total",
+        "iewStallW::0", "iewStallW::1", "iewStallW::2", "iewStallW::3", "iewStallW::4", "iewStallW::total",
+        "NoROBFreeS::0", "NoROBFreeS::1", "NoROBFreeS::2", "NoROBFreeS::3", "NoROBFreeS::4", "NoROBFreeS::total",
+        "NoROBFreeW::0", "NoROBFreeW::1", "NoROBFreeW::2", "NoROBFreeW::3", "NoROBFreeW::4", "NoROBFreeW::total",
+        "NoIQFreeS::0", "NoIQFreeS::1", "NoIQFreeS::2", "NoIQFreeS::3", "NoIQFreeS::4", "NoIQFreeS::total",
+        "NoIQFreeW::0", "NoIQFreeW::1", "NoIQFreeW::2", "NoIQFreeW::3", "NoIQFreeW::4", "NoIQFreeW::total",
+        "NoLSQFreeS::0", "NoLSQFreeS::1", "NoLSQFreeS::2", "NoLSQFreeS::3", "NoLSQFreeS::4", "NoLSQFreeS::total",
+        "NoLSQFreeW::0", "NoLSQFreeW::1", "NoLSQFreeW::2", "NoLSQFreeW::3", "NoLSQFreeW::4", "NoLSQFreeW::total",
+        "NoRenameFreeS::0", "NoRenameFreeS::1", "NoRenameFreeS::2", "NoRenameFreeS::3", "NoRenameFreeS::4", "NoRenameFreeS::total",
+        "NoRenameFreeW::0", "NoRenameFreeW::1", "NoRenameFreeW::2", "NoRenameFreeW::3", "NoRenameFreeW::4", "NoRenameFreeW::total",
+        "SerializeROBFullS::0", "SerializeROBFullS::1", "SerializeROBFullS::2", "SerializeROBFullS::3", "SerializeROBFullS::4", "SerializeROBFullS::total",
+        "SerializeROBFullW::0", "SerializeROBFullW::1", "SerializeROBFullW::2", "SerializeROBFullW::3", "SerializeROBFullW::4", "SerializeROBFullW::total",
+        "renameDeactivate",
+        "BlockedBecauseOneThread::0", "BlockedBecauseOneThread::1", "BlockedBecauseOneThread::2", "BlockedBecauseOneThread::3", "BlockedBecauseOneThread::4", "BlockedBecauseOneThread::total",
+        "resumeSerializeS::0", "resumeSerializeS::1", "resumeSerializeS::2", "resumeSerializeS::3", "resumeSerializeS::4", "resumeSerializeS::total",
+        "resumeSerializeW::0", "resumeSerializeW::1", "resumeSerializeW::2", "resumeSerializeW::3", "resumeSerializeW::4", "resumeSerializeW::total",
+        "resumeUnblockingS::0", "resumeUnblockingS::1", "resumeUnblockingS::2", "resumeUnblockingS::3", "resumeUnblockingS::4", "resumeUnblockingS::total",
+        "resumeUnblockingW::0", "resumeUnblockingW::1", "resumeUnblockingW::2", "resumeUnblockingW::3", "resumeUnblockingW::4", "resumeUnblockingW::total",
+        "RunningS::0", "RunningS::1", "RunningS::2", "RunningS::3", "RunningS::4", "RunningS::total",
+        "RunningW::0", "RunningW::1", "RunningW::2", "RunningW::3", "RunningW::4", "RunningW::total",
+        "IdleS::0", "IdleS::1", "IdleS::2", "IdleS::3", "IdleS::4", "IdleS::total",
+        "IdleW::0", "IdleW::1", "IdleW::2", "IdleW::3", "IdleW::4", "IdleW::total",
+        "StartSquashS::0", "StartSquashS::1", "StartSquashS::2", "StartSquashS::3", "StartSquashS::4", "StartSquashS::total",
+        "StartSquashW::0", "StartSquashW::1", "StartSquashW::2", "StartSquashW::3", "StartSquashW::4", "StartSquashW::total",
+        "BlockedS::0", "BlockedS::1", "BlockedS::2", "BlockedS::3", "BlockedS::4", "BlockedS::total",
+        "BlockedW::0", "BlockedW::1", "BlockedW::2", "BlockedW::3", "BlockedW::4", "BlockedW::total",
+        "UnblockingS::0", "UnblockingS::1", "UnblockingS::2", "UnblockingS::3", "UnblockingS::4", "UnblockingS::total",
+        "UnblockingW::0", "UnblockingW::1", "UnblockingW::2", "UnblockingW::3", "UnblockingW::4", "UnblockingW::total",
+        "SerializeStallS::0", "SerializeStallS::1", "SerializeStallS::2", "SerializeStallS::3", "SerializeStallS::4", "SerializeStallS::total",
+        "SerializeStallW::0", "SerializeStallW::1", "SerializeStallW::2", "SerializeStallW::3", "SerializeStallW::4", "SerializeStallW::total",
+        "unknownStallS::0", "unknownStallS::1", "unknownStallS::2", "unknownStallS::3", "unknownStallS::4", "unknownStallS::total",
+        "IQFullEvents::0","IQFullEvents::1","IQFullEvents::2","IQFullEvents::3","IQFullEvents::4", "IQFullEventsS", "IQFullEventsW",
+        "LQFullEvents::0","LQFullEvents::1","LQFullEvents::2","LQFullEvents::3","LQFullEvents::4", "LQFullEventsS", "LQFullEventsW", "SQFullEvents::0","SQFullEvents::1","SQFullEvents::2","SQFullEvents::3","SQFullEvents::4", "SQFullEventsS", "SQFullEventsW",
+        "fullRegistersEvents::0", "fullRegistersEvents::1", "fullRegistersEvents::2", "fullRegistersEvents::3", "fullRegistersEvents::4", "fullRegistersEvents::total",
+        "renamedOperands", "lookups", "intLookups", "fpLookups", "vecLookups", "vecPredLookups", "committedMaps", "undoneMaps",
+        "serializing", "tempSerializing", "skidInsts", "FreeIntRegClass", "FreeFloatRegClass", "FreeVecElemClass",
+        "FreeVecRegClass", "FreeVecPredRegClass", "FreeCCRegClass", "stalledS", "stalledW", "noInstsAvailableW",
+        "stalledSNotW", "stalledSAndW", "notStalled", "blockingIQFull::0", "blockingIQFull::1", "blockingIQFull::2",
+        "blockingIQFull::3", "blockingIQFull::4", "blockingIQFull::total", "blockingIQFullOutOfSpace::0", "blockingIQFullOutOfSpace::1",
+        "blockingIQFullOutOfSpace::2", "blockingIQFullOutOfSpace::3", "blockingIQFullOutOfSpace::4", "blockingIQFullOutOfSpace::total",
+        "blockingIQFullW::0", "blockingIQFullW::1", "blockingIQFullW::2", "blockingIQFullW::3", "blockingIQFullW::4", "blockingIQFullW::total",
+        "blockingROBFull::0", "blockingROBFull::1", "blockingROBFull::2", "blockingROBFull::3", "blockingROBFull::4", "blockingROBFull::total",
+        "blockingROBFullS::0", "blockingROBFullS::1", "blockingROBFullS::2", "blockingROBFullS::3", "blockingROBFullS::4", "blockingROBFullS::total",
+        "blockingROBFullW::0", "blockingROBFullW::1", "blockingROBFullW::2", "blockingROBFullW::3", "blockingROBFullW::4", "blockingROBFullW::total",
+        "blockingBandwidthFull::0", "blockingBandwidthFull::1", "blockingBandwidthFull::2", "blockingBandwidthFull::3", "blockingBandwidthFull::4", "blockingBandwidthFull::total",
+        "blockingBandwidthFullS::0", "blockingBandwidthFullS::1", "blockingBandwidthFullS::2", "blockingBandwidthFullS::3", "blockingBandwidthFullS::4", "blockingBandwidthFullS::total",
+        "blockingBandwidthFullW::0", "blockingBandwidthFullW::1", "blockingBandwidthFullW::2", "blockingBandwidthFullW::3", "blockingBandwidthFullW::4", "blockingBandwidthFullW::total",
+        "blockingRegFull::0", "blockingRegFull::1", "blockingRegFull::2", "blockingRegFull::3", "blockingRegFull::4", "blockingRegFull::total",
+        "blockingRegFullS::0", "blockingRegFullS::1", "blockingRegFullS::2", "blockingRegFullS::3", "blockingRegFullS::4", "blockingRegFullS::total",
+        "blockingRegFullW::0", "blockingRegFullW::1", "blockingRegFullW::2", "blockingRegFullW::3", "blockingRegFullW::4", "blockingRegFullW::total",
+        "blockingSerialized::0", "blockingSerialized::1", "blockingSerialized::2", "blockingSerialized::3", "blockingSerialized::4", "blockingSerialized::total",
+        "blockingSerializedS::0", "blockingSerializedS::1", "blockingSerializedS::2", "blockingSerializedS::3", "blockingSerializedS::4", "blockingSerializedS::total",
+        "blockingSerializedW::0", "blockingSerializedW::1", "blockingSerializedW::2", "blockingSerializedW::3", "blockingSerializedW::4", "blockingSerializedW::total"
+    ]
 
-    commit_stats = ["commitSquashedInsts","branchMispredicts","branchMispredictsS","branchMispredictsW","branches::0","branches::1","IQTimeTotal","ROBTimeTotal","IEWTimeTotal","totalReadyTimeTotal","renameTimeTotal","decodeTimeTotal","fetchTimeTotal","AvgInstInROB::1"]
 
-    icache_stats = ["demandHits::cpu_cluster.cpus.inst","overallMissLatency::total","demandHits::total","overallHits::total","demandMisses::total","overallAvgMissLatency::total","blockedCycles::no_mshrs","blockedCycles::no_targets","avgBlocked::no_mshrs","avgBlocked::no_targets","replacements","overallAvgMshrMissLatency::total","tags.warmupTick","tags.avgRefs","tags.totalRefs","tags.avgOccs::total","demandMissLatency::total","demandAccesses::total","demandAvgMissLatency::total","demandMshrMissLatency::total","demandAvgMshrMissLatency::total","tags.avgOccs::total","ReadReq.mshrMissLatency::cpu_cluster.cpus.inst","ReadReq.avgMissLatency::cpu_cluster.cpus.inst","overallAvgMissLatency::cpu_cluster.cpus.inst","overallMshrMisses::total","overallAccesses::total","demandMissRate::total","blockedCauses::no_mshrs","blockedCauses::no_targets","writebacks::writebacks","demandMshrHits::total","overallAvgMshrMissLatency::total","ReadReq.hits::total","ReadReq.misses::total","ReadReq.missLatency::total","ReadReq.accesses::total","ReadReq.missRate::total","tags.tagsInUse","tags.tagAccesses","overallAccesses::cpu_cluster.cpus.data","overallMisses::total","overallMissRate::total"]
+    iew_stats = ["idleCyclesDispatch","ExecuteInstsIdle","squashCycles","squashCyclesS","squashCyclesW","blockCycles","blockCyclesS","blockCyclesW","unblockCycles","dispatchedInsts","dispSquashedInsts","dispSquashedInstsS","dispSquashedInstsW","iqFullEvents","iqFullEvents::0","iqFullEvents::1","iqFullEvents::2","iqFullEvents::3","iqFullEvents::4","iqFullEventsS","iqFullEventsW","lsqFullEvents","lsqFullEvents::0","lsqFullEvents::1","lsqFullEvents::2","lsqFullEvents::3","lsqFullEvents::4","lsqFullEventsS","lsqFullEventsW","memOrderViolationEvents","branchMispredicts","instsToCommit","wbRateTotal","wbRateSTotal","wbRateWTotal","stalledS","stalledW","notStalled","blockingS","blockingW","blockingIQFull","blockingIQFull::0","blockingIQFull::1","blockingIQFull::2","blockingIQFull::3","blockingIQFull::4","blockingIQFullS","blockingLSQFull","blockingLSQFull::0","blockingLSQFull::1","blockingLSQFull::2","blockingLSQFull::3","blockingLSQFull::4","blockingLSQFullS","blockingBandwidthFull","blockingBandwidthFullS","NoIntructionsAvailable::0","NoIntructionsAvailable::1","NoIntructionsAvailable::2","NoIntructionsAvailable::3","NoIntructionsAvailable::4","NoIntructionsAvailable::5","instsToCommit::0","NoSInstFromRename","NoWInstFromRename"]
 
-    dcache_stats = ["overallMissRate::total","overallMissLatency::total"]
+    commit_stats = ["commitSquashedInsts","branchMispredicts","branchMispredictsS","branchMispredictsW","branches::0","branches::1","IQTimeTotal","ROBTimeTotal","IEWTimeTotal","totalReadyTimeTotal","renameTimeTotal","decodeTimeTotal","fetchTimeTotal","AvgInstInROB","ROBUtilizationRate"]
+
+    icache_stats = ["demandHits::cpu_cluster.cpus.inst","overallMissLatency::total","demandHits::total","overallHits::total","demandMisses::total","overallAvgMissLatency::total","blockedCycles::no_mshrs","blockedCycles::no_targets","avgBlocked::no_mshrs","avgBlocked::no_targets","replacements","overallAvgMshrMissLatency::total","tags.warmupTick","tags.avgRefs","tags.totalRefs","tags.avgOccs::total","demandMissLatency::total","demandAccesses::total","demandAvgMissLatency::total","demandMshrMissLatency::total","demandAvgMshrMissLatency::total","tags.avgOccs::total","ReadReq.mshrMissLatency::cpu_cluster.cpus.inst","ReadReq.avgMissLatency::cpu_cluster.cpus.inst","overallAvgMissLatency::cpu_cluster.cpus.inst","overallMshrMisses::total","overallAccesses::total","demandMissRate::total","blockedCauses::no_mshrs","blockedCauses::no_targets","writebacks::writebacks","demandMshrHits::total","overallAvgMshrMissLatency::total","ReadReq.hits::total","ReadReq.misses::total","ReadReq.missLatency::total","ReadReq.accesses::total","ReadReq.missRate::total","tags.tagsInUse","tags.tagAccesses","overallAccesses::cpu_cluster.cpus.data","overallMisses::total","overallMissRate::total","blockedCycles::no_mshrs","blockedCycles::no_targets","avgBlocked::no_mshrs","avgBlocked::no_targets"]
+
+    dcache_stats = ["overallMissRate::total"]
 
     rob_stats = ["NumberOfItersInROB"]
 
@@ -512,6 +778,16 @@ def main():
     # loop_type: "tile_setup": Next tile setup
 
     loop_type = "main_loop"
+
+    stage_specfic_stats = []
+    stat_names = []
+    cpu_stage_specfic_stats = []
+    #stat_names = ["ipc","ipc::0","ipc::1","ipc::2","ipc::3","ipc::4","ipc::5"]
+    #stat_names = ["thread_0.numIters","thread_1.numIters","thread_2.numIters","thread_3.numIters","thread_4.numIters","thread_5.numIters"]
+    #stat_names = ["thread_0.MutexOverhead","thread_1.MutexOverhead","thread_2.MutexOverhead","thread_3.MutexOverhead","thread_4.MutexOverhead"]
+    #stage_specfic_stats =[["l2",dcache_stats]]
+    #cpu_stage_specfic_stats = [["dcache_strong",dcache_stats]]
+    #SimStats = []
 
     get_stats(parent_folder, files_check, stat_names, output_file, directory, stage_specfic_stats, cpu_stage_specfic_stats, top_line, cpulist, SimStats, m5_ops_stats, loop_type)
 
