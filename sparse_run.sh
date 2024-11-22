@@ -1,14 +1,16 @@
 #!/bin/bash
 
 # # Common configuration values
-ROBSize=256
-numSIQEntries=256
+ROBSize=128
+numSIQEntries=128
 numWIQEntries=10
 LQEntries=72
 SQEntries=68
-numPhysFloatRegs=270
-numPhysVecRegs=270
-numPhysIntRegs=270
+numPhysFloatRegs=290
+numPhysVecRegs=290
+numPhysIntRegs=290
+
+# 270 280 290 _fixed
 
 # ROBSize=256
 # numSIQEntries=256
@@ -19,7 +21,7 @@ numPhysIntRegs=270
 # numPhysVecRegs=264
 # numPhysIntRegs=264
 
-OUTPUT_DIR="test_sweep_configuration"
+OUTPUT_DIR="sweep_configuration"
 
 # Create necessary directories if they don't exist
 mkdir -p sparse_matrix/$OUTPUT_DIR/txt_files
@@ -30,10 +32,10 @@ mkdir -p sparse_matrix/$OUTPUT_DIR/txt_files
 #for PERCENTAGE in 50 60 70 80 85 90 95 98 99 99.9; do
 #for PERCENTAGE in 50 70 85 90 98 99 99.9; do
 #for PERCENTAGE in 70 80 85 90 95 99; do
-#for PERCENTAGE in 80 90 95; do
-for PERCENTAGE in 70 80 85; do
+#for PERCENTAGE in 50 70 85 80 90 95 99; do
+for PERCENTAGE in 90; do
     MATRIX_DIMENSIONS="400 400 400 400 $PERCENTAGE"     # Update the fifth dimension
-    FILE_SUFFIX="400_${PERCENTAGE}Per_sparse_ROB256"           # Update the file suffix
+    FILE_SUFFIX="400_${PERCENTAGE}Per_sparse_ROB128_REG290"           # Update the file suffix
 
     # # Run simulations with different configurations
 
@@ -49,7 +51,7 @@ for PERCENTAGE in 70 80 85; do
         --smt -t 1 -WThreads 0 -SThreads 1 \
         -ROBSize $ROBSize -numSIQEntries $numSIQEntries -numWIQEntries $numWIQEntries -numIQEntries $numSIQEntries \
         -LQEntries $LQEntries -SQEntries $SQEntries \
-        -numPhysFloatRegs 226 -numPhysVecRegs 226 -numPhysIntRegs 226 -smtIQPolicy="Partitioned" -smtLSQPolicy="Partitioned"  \
+        -numPhysFloatRegs $numPhysFloatRegs -numPhysVecRegs $numPhysVecRegs -numPhysIntRegs $numPhysIntRegs -smtIQPolicy="Partitioned" -smtLSQPolicy="Partitioned"  \
         > sparse_matrix/$OUTPUT_DIR/txt_files/Dynamic_1pThread_${FILE_SUFFIX}.txt \
         2> sparse_matrix/$OUTPUT_DIR/txt_files/Dynamic_1pThread_${FILE_SUFFIX}_error.txt &
 
@@ -64,7 +66,7 @@ for PERCENTAGE in 70 80 85; do
         --smt -t 2 -WThreads 0 -SThreads 2 \
         -ROBSize $ROBSize -numSIQEntries $numSIQEntries -numWIQEntries $numWIQEntries -numIQEntries $numSIQEntries -smtIQPolicy="Partitioned" -smtLSQPolicy="Partitioned" \
         -LQEntries $LQEntries -SQEntries $SQEntries \
-        -numPhysFloatRegs 182 -numPhysVecRegs 182 -numPhysIntRegs 182 \
+        -numPhysFloatRegs $numPhysFloatRegs -numPhysVecRegs $numPhysVecRegs -numPhysIntRegs $numPhysIntRegs \
         > sparse_matrix/$OUTPUT_DIR/txt_files/Dynamic_2pThread_${FILE_SUFFIX}.txt \
         2> sparse_matrix/$OUTPUT_DIR/txt_files/Dynamic_2pThread_${FILE_SUFFIX}_error.txt &
 
@@ -79,7 +81,7 @@ for PERCENTAGE in 70 80 85; do
         --smt -t 3 -WThreads 0 -SThreads 3 \
         -ROBSize $ROBSize -numSIQEntries $numSIQEntries -numWIQEntries $numWIQEntries -numIQEntries $numSIQEntries -smtIQPolicy="Partitioned" -smtLSQPolicy="Partitioned"\
         -LQEntries $LQEntries -SQEntries $SQEntries \
-        -numPhysFloatRegs 138 -numPhysVecRegs 138 -numPhysIntRegs 138 \
+        -numPhysFloatRegs $numPhysFloatRegs -numPhysVecRegs $numPhysVecRegs -numPhysIntRegs $numPhysIntRegs \
         > sparse_matrix/$OUTPUT_DIR/txt_files/Dynamic_3pThread_${FILE_SUFFIX}.txt \
         2> sparse_matrix/$OUTPUT_DIR/txt_files/Dynamic_3pThread_${FILE_SUFFIX}_error.txt &
 
@@ -96,7 +98,7 @@ for PERCENTAGE in 70 80 85; do
         -MainSAllPW=True \
         -ROBSize $ROBSize -numSIQEntries $numSIQEntries -numWIQEntries $numWIQEntries -numIQEntries $numSIQEntries \
         -LQEntries $LQEntries -SQEntries $SQEntries \
-        -numPhysFloatRegs 226 -numPhysVecRegs 226 -numPhysIntRegs 226 \
+        -numPhysFloatRegs $numPhysFloatRegs -numPhysVecRegs $numPhysVecRegs -numPhysIntRegs $numPhysIntRegs \
         > sparse_matrix/$OUTPUT_DIR/txt_files/pthreadDynamic_1S1W_${FILE_SUFFIX}.txt  \
         2> sparse_matrix/$OUTPUT_DIR/txt_files/pthreadDynamic_1S1W_${FILE_SUFFIX}_error.txt &
 
@@ -112,7 +114,7 @@ for PERCENTAGE in 70 80 85; do
         -MainSAllPW=True \
         -ROBSize $ROBSize -numSIQEntries $numSIQEntries -numWIQEntries $numWIQEntries -numIQEntries $numSIQEntries \
         -LQEntries $LQEntries -SQEntries $SQEntries \
-        -numPhysFloatRegs 226 -numPhysVecRegs 226 -numPhysIntRegs 226 \
+        -numPhysFloatRegs $numPhysFloatRegs -numPhysVecRegs $numPhysVecRegs -numPhysIntRegs $numPhysIntRegs \
         > sparse_matrix/$OUTPUT_DIR/txt_files/pthreadDynamic_1S2W_${FILE_SUFFIX}.txt  \
         2> sparse_matrix/$OUTPUT_DIR/txt_files/pthreadDynamic_1S2W_${FILE_SUFFIX}_error.txt &
 
@@ -128,7 +130,7 @@ for PERCENTAGE in 70 80 85; do
         -MainSAllPW=True \
         -ROBSize $ROBSize -numSIQEntries $numSIQEntries -numWIQEntries $numWIQEntries -numIQEntries $numSIQEntries \
         -LQEntries $LQEntries -SQEntries $SQEntries \
-        -numPhysFloatRegs 226 -numPhysVecRegs 226 -numPhysIntRegs 226\
+        -numPhysFloatRegs $numPhysFloatRegs -numPhysVecRegs $numPhysVecRegs -numPhysIntRegs $numPhysIntRegs\
         > sparse_matrix/$OUTPUT_DIR/txt_files/pthreadDynamic_1S3W_${FILE_SUFFIX}.txt  \
         2> sparse_matrix/$OUTPUT_DIR/txt_files/pthreadDynamic_1S3W_${FILE_SUFFIX}_error.txt &
 
@@ -144,7 +146,7 @@ for PERCENTAGE in 70 80 85; do
         -MainSAllPW=True \
         -ROBSize $ROBSize -numSIQEntries $numSIQEntries -numWIQEntries $numWIQEntries -numIQEntries $numSIQEntries \
         -LQEntries $LQEntries -SQEntries $SQEntries \
-        -numPhysFloatRegs 226 -numPhysVecRegs 226 -numPhysIntRegs 226 \
+        -numPhysFloatRegs $numPhysFloatRegs -numPhysVecRegs $numPhysVecRegs -numPhysIntRegs $numPhysIntRegs \
         > sparse_matrix/$OUTPUT_DIR/txt_files/pthreadDynamic_1S4W_${FILE_SUFFIX}.txt  \
         2> sparse_matrix/$OUTPUT_DIR/txt_files/pthreadDynamic_1S4W_${FILE_SUFFIX}_error.txt &
 
@@ -162,7 +164,7 @@ for PERCENTAGE in 70 80 85; do
         -FirstThreadSOtherW=True \
         -ROBSize $ROBSize -numSIQEntries $numSIQEntries -numWIQEntries $numWIQEntries -numIQEntries $numSIQEntries \
         -LQEntries $LQEntries -SQEntries $SQEntries \
-        -numPhysFloatRegs 182 -numPhysVecRegs 182 -numPhysIntRegs 182 \
+        -numPhysFloatRegs $numPhysFloatRegs -numPhysVecRegs $numPhysVecRegs -numPhysIntRegs $numPhysIntRegs \
         > sparse_matrix/$OUTPUT_DIR/txt_files/pthreadDynamic_2S1W_${FILE_SUFFIX}.txt  \
         2> sparse_matrix/$OUTPUT_DIR/txt_files/pthreadDynamic_2S1W_${FILE_SUFFIX}_error.txt &
 
@@ -178,7 +180,7 @@ for PERCENTAGE in 70 80 85; do
         -FirstThreadSOtherW=True \
         -ROBSize $ROBSize -numSIQEntries $numSIQEntries -numWIQEntries $numWIQEntries -numIQEntries $numSIQEntries \
         -LQEntries $LQEntries -SQEntries $SQEntries \
-        -numPhysFloatRegs 182 -numPhysVecRegs 182 -numPhysIntRegs 182 \
+        -numPhysFloatRegs $numPhysFloatRegs -numPhysVecRegs $numPhysVecRegs -numPhysIntRegs $numPhysIntRegs \
         > sparse_matrix/$OUTPUT_DIR/txt_files/pthreadDynamic_2S2W_${FILE_SUFFIX}.txt  \
         2> sparse_matrix/$OUTPUT_DIR/txt_files/pthreadDynamic_2S2W_${FILE_SUFFIX}_error.txt &
 
@@ -194,7 +196,7 @@ for PERCENTAGE in 70 80 85; do
         --smt -t 6 -WThreads 6 -SThreads 0 \
         -ROBSize $ROBSize -numSIQEntries 60 -numWIQEntries 0 -numIQEntries 60 \
         -LQEntries 30 -SQEntries 30 -smtIQPolicy="Partitioned" -smtLSQPolicy="Partitioned" \
-        -numPhysFloatRegs 270 -numPhysVecRegs 270 -numPhysIntRegs 270 \
+        -numPhysFloatRegs $numPhysFloatRegs -numPhysVecRegs $numPhysVecRegs -numPhysIntRegs $numPhysIntRegs \
         > sparse_matrix/$OUTPUT_DIR/txt_files/pthreadDynamic_AllW6_${FILE_SUFFIX}.txt  \
         2> sparse_matrix/$OUTPUT_DIR/txt_files/pthreadDynamic_AllW6_${FILE_SUFFIX}_error.txt &
 
