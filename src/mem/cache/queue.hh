@@ -121,7 +121,6 @@ class Queue : public Drainable, public Named
 
     /** The number of currently allocated entries. */
     int allocated;
-
   public:
 
     /**
@@ -141,6 +140,8 @@ class Queue : public Drainable, public Named
             freeList.push_back(&entries[i]);
         }
     }
+
+    int allocatedPerThread[10] = {0};
 
     bool isEmpty() const
     {

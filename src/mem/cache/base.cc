@@ -121,6 +121,8 @@ BaseCache::BaseCache(const BaseCacheParams &p, unsigned blk_size)
     // forward snoops is overridden in init() once we can query
     // whether the connected requestor is actually snooping or not
 
+    lastTickCheckedTemp = 0;
+
     tempBlock = new TempCacheBlk(blkSize);
 
     tags->tagsInit();
@@ -613,10 +615,24 @@ BaseCache::recvTimingResp(PacketPtr pkt)
             // check the isFull condition before and after as we might
             // have been using the reserved entries already
             const bool was_full = mshrQueue.isFull();
+
+            if(pkt->req->hasContextId()) {
+                // mshrQueue.allocatedPerThread[pkt->req->contextId()]--;
+                // numCyclesPassed = curCycle() - lastTickCheckedTid[pkt->req->contextId()];
+                // MSHRUtilizedTid[pkt->req->contextId()] += mshrQueue.allocatedPerThread[pkt->req->contextId()] * numCyclesPassed;
+                // lastTickCheckedTid[pkt->req->contextId()] = curCycle();
+
+                int numCyclesPassed = curCycle() - lastTickCheckedTemp;
+                stats.cmdStats(pkt).MSHRUtilized[pkt->req->requestorId()] += mshrQueue.numMSHRUsed() * numCyclesPassed;
+                stats.cmdStats(pkt).lastTickChecked[pkt->req->requestorId()] = curCycle();
+                lastTickCheckedTemp = curCycle();
+            }
+            
             mshrQueue.deallocate(mshr);
             if (was_full && !mshrQueue.isFull()) {
                 clearBlocked(Blocked_NoMSHRs);
             }
+            
 
             // Request the bus for a prefetch if this deallocation freed enough
             // MSHRs for a prefetch to take place
@@ -2071,7 +2087,11 @@ BaseCache::CacheCmdStats::CacheCmdStats(BaseCache &c,
                ("average " + name + " mshr miss latency").c_str()),
       ADD_STAT(avgMshrUncacheableLatency, statistics::units::Rate<
                     statistics::units::Tick, statistics::units::Count>::get(),
-               ("average " + name + " mshr uncacheable latency").c_str())
+               ("average " + name + " mshr uncacheable latency").c_str()),
+      ADD_STAT(MSHRUtilized, statistics::units::Count::get(),
+               ("number of MSHRUtilized " + name + " MSHR misses").c_str()),
+      ADD_STAT(lastTickChecked, statistics::units::Count::get(),
+               ("lastTickChecked " + name + " MSHR misses").c_str())
 {
 }
 
@@ -2138,6 +2158,22 @@ BaseCache::CacheCmdStats::regStatsFromParent()
     avgMissLatency = missLatency / misses;
     for (int i = 0; i < max_requestors; i++) {
         avgMissLatency.subname(i, system->getRequestorName(i));
+    }
+
+    MSHRUtilized
+        .init(max_requestors)
+        .flags(total | nozero | nonan)
+        ;
+    for (int i = 0; i < max_requestors; i++) {
+        MSHRUtilized.subname(i, system->getRequestorName(i));
+    }
+
+    lastTickChecked
+        .init(max_requestors)
+        .flags(total | nozero | nonan)
+        ;
+    for (int i = 0; i < max_requestors; i++) {
+        lastTickChecked.subname(i, system->getRequestorName(i));
     }
 
     // MSHR statistics
@@ -2286,6 +2322,8 @@ BaseCache::CacheStats::CacheStats(BaseCache &c)
              "number of data expansions"),
     ADD_STAT(dataContractions, statistics::units::Count::get(),
              "number of data contractions"),
+    ADD_STAT(overallMshrUtilizationRate, statistics::units::Ratio::get(),
+             "mshr utilization rate"),
     cmd(MemCmd::NUM_MEM_CMDS)
 {
     for (int idx = 0; idx < MemCmd::NUM_MEM_CMDS; ++idx)
@@ -2450,6 +2488,12 @@ BaseCache::CacheStats::regStats()
     overallMshrMisses = demandMshrMisses + SUM_NON_DEMAND(mshrMisses);
     for (int i = 0; i < max_requestors; i++) {
         overallMshrMisses.subname(i, system->getRequestorName(i));
+    }
+
+    overallMshrUtilizationRate.flags(total | nozero | nonan);
+    overallMshrUtilizationRate = SUM_DEMAND(MSHRUtilized) / SUM_DEMAND(lastTickChecked);
+    for (int i = 0; i < max_requestors; i++) {
+        overallMshrUtilizationRate.subname(i, system->getRequestorName(i));
     }
 
     demandMshrMissLatency.flags(total | nozero | nonan);

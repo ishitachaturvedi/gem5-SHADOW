@@ -116,6 +116,12 @@ class BaseCache : public ClockedObject
         NUM_BLOCKED_CAUSES
     };
 
+    // total number of MSHRs used, summed over cycles
+    float MSHRUtilizedTid[10] = {0};
+    float lastTickCheckedTid[10] = {0};
+
+    float lastTickCheckedTemp;
+
     /**
      * A data contents update is composed of the updated block's address,
      * the old contents, and the new contents.
@@ -1025,6 +1031,10 @@ class BaseCache : public ClockedObject
         statistics::Vector mshrHits;
         /** Number of misses that miss in the MSHRs, per command and thread. */
         statistics::Vector mshrMisses;
+        /** Number of utilized MSHRs, per command and thread. */
+        statistics::Vector MSHRUtilized;
+        /** Number of cyclesPassed, per command and thread. */
+        statistics::Vector lastTickChecked;
         /** Number of misses that miss in the MSHRs, per command and thread. */
         statistics::Vector mshrUncacheable;
         /** Total tick latency of each MSHR miss, per command and thread. */
@@ -1136,6 +1146,9 @@ class BaseCache : public ClockedObject
         /** Number of data expansions. */
         statistics::Scalar dataExpansions;
 
+        /** Overall utilization of MSHR **/
+        statistics::Formula overallMshrUtilizationRate;
+
         /**
          * Number of data contractions (blocks that had their compression
          * factor improved).
@@ -1172,6 +1185,14 @@ class BaseCache : public ClockedObject
 
     MSHR *allocateMissBuffer(PacketPtr pkt, Tick time, bool sched_send = true)
     {
+        
+        if(pkt->req->hasContextId()) {
+            int numCyclesPassed = curCycle() - lastTickCheckedTemp;
+            stats.cmdStats(pkt).MSHRUtilized[pkt->req->requestorId()] += mshrQueue.numMSHRUsed() * numCyclesPassed;
+            stats.cmdStats(pkt).lastTickChecked[pkt->req->requestorId()] = curCycle();
+            lastTickCheckedTemp = curCycle();
+        }
+
         MSHR *mshr = mshrQueue.allocate(pkt->getBlockAddr(blkSize), blkSize,
                                         pkt, time, order++,
                                         allocOnFill(pkt->cmd));

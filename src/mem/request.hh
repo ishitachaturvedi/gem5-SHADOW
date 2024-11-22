@@ -453,6 +453,9 @@ class Request
     /** The context ID (for statistics, locks, and wakeups). */
     ContextID _contextId = InvalidContextID;
 
+    /** The Thread ID (for statistics, locks, and wakeups). */    
+    int _threadID = InvalidContextID;
+
     /** program counter of initiating access; for tracing/debugging */
     Addr _pc = MaxAddr;
 
@@ -510,7 +513,7 @@ class Request
           privateFlags(other.privateFlags),
           _time(other._time),
           _taskId(other._taskId), _vaddr(other._vaddr),
-          _extraData(other._extraData), _contextId(other._contextId),
+          _extraData(other._extraData), _contextId(other._contextId), _threadID(other._threadID),
           _pc(other._pc), _reqInstSeqNum(other._reqInstSeqNum),
           _localAccessor(other._localAccessor),
           translateDelta(other.translateDelta),
@@ -546,6 +549,12 @@ class Request
     {
         _contextId = context_id;
         privateFlags.set(VALID_CONTEXT_ID);
+    }
+
+    void
+    setThreadID(int tid) 
+    {
+        _threadID = tid;
     }
 
     void
@@ -903,6 +912,12 @@ class Request
     {
         assert(hasContextId());
         return _contextId;
+    }
+
+    int
+    threadID()
+    {
+        return _threadID;
     }
 
     /* For GPU fullsystem mark this request is not to device memory. */

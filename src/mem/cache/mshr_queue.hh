@@ -161,6 +161,11 @@ class MSHRQueue : public Queue<MSHR>
         // keep regressions unchanged
         return (allocated < numEntries - (numReserve + 1 + demandReserve));
     }
+
+    int numMSHRUsed() {
+      return allocated;
+    }
+
 };
 
 } // namespace gem5

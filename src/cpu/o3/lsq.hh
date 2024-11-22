@@ -332,6 +332,12 @@ class LSQ
             req()->setContext(context_id);
         }
 
+        void 
+        setThreadID(int tid) 
+        {
+            req()->setThreadID(tid);
+        }
+
         const DynInstPtr& instruction() { return _inst; }
 
         bool hasStaleTranslation() const { return _hasStaleTranslation; }
