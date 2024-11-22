@@ -395,27 +395,27 @@ CPU::CPU(const BaseO3CPUParams &params)
     rename.setFreeList(&freeList);
 
     // integer setup
-    int archRegsForInOrder = WThreads * regClasses.at(IntRegClass)->numRegs();
+    int archRegsForInOrder = (WThreads + SThreads) * regClasses.at(IntRegClass)->numRegs();
     int archRegsForOoO = params.numPhysIntRegs - archRegsForInOrder;
     TotalRegsAvailableForOoO[IntRegClass] = archRegsForOoO;
     RegsAvailableForOoO[IntRegClass] = archRegsForOoO;
 
-    archRegsForInOrder = WThreads * regClasses.at(FloatRegClass)->numRegs();
+    archRegsForInOrder = (WThreads + SThreads) * regClasses.at(FloatRegClass)->numRegs();
     archRegsForOoO = params.numPhysFloatRegs - archRegsForInOrder;
     TotalRegsAvailableForOoO[FloatRegClass] = archRegsForOoO;
     RegsAvailableForOoO[FloatRegClass] = archRegsForOoO;
 
-    archRegsForInOrder = WThreads * regClasses.at(VecRegClass)->numRegs();
+    archRegsForInOrder = (WThreads + SThreads) * regClasses.at(VecRegClass)->numRegs();
     archRegsForOoO = params.numPhysVecRegs - archRegsForInOrder;
     TotalRegsAvailableForOoO[VecRegClass] = archRegsForOoO;
     RegsAvailableForOoO[VecRegClass] = archRegsForOoO;
 
-    archRegsForInOrder = WThreads * regClasses.at(VecPredRegClass)->numRegs();
+    archRegsForInOrder = (WThreads + SThreads) * regClasses.at(VecPredRegClass)->numRegs();
     archRegsForOoO = params.numPhysVecPredRegs - archRegsForInOrder;
     TotalRegsAvailableForOoO[VecPredRegClass] = archRegsForOoO;
     RegsAvailableForOoO[VecPredRegClass] = archRegsForOoO;
 
-    archRegsForInOrder = WThreads * regClasses.at(CCRegClass)->numRegs();
+    archRegsForInOrder = (WThreads + SThreads) * regClasses.at(CCRegClass)->numRegs();
     archRegsForOoO = params.numPhysCCRegs - archRegsForInOrder;
     TotalRegsAvailableForOoO[CCRegClass] = archRegsForOoO;
     RegsAvailableForOoO[CCRegClass] = archRegsForOoO;
@@ -430,7 +430,6 @@ CPU::CPU(const BaseO3CPUParams &params)
                 PhysRegIdPtr phys_reg = freeList.getReg(type);
                 renameMap[tid].setEntry(id, phys_reg);
                 commitRenameMap[tid].setEntry(id, phys_reg);
-
                 // reduce the number of available registers for OoO because they are mapped here
                 if(tid < SThreads) {
                     RegsAvailableForOoO[type]--;
@@ -2240,6 +2239,7 @@ CPU::htmSendAbortSignal(ThreadID tid, uint64_t htm_uid,
 
     req->taskId(taskId());
     req->setContext(thread[tid]->contextId());
+    req->setThreadID(tid);
     req->setHtmAbortCause(cause);
 
     assert(req->isHTMAbort());
