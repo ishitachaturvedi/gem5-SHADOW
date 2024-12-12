@@ -31,5 +31,5 @@ Triangle Counting:
 	Generate and Input using the Synthetic Graph Generator: To run with P number of threads, N vertices, and DEG edges per vertex ./triangle_counting_lock 0 P N DEG
 
 Travelling Salesman Problem: To run with P number of threads, C cities ./tsp P C (./tsp 2 16)
-
+time ./tsp_work_stealing 6 23
 
