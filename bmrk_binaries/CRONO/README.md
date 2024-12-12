@@ -15,6 +15,8 @@ Connected Components:
 	Generate and Input using the Synthetic Graph Generator: To run with P number of threads, N vertices, and DEG edges per vertex ./connected_components_lock 0 P N DEG
 
 Depth First Search: To run with P number of threads, and an input file ./dfs P <input_file>. The input file can be used as: sample.txt OR any other file such as road networks from the SNAP datasets (e.g. A FaceBook Graph) https://snap.stanford.edu/data/.
+./dfs_work_stealing 0 1 3000 2000
+./dfs_work_stealing 0 <NUM_THREADS> <N> <DEG>
 
 PageRank:
 	Input Graph from File: To run with P number of threads, and an input file, ./pagerank 1 P <input_file>. It will then ask for the input file, enter: sample.txt OR any other file such as road networks from the SNAP datasets (e.g. A FaceBook Graph) https://snap.stanford.edu/data/.
@@ -29,4 +31,5 @@ Triangle Counting:
 	Generate and Input using the Synthetic Graph Generator: To run with P number of threads, N vertices, and DEG edges per vertex ./triangle_counting_lock 0 P N DEG
 
 Travelling Salesman Problem: To run with P number of threads, C cities ./tsp P C (./tsp 2 16)
+
 
