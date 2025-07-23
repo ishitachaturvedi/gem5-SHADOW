@@ -1,4 +1,8 @@
-This is the gem5 simulator.
+
+
+This is the gem5 simulator built to implement SHADOW: Simultaneous Multi-Threading Architecture with Asymmetric Threads from MICRO 2025.
+
+Please cite "SHADOW: Simultaneous Multi-Threading Architecture with Asymmetric Threads" if you use this code.
 
 The main website can be found at http://www.gem5.org
 
